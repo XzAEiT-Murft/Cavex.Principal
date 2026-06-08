@@ -9,11 +9,16 @@ namespace Cavex.Principal.Data
 {
     public class CavexPrincipalContext : DbContext
     {
-        public CavexPrincipalContext (DbContextOptions<CavexPrincipalContext> options)
+        public CavexPrincipalContext(DbContextOptions<CavexPrincipalContext> options)
             : base(options)
         {
         }
 
-        public DbSet<Cavex.Principal.Models.ServicioACliente> ServicioACliente { get; set; } = default!;
+        public DbSet<ServicioACliente> ServicioACliente { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ServicioACliente>().ToTable("catServicios");
+        }
     }
 }
