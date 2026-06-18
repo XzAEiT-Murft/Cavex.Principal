@@ -1,3 +1,4 @@
+using Cavex.Principal.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);

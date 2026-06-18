@@ -1,6 +1,6 @@
 ﻿namespace Cavex.Principal.Models
 {
-    public class EmpleadoEstado
+    public class EmpleadoEntidadFederativa
     {
         public int Id { get; set; }
         public string strValor { get; set; }

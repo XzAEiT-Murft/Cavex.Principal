@@ -20,22 +20,22 @@ namespace Cavex.Principal.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<ResponseWrapper<List<ServicioAClienteDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default)
+        public async Task<ResponseWrapper<List<CatServicioSaveDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(
                 () => _servicioAClientesApi.GetAllAsync(cancellationToken),
                 "No fue posible obtener los servicios a clientes.");
         }
 
-        public async Task<ResponseWrapper<ServicioAClienteDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<ResponseWrapper<CatServicioSaveDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(
                 () => _servicioAClientesApi.GetByIdAsync(id, cancellationToken),
                 "No fue posible obtener el servicio a cliente solicitado.");
         }
 
-        public async Task<ResponseWrapper<ServicioAClienteDto>> CrearAsync(
-            ServicioAClienteDto request,
+        public async Task<ResponseWrapper<CatServicioSaveDto>> CrearAsync(
+            CatServicioSaveDto request,
             CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(
@@ -43,9 +43,9 @@ namespace Cavex.Principal.Services.Implementations
                 "No fue posible crear el servicio a cliente.");
         }
 
-        public async Task<ResponseWrapper<ServicioAClienteDto>> ActualizarAsync(
+        public async Task<ResponseWrapper<CatServicioSaveDto>> ActualizarAsync(
             int id,
-            ServicioAClienteDto request,
+            CatServicioSaveDto request,
             CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(

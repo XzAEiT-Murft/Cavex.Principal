@@ -4,13 +4,13 @@ namespace Cavex.Principal.Services.Interfaces
 {
     public interface IServicioAClientesService
     {
-        Task<ResponseWrapper<List<ServicioAClienteDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<List<CatServicioSaveDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
 
-        Task<ResponseWrapper<ServicioAClienteDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<CatServicioSaveDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
 
-        Task<ResponseWrapper<ServicioAClienteDto>> CrearAsync(ServicioAClienteDto request, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<CatServicioSaveDto>> CrearAsync(CatServicioSaveDto request, CancellationToken cancellationToken = default);
 
-        Task<ResponseWrapper<ServicioAClienteDto>> ActualizarAsync(int id, ServicioAClienteDto request, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<CatServicioSaveDto>> ActualizarAsync(int id, CatServicioSaveDto request, CancellationToken cancellationToken = default);
 
         Task<ResponseWrapper<bool>> EliminarAsync(int id, CancellationToken cancellationToken = default);
     }

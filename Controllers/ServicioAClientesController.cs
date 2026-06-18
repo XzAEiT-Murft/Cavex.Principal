@@ -45,7 +45,7 @@ namespace Cavex.Principal.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ServicioAClienteDto model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(CatServicioSaveDto model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -80,7 +80,7 @@ namespace Cavex.Principal.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, ServicioAClienteDto model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(int id, CatServicioSaveDto model, CancellationToken cancellationToken)
         {
             if (id != model.Id)
             {
