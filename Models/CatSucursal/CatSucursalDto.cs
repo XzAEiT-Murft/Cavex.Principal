@@ -1,0 +1,15 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Cavex.Principal.Models.CatSucursal
+{
+    public class CatSucursalDto
+    {
+        public int Id { get; set; }
+        
+        [Display(Name = "Nombre")]
+        public string StrValor { get; set; }
+
+        [Display(Name = "Ubicacion")]
+        public string StrDescripcion { get; set; }
+    }
+}

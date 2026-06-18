@@ -8,17 +8,17 @@ namespace Cavex.Principal.ApiClients.ServicioAClientes
     {
 
         [Get("/api/v1/CatServicios")]  
-        Task<ResponseWrapper<PagedResponse<ServicioAClienteDto>>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<PagedResponse<CatServicioSaveDto>>> GetAllAsync(CancellationToken cancellationToken = default);
 
         // Recordar
         [Get("/api/v1/CatServicios/{id}")]
-        Task<ResponseWrapper<ServicioAClienteDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<CatServicioSaveDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
         [Post("/api/v1/CatServicios")]
-        Task<ResponseWrapper<ServicioAClienteDto>> CreateAsync([Body] RequestWrapper<ServicioAClienteDto> request, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<CatServicioSaveDto>> CreateAsync([Body] RequestWrapper<CatServicioSaveDto> request, CancellationToken cancellationToken = default);
 
         [Put("/api/v1/CatServicios/{id}")]
-        Task<ResponseWrapper<ServicioAClienteDto>> UpdateAsync(int id, [Body] RequestWrapper<ServicioAClienteDto> request, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<CatServicioSaveDto>> UpdateAsync(int id, [Body] RequestWrapper<CatServicioSaveDto> request, CancellationToken cancellationToken = default);
 
         [Delete("/api/v1/CatServicios/{id}")]
         Task<ResponseWrapper<bool>> DeleteAsync(int id, CancellationToken cancellationToken = default); 

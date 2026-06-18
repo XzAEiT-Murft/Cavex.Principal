@@ -31,7 +31,7 @@ namespace Cavex.Principal.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SaveService([FromBody] ServicioAClienteDto model, CancellationToken cancellationToken)
+        public async Task<IActionResult> SaveService([FromBody] CatServicioSaveDto model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -48,7 +48,7 @@ namespace Cavex.Principal.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateService([FromBody] ServicioAClienteDto model, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateService([FromBody] CatServicioSaveDto model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {

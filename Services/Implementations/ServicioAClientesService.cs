@@ -20,36 +20,36 @@ namespace Cavex.Principal.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<ResponseWrapper<PagedResponse<ServicioAClienteDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default)
+        public async Task<ResponseWrapper<PagedResponse<CatServicioSaveDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(
                 () => _servicioAClientesApi.GetAllAsync(cancellationToken),
                 "No fue posible obtener los servicios a clientes.");
         }
 
-        public async Task<ResponseWrapper<ServicioAClienteDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default)
+        public async Task<ResponseWrapper<CatServicioSaveDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(
                 () => _servicioAClientesApi.GetByIdAsync(id, cancellationToken),
                 "No fue posible obtener el servicio a cliente solicitado.");
         }
 
-        public async Task<ResponseWrapper<ServicioAClienteDto>> CrearAsync(
-            ServicioAClienteDto request,
+        public async Task<ResponseWrapper<CatServicioSaveDto>> CrearAsync(
+            CatServicioSaveDto request,
             CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(
-                () => _servicioAClientesApi.CreateAsync(RequestWrapper<ServicioAClienteDto>.Create(request), cancellationToken),
+                () => _servicioAClientesApi.CreateAsync(RequestWrapper<CatServicioSaveDto>.Create(request), cancellationToken),
                 "No fue posible crear el servicio a cliente.");
         }
 
-        public async Task<ResponseWrapper<ServicioAClienteDto>> ActualizarAsync(
+        public async Task<ResponseWrapper<CatServicioSaveDto>> ActualizarAsync(
             int id,
-            ServicioAClienteDto request,
+            CatServicioSaveDto request,
             CancellationToken cancellationToken = default)
         {
             return await ExecuteAsync(
-                () => _servicioAClientesApi.UpdateAsync(id, RequestWrapper<ServicioAClienteDto>.Create(request), cancellationToken),
+                () => _servicioAClientesApi.UpdateAsync(id, RequestWrapper<CatServicioSaveDto>.Create(request), cancellationToken),
                 "No fue posible actualizar el servicio a cliente.");
         }
 
