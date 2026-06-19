@@ -844,15 +844,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (firstInvalidCard) {
                     firstInvalidCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-                alert('Faltan campos por llenar o contienen errores. Revise los campos marcados en rojo.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Formulario incompleto',
+                    text: 'Faltan campos por llenar o contienen errores. Revise los campos marcados en rojo.',
+                    confirmButtonColor: 'var(--teal-cavex)'
+                });
             } else {
                 const formData = new FormData(form);
                 try {
                     console.log('Enviando datos al backend...');
-                    alert('¡Empleado y archivos guardados exitosamente!');
-                    window.location.href = '/';
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: '¡Empleado y archivos guardados exitosamente!',
+                        confirmButtonColor: 'var(--teal-cavex)',
+                        confirmButtonText: 'Ver listado de empleados'
+                    }).then(() => {
+                        window.location.href = '/Empleado/Index';
+                    });
                 } catch (error) {
-                    alert('Ocurrió un error al procesar la solicitud: ' + error.message);
+                    let errorText = error.message || "";
+                    const isTechnicalError = errorText.toLowerCase().includes("database") || 
+                                             errorText.toLowerCase().includes("db") || 
+                                             errorText.toLowerCase().includes("sql") || 
+                                             errorText.toLowerCase().includes("conexion") || 
+                                             errorText.toLowerCase().includes("connection");
+
+                    if (!errorText || isTechnicalError) {
+                        errorText = 'No se pudo guardar el empleado. ¡Intenta de nuevo!';
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de registro',
+                        text: errorText,
+                        confirmButtonColor: 'var(--teal-cavex)'
+                    });
                 }
             }
         });
@@ -910,7 +938,12 @@ function procesarArchivo(file, key) {
     const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     
     if (ext !== '.pdf' || file.type !== 'application/pdf') {
-        alert('Formato de archivo no permitido. Solo se aceptan archivos PDF reales.');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Archivo no permitido',
+            text: 'Formato de archivo no permitido. Solo se aceptan archivos PDF reales.',
+            confirmButtonColor: 'var(--teal-cavex)'
+        });
         return;
     }
     

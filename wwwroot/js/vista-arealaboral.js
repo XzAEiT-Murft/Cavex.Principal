@@ -1,15 +1,14 @@
-let services = [];
+let areas = [];
 let editingId = null;
 
 // Variables de paginación y filtros
 let currentPage = 1;
 let pageSize = 10;
-let statusFilter = 'todos';
 let searchQuery = '';
 
 // Renderizado inicial de la tabla cargando datos del servidor
 document.addEventListener('DOMContentLoaded', () => {
-    loadServicesFromServer();
+    loadAreasFromServer();
     
     // Aplicacion en tiempo real utilizando las funciones globales de site.js
     const nombreInput = document.getElementById('strNombre');
@@ -56,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function loadServicesFromServer() {
-    fetch('/Servicios/GetServices')
+function loadAreasFromServer() {
+    fetch('/EmpCatAreaLaboral/GetAreas')
         .then(response => {
             if (!response.ok) {
                 throw new Error("HTTP error " + response.status);
@@ -65,30 +64,28 @@ function loadServicesFromServer() {
             return response.json();
         })
         .then(result => {
-            console.log("Respuesta de GetServices:", result);
+            console.log("Respuesta de GetAreas:", result);
             if (result.success) {
                 if (result.data && Array.isArray(result.data)) {
-                    services = result.data.map(item => ({
+                    areas = result.data.map(item => ({
                         id: item.id,
                         nombre: item.strValor,
-                        descripcion: item.strDescripcion,
-                        idCatStatus: item.idCatStatus,
-                        activo: item.idCatStatus === 1
+                        descripcion: item.strDescripcion
                     }));
                 } else {
-                    services = [];
+                    areas = [];
                 }
-                renderServices();
+                renderAreas();
             } else {
-                console.error("Error al cargar servicios desde base de datos:", result.message);
+                console.error("Error al cargar areas desde base de datos:", result.message);
                 Swal.fire({
                     icon: 'error',
                     title: '¡Ups!',
-                    text: 'No se pudieron obtener los datos de los servicios. ¡Intenta de nuevo!',
+                    text: 'No se pudieron obtener los datos de las áreas laborales. ¡Intenta de nuevo!',
                     confirmButtonColor: 'var(--teal-cavex)'
                 });
-                services = [];
-                renderServices();
+                areas = [];
+                renderAreas();
             }
         })
         .catch(err => {
@@ -99,41 +96,28 @@ function loadServicesFromServer() {
                 text: 'No se pudieron obtener los datos. ¡Intenta de nuevo!',
                 confirmButtonColor: 'var(--teal-cavex)'
             });
-            services = [];
-            renderServices();
+            areas = [];
+            renderAreas();
         });
 }
 
-// Función para renderizar los servicios
-function renderServices() {
-    const tbody = document.getElementById('servicesTableBody');
+// Función para renderizar las áreas
+function renderAreas() {
+    const tbody = document.getElementById('areasTableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
-    // Filtrar servicios
-    let filtered = services.filter(s => {
-        // Filtro por Estado
-        if (statusFilter === 'activos' && !s.activo) return false;
-        if (statusFilter === 'baja' && s.activo) return false;
-
+    // Filtrar áreas
+    let filtered = areas.filter(a => {
         // Filtro por Búsqueda (Nombre o Descripción)
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            const nombreMatch = s.nombre.toLowerCase().includes(query);
-            const descMatch = (s.descripcion || '').toLowerCase().includes(query);
+            const nombreMatch = a.nombre.toLowerCase().includes(query);
+            const descMatch = (a.descripcion || '').toLowerCase().includes(query);
             return nombreMatch || descMatch;
         }
-
         return true;
     });
-
-    // Actualizar Conteos en Pestañas
-    const countTodos = services.length;
-    const countActivos = services.filter(s => s.activo).length;
-    const countBaja = services.filter(s => !s.activo).length;
-
-    document.getElementById('countTodos').textContent = countTodos;
-    document.getElementById('countActivos').textContent = countActivos;
-    document.getElementById('countBaja').textContent = countBaja;
 
     // Paginación
     const totalRecords = filtered.length;
@@ -155,44 +139,31 @@ function renderServices() {
     if (pagedList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="text-center py-5">
+                <td colspan="3" class="text-center py-5">
                     <div class="text-muted">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 opacity-50"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                        <p class="m-0 font-weight-700">No se encontraron servicios</p>
+                        <p class="m-0 font-weight-700">No se encontraron áreas laborales</p>
                         <small>Prueba ajustando los filtros o la búsqueda</small>
                     </div>
                 </td>
             </tr>
         `;
     } else {
-        pagedList.forEach(s => {
+        pagedList.forEach(a => {
             const tr = document.createElement('tr');
             
-            // Badge de Estado
-            const statusBadge = s.activo 
-                ? '<span class="badge-active">Activo</span>' 
-                : '<span class="badge-danger">Baja</span>';
-            
-            const actionStatusText = s.activo ? 'Dar de baja' : 'Activar';
-            const actionStatusIcon = s.activo 
-                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>'
-                : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-success"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
-
-            const descText = s.descripcion || 'Sin descripción';
-            const truncatedDesc = s.descripcion && s.descripcion.length > 50 
-                ? s.descripcion.substring(0, 50) + '...' 
+            const descText = a.descripcion || 'Sin descripción';
+            const truncatedDesc = a.descripcion && a.descripcion.length > 50 
+                ? a.descripcion.substring(0, 50) + '...' 
                 : descText;
-            const descTitle = s.descripcion ? `title="${escapeHtml(s.descripcion)}"` : '';
+            const descTitle = a.descripcion ? `title="${escapeHtml(a.descripcion)}"` : '';
 
             tr.innerHTML = `
                 <td>
-                    <div class="cotizacion-main-text">${escapeHtml(s.nombre)}</div>
+                    <div class="cotizacion-main-text">${escapeHtml(a.nombre)}</div>
                 </td>
                 <td>
                     <div class="description-text" ${descTitle}>${escapeHtml(truncatedDesc)}</div>
-                </td>
-                <td>
-                    ${statusBadge}
                 </td>
                 <td class="text-end">
                     <div class="dropdown actions-dropdown d-inline-block">
@@ -202,13 +173,13 @@ function renderServices() {
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editService(${s.id})">
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editArea(${a.id})">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                     Editar
                                 </button>
                             </li>
                             <li>
-                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="deleteService(${s.id})">
+                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="deleteArea(${a.id})">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                                     <span>Eliminar</span>
                                 </button>
@@ -225,7 +196,8 @@ function renderServices() {
     const infoText = totalRecords > 0 
         ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalRecords} registros`
         : `Mostrando 0-0 de 0 registros`;
-    document.getElementById('paginationInfo').textContent = infoText;
+    const infoEl = document.getElementById('paginationInfo');
+    if (infoEl) infoEl.textContent = infoText;
 
     // Renderizar botones de paginación
     renderPagination(totalPages);
@@ -233,7 +205,7 @@ function renderServices() {
     // Actualizar contadores en la cabecera de la tabla
     const countPill = document.querySelector('.table-module .records-pill');
     if (countPill) {
-        countPill.textContent = `${totalRecords} servicios`;
+        countPill.textContent = `${totalRecords} áreas`;
     }
 
     const extraPill = document.querySelector('.table-module .records-pill-soft');
@@ -245,6 +217,7 @@ function renderServices() {
 // Función para renderizar los números de página
 function renderPagination(totalPages) {
     const paginationList = document.getElementById('paginationList');
+    if (!paginationList) return;
     paginationList.innerHTML = '';
 
     if (totalPages <= 1) return; // No mostrar paginación si solo hay una página
@@ -284,31 +257,14 @@ function renderPagination(totalPages) {
 function changePage(event, page) {
     if (event) event.preventDefault();
     currentPage = page;
-    renderServices();
-}
-
-// Establecer filtro de estado
-function setStatusFilter(status) {
-    statusFilter = status;
-    
-    // Actualizar clases activas en los botones de pestañas
-    document.querySelectorAll('.custom-tabs-container .tab-item').forEach(btn => {
-        btn.classList.remove('active');
-    });
-
-    if (status === 'todos') document.getElementById('tabTodos').classList.add('active');
-    if (status === 'activos') document.getElementById('tabActivos').classList.add('active');
-    if (status === 'baja') document.getElementById('tabBaja').classList.add('active');
-
-    currentPage = 1; // Reiniciar a primera página al filtrar
-    renderServices();
+    renderAreas();
 }
 
 // Manejar búsqueda de texto
 function handleSearch(query) {
     searchQuery = query;
     currentPage = 1; // Reiniciar a primera página al buscar
-    renderServices();
+    renderAreas();
 }
 
 // Limpiar errores de validación
@@ -337,7 +293,7 @@ function handleFormSubmit(e) {
         nombreInput.classList.remove('is-valid');
         const feedback = document.getElementById('nombreFeedback');
         if (feedback) {
-            feedback.textContent = 'El nombre del servicio es obligatorio.';
+            feedback.textContent = 'El nombre del área es obligatorio.';
         }
         nombreInput.focus();
         return;
@@ -356,16 +312,16 @@ function handleFormSubmit(e) {
         return;
     }
 
-    // Validar si ya existe otro servicio con el mismo nombre (ignora mayúsculas/minúsculas)
+    // Validar si ya existe otra área con el mismo nombre (ignora mayúsculas/minúsculas)
     const nombreLower = nombre.toLowerCase().trim();
-    const existeDuplicado = services.some(s => s.nombre.toLowerCase().trim() === nombreLower && s.id !== editingId);
+    const existeDuplicado = areas.some(a => a.nombre.toLowerCase().trim() === nombreLower && a.id !== editingId);
     
     if (existeDuplicado) {
         nombreInput.classList.add('is-invalid');
         nombreInput.classList.remove('is-valid');
         const feedback = document.getElementById('nombreFeedback');
         if (feedback) {
-            feedback.textContent = 'El nombre del servicio ya existe.';
+            feedback.textContent = 'El nombre del área laboral ya existe.';
         }
         nombreInput.focus();
         return;
@@ -377,14 +333,12 @@ function handleFormSubmit(e) {
         descInput.classList.add('is-valid');
     }
 
-    const url = editingId === null ? '/Servicios/SaveService' : '/Servicios/UpdateService';
-    const statusVal = editingId === null ? 1 : parseInt(document.getElementById('intIdStatus').value);
+    const url = editingId === null ? '/EmpCatAreaLaboral/SaveArea' : '/EmpCatAreaLaboral/UpdateArea';
 
     const payload = {
         id: editingId || 0,
         strValor: nombre,
-        strDescripcion: descripcion,
-        idCatStatus: statusVal
+        strDescripcion: descripcion
     };
 
     fetch(url, {
@@ -400,17 +354,17 @@ function handleFormSubmit(e) {
             Swal.fire({
                 icon: 'success',
                 title: editingId === null ? '¡Registro exitoso!' : '¡Actualización exitosa!',
-                text: editingId === null ? 'Servicio agregado exitosamente.' : 'Servicio actualizado exitosamente.',
+                text: editingId === null ? 'Área laboral agregada exitosamente.' : 'Área laboral actualizada exitosamente.',
                 confirmButtonColor: 'var(--teal-cavex)'
             });
             resetForm();
-            loadServicesFromServer();
+            loadAreasFromServer();
         } else {
             nombreInput.classList.add('is-invalid');
             nombreInput.classList.remove('is-valid');
             const feedback = document.getElementById('nombreFeedback');
             if (feedback) {
-                feedback.textContent = result.message || 'Error al guardar el servicio.';
+                feedback.textContent = result.message || 'Error al guardar el área laboral.';
             }
 
             let errorText = result.message || "";
@@ -422,8 +376,8 @@ function handleFormSubmit(e) {
 
             if (!errorText || isTechnicalError) {
                 errorText = editingId === null 
-                    ? 'Servicio no se pudo agregar exitosamente.' 
-                    : 'Servicio no se pudo actualizar exitosamente.';
+                    ? 'El área laboral no se pudo agregar exitosamente.' 
+                    : 'El área laboral no se pudo actualizar exitosamente.';
             }
 
             Swal.fire({
@@ -435,37 +389,31 @@ function handleFormSubmit(e) {
         }
     })
     .catch(err => {
-        console.error("Error al guardar el servicio:", err);
+        console.error("Error al guardar el área:", err);
         Swal.fire({
             icon: 'error',
             title: 'Error de conexión',
             text: editingId === null 
-                ? 'Servicio no se pudo agregar exitosamente. ¡Intenta de nuevo!' 
-                : 'Servicio no se pudo actualizar exitosamente. ¡Intenta de nuevo!',
+                ? 'El área laboral no se pudo agregar exitosamente. ¡Intenta de nuevo!' 
+                : 'El área laboral no se pudo actualizar exitosamente. ¡Intenta de nuevo!',
             confirmButtonColor: 'var(--teal-cavex)'
         });
     });
 }
 
 // Cargar datos en el formulario para edición
-function editService(id) {
-    const service = services.find(s => s.id === id);
-    if (!service) return;
+function editArea(id) {
+    const area = areas.find(a => a.id === id);
+    if (!area) return;
 
     clearValidation();
     editingId = id;
-    document.getElementById('strNombre').value = service.nombre;
-    document.getElementById('strDescripcion').value = service.descripcion || '';
-
-    // Cargar el valor del Estatus en el Drop List
-    const statusField = document.getElementById('intIdStatus');
-    if (statusField) {
-        statusField.value = service.idCatStatus;
-    }
+    document.getElementById('strNombre').value = area.nombre;
+    document.getElementById('strDescripcion').value = area.descripcion || '';
 
     // Cambiar estados del formulario
-    document.getElementById('formTitle').textContent = 'Editar servicio';
-    document.getElementById('formSubtitle').textContent = 'Modifica los detalles del servicio seleccionado.';
+    document.getElementById('formTitle').textContent = 'Editar área laboral';
+    document.getElementById('formSubtitle').textContent = 'Modifica los detalles del área laboral seleccionada.';
     document.getElementById('btnSubmit').textContent = 'Guardar cambios';
     document.getElementById('btnCancel').style.display = 'inline-block';
 
@@ -474,8 +422,8 @@ function editService(id) {
     document.getElementById('strNombre').focus();
 }
 
-// Eliminar servicio
-function deleteService(id) {
+// Eliminar área
+function deleteArea(id) {
     Swal.fire({
         title: '¿Estás seguro?',
         text: "¡No podrás revertir esta acción!",
@@ -487,7 +435,7 @@ function deleteService(id) {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch('/Servicios/DeleteService?id=' + id, {
+            fetch('/EmpCatAreaLaboral/DeleteArea?id=' + id, {
                 method: 'POST'
             })
             .then(response => response.json())
@@ -496,24 +444,35 @@ function deleteService(id) {
                     Swal.fire({
                         icon: 'success',
                         title: '¡Eliminado!',
-                        text: 'El servicio ha sido eliminado exitosamente.',
+                        text: 'El área laboral ha sido eliminada exitosamente.',
                         confirmButtonColor: 'var(--teal-cavex)'
                     });
                     if (editingId === id) {
                         resetForm();
                     }
-                    loadServicesFromServer();
+                    loadAreasFromServer();
                 } else {
+                    let errorText = result.message || 'Inténtalo de nuevo más tarde.';
+                    const isReferenceError = errorText.toLowerCase().includes("reference") || 
+                                             errorText.toLowerCase().includes("relacion") || 
+                                             errorText.toLowerCase().includes("fk") || 
+                                             errorText.toLowerCase().includes("foreign key") || 
+                                             errorText.toLowerCase().includes("empleado");
+
+                    if (isReferenceError) {
+                        errorText = 'No se puede eliminar el área laboral porque está asociada a uno o más empleados activos.';
+                    }
+
                     Swal.fire({
                         icon: 'error',
                         title: 'No se pudo eliminar',
-                        text: result.message || 'Inténtalo de nuevo más tarde.',
+                        text: errorText,
                         confirmButtonColor: 'var(--teal-cavex)'
                     });
                 }
             })
             .catch(err => {
-                console.error("Error al eliminar el servicio:", err);
+                console.error("Error al eliminar el área:", err);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error de conexión',
@@ -529,18 +488,12 @@ function deleteService(id) {
 function resetForm() {
     editingId = null;
     clearValidation();
-    document.getElementById('formServicio').reset();
-
-    // Restablecer el valor del Estatus a Activo (1)
-    const statusField = document.getElementById('intIdStatus');
-    if (statusField) {
-        statusField.value = "1";
-    }
+    document.getElementById('formArea').reset();
 
     // Restaurar textos originales
-    document.getElementById('formTitle').textContent = 'Registrar servicio';
-    document.getElementById('formSubtitle').textContent = 'Ingresa el nombre y la descripción para registrar el servicio.';
-    document.getElementById('btnSubmit').textContent = 'Guardar servicio';
+    document.getElementById('formTitle').textContent = 'Registrar área laboral';
+    document.getElementById('formSubtitle').textContent = 'Ingresa el nombre y la descripción para registrar el área laboral.';
+    document.getElementById('btnSubmit').textContent = 'Guardar área laboral';
     document.getElementById('btnCancel').style.display = 'none';
 }
 

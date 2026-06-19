@@ -13,7 +13,7 @@ namespace Cavex.Principal.ApiClients.ServicioAClientes
         // Recordar
         [Get("/api/v1/CatServicios/{id}")]
         Task<ResponseWrapper<CatServicioSaveDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
-
+                
         [Post("/api/v1/CatServicios")]
         Task<ResponseWrapper<CatServicioSaveDto>> CreateAsync([Body] RequestWrapper<CatServicioSaveDto> request, CancellationToken cancellationToken = default);
 

@@ -351,8 +351,8 @@ function handleFormSubmit(e) {
         });
         Swal.fire({
             icon: 'success',
-            title: '¡Sucursal registrada!',
-            text: 'La sucursal ha sido agregada exitosamente (en memoria local).',
+            title: '¡Registro exitoso!',
+            text: 'Sucursal agregada exitosamente.',
             confirmButtonColor: 'var(--teal-cavex)'
         });
     } else {
@@ -366,8 +366,8 @@ function handleFormSubmit(e) {
         }
         Swal.fire({
             icon: 'success',
-            title: '¡Sucursal actualizada!',
-            text: 'La sucursal ha sido modificada exitosamente (en memoria local).',
+            title: '¡Actualización exitosa!',
+            text: 'Sucursal actualizada exitosamente.',
             confirmButtonColor: 'var(--teal-cavex)'
         });
     }
