@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="~/css/componentes.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/formularios.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/responsivo.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
     @await RenderSectionAsync("Head", required: false)
 </head>
 
@@ -51,15 +52,6 @@
                                 <span class="item-desc">Cotizador dinámico con mapa y cálculo de tarifas.</span>
                             </div>
                         </a>
-                        <a asp-controller="Servicios" asp-action="Index" class="mega-menu-item">
-                            <div class="item-icon-box item-icon-orange">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                            </div>
-                            <div class="item-details">
-                                <span class="item-title">Nuevo Servicio</span>
-                                <span class="item-desc">Configuración de tipos de vehículos y tarifas base.</span>
-                            </div>
-                        </a>
                     </div>
                 </div>
 
@@ -75,26 +67,44 @@
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             </div>
                             <div class="item-details">
-                                <span class="item-title">Sucursales</span>
-                                <span class="item-desc">Gestión de bases y coordenadas de origen.</span>
+                                <span class="item-title">Nueva Sucursal</span>
+                                <span class="item-desc">Gestión de bases y sedes de origen.</span>
                             </div>
                         </a>
-                        <a asp-controller="Empleado" asp-action="CrearEmpleado" class="mega-menu-item">
+                        <a asp-controller="Servicios" asp-action="Index" class="mega-menu-item">
+                            <div class="item-icon-box item-icon-orange">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                            </div>
+                            <div class="item-details">
+                                <span class="item-title">Nuevo Servicio</span>
+                                <span class="item-desc">Alta de nuevos servicios.</span>
+                            </div>
+                        </a>
+                        <a asp-controller="Empleado" asp-action="Create" class="mega-menu-item">
                             <div class="item-icon-box item-icon-green">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                             </div>
                             <div class="item-details">
-                                <span class="item-title">Crear Empleado</span>
-                                <span class="item-desc">Alta de asesores y configuración de roles.</span>
+                                <span class="item-title">Nuevo Empleado</span>
+                                <span class="item-desc">Alta de empleados y configuración de roles.</span>
                             </div>
                         </a>
-                        <a asp-controller="ParametrosCosto" asp-action="Index" class="mega-menu-item">
-                            <div class="item-icon-box item-icon-purple">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                        <a asp-controller="Empleado" asp-action="Index" class="mega-menu-item">
+                            <div class="item-icon-box item-icon-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             </div>
                             <div class="item-details">
-                                <span class="item-title">Parámetros</span>
-                                <span class="item-desc">Ajustes globales de costos por kilómetro y viáticos.</span>
+                                <span class="item-title">Lista de Empleados</span>
+                                <span class="item-desc">Consulta de empleados registrados y su estado.</span>
+                            </div>
+                        </a>
+                        <a asp-controller="EmpCatAreaLaboral" asp-action="Index" class="mega-menu-item">
+                            <div class="item-icon-box item-icon-purple">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                            </div>
+                            <div class="item-details">
+                                <span class="item-title">Áreas Laborales</span>
+                                <span class="item-desc">Gestión de departamentos interno.</span>
                             </div>
                         </a>
                     </div>
@@ -141,6 +151,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

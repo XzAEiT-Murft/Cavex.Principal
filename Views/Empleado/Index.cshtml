@@ -1,0 +1,81 @@
+@{
+    ViewData["Title"] = "Listado de Empleados";
+    ViewData["HeaderEyebrow"] = "Administración";
+    ViewData["HeaderTitle"] = "Listado de Empleados";
+    ViewData["HeaderSubtitle"] = "Administra y configura el personal registrado en la plataforma.";
+
+    ViewData["TableTitle"] = "Listado de empleados";
+    ViewData["TableSubtitle"] = "Catálogo de asesores, roles y su estado actual.";
+    ViewData["TableCount"] = 0;
+    ViewData["TableCountLabel"] = "empleados";
+    ViewData["TableExtraPill"] = "Personal Activo";
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/css/vista-servicios.css" asp-append-version="true" />
+}
+
+<partial name="_PageHeader" />
+
+<div class="cavex-card table-module">
+    <!-- Toolbar superior de visualización -->
+    <div class="table-toolbar p-4 border-bottom">
+        <h4 class="m-0 font-weight-850">@ViewData["TableTitle"]</h4>
+        <small class="text-muted">@ViewData["TableSubtitle"]</small>
+    </div>
+
+    <!-- Barra de Búsqueda y Pestañas de Estado -->
+    <div class="table-filter-bar d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="custom-tabs-container">
+            <button type="button" class="tab-item active" onclick="setStatusFilter('todos')" id="tabTodos">
+                Todos <span class="tab-count count-all" id="countTodos">0</span>
+            </button>
+            <button type="button" class="tab-item" onclick="setStatusFilter('activos')" id="tabActivos">
+                Activos <span class="tab-count count-active" id="countActivos">0</span>
+            </button>
+            <button type="button" class="tab-item" onclick="setStatusFilter('baja')" id="tabBaja">
+                Baja <span class="tab-count count-inactive" id="countBaja">0</span>
+            </button>
+        </div>
+        <div class="table-search-box position-relative">
+            <input type="text" id="tableSearch" class="form-control" placeholder="Buscar empleado..." oninput="handleSearch(this.value)" />
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle executive-table table-cavex-compact">
+            <thead>
+                <tr>
+                    <th>Nombre de Empleado</th>
+                    <th>Área / Puesto</th>
+                    <th>Contacto</th>
+                    <th style="width: 120px;">Estado</th>
+                    <th class="text-end" style="width: 160px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="employeesTableBody">
+                <!-- Generado dinámicamente por JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Barra de Paginación -->
+    <div class="table-footer-bar">
+        <div class="pagination-info small" id="paginationInfo">
+            Mostrando 0-0 de 0 registros
+        </div>
+        <nav aria-label="Navegación de empleados">
+            <ul class="pagination pagination-cavex m-0" id="paginationList">
+                <!-- Generado dinámicamente -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/vista-empleados.js" asp-append-version="true"></script>
+}
