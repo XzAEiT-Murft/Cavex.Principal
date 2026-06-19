@@ -1,10 +1,10 @@
-﻿using Cavex.Principal.Common;
+using Cavex.Principal.Common;
 using Cavex.Principal.Models.ServicioAClientes;
 namespace Cavex.Principal.Services.Interfaces
 {
     public interface IServicioAClientesService
     {
-        Task<ResponseWrapper<List<CatServicioSaveDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<PagedResponse<CatServicioSaveDto>>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
 
         Task<ResponseWrapper<CatServicioSaveDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
 
