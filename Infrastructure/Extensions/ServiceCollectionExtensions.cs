@@ -1,3 +1,4 @@
+using Cavex.Principal.ApiClients.CatStatus;
 using Cavex.Principal.ApiClients.EmpCatAreaLaboral;
 using Cavex.Principal.ApiClients.EmpEmpleado;
 using Cavex.Principal.ApiClients.ServicioAClientes;
@@ -20,6 +21,8 @@ namespace Cavex.Principal.Infrastructure.Extensions
             services.AddScoped<IServicioAClientesService, ServicioAClientesService>();
             services.AddScoped<IEmpCatAreaLaboralService, EmpCatAreaLaboralService>();
             services.AddScoped<IEmpEmpleadoService, EmpEmpleadoService>();
+            services.AddScoped<ISucursalesService, SucursalesService>();
+            services.AddScoped<ICatStatusService, CatStatusService>();
 
             return services;
         }

@@ -239,6 +239,10 @@ namespace Cavex.Principal.ViewModels
         [Required(ErrorMessage = "La licencia de conducir es obligatoria.")]
         public IFormFile Licencia { get; set; } = default!;
 
+        [Required(ErrorMessage = "La fotografia del empleado es obligatoria.")]
+        public IFormFile fotoEmpleado { get; set; } = default!;
+
+
         // COMPROBACIONES DE FECHAS CRUZADAS
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {

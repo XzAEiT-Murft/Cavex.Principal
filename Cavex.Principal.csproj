@@ -43,13 +43,4 @@
 		<Folder Include="Models\EmpCatPais\" />
 		<Folder Include="ViewModels\" />
 	</ItemGroup>
-
-  <Target Name="ValidateRefitGeneratedClients" AfterTargets="CoreCompile">
-    <ItemGroup>
-      <RefitServicioAClientesGeneratedClient Include="$(CompilerGeneratedFilesOutputPath)\**\IServicioAClientesApi.g.cs" />
-      <RefitEmpCatAreaLaboralGeneratedClient Include="$(CompilerGeneratedFilesOutputPath)\**\IEmpCatAreaLaboralApi.g.cs" />
-    </ItemGroup>
-
-  </Target>
-
 </Project>
