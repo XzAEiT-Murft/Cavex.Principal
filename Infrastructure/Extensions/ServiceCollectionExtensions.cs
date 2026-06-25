@@ -1,4 +1,5 @@
 ﻿using Cavex.Principal.ApiClients.EmpCatAreaLaboral;
+using Cavex.Principal.ApiClients.EmpEmpleado;
 using Cavex.Principal.ApiClients.ServicioAClientes;
 using Cavex.Principal.Infrastructure.Policies;
 using Cavex.Principal.Infrastructure.Settings;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Refit;
 using System.Text.Json;
 
+
 namespace Cavex.Principal.Infrastructure.Extensions
 {
     public static class ServiceCollectionExtensions
@@ -16,6 +18,7 @@ namespace Cavex.Principal.Infrastructure.Extensions
         {
             services.AddScoped<IServicioAClientesService, ServicioAClientesService>();
             services.AddScoped<IEmpCatAreaLaboralService, EmpCatAreaLaboralService>();
+            services.AddScoped<IEmpEmpleadoService, EmpEmpleadoService>();
 
             return services;
         }
@@ -59,6 +62,17 @@ namespace Cavex.Principal.Infrastructure.Extensions
                     var settings = sp.GetRequiredService<IOptions<ApiSettings>>().Value;
                     client.BaseAddress = new Uri(settings.BaseUrl);
                     client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
+                })
+                .AddPolicyHandler(PollyPolicies.RetryPolicy())
+                .AddPolicyHandler(PollyPolicies.TimeoutPolicy())
+                .AddPolicyHandler(PollyPolicies.CircuitBreakerPolicy());
+            services
+                .AddRefitClient<IEmpEmpleadoApi>(refitSettings)
+                .ConfigureHttpClient((sp, client) =>
+                {
+                   var settings = sp.GetRequiredService<IOptions<ApiSettings>>().Value;
+                   client.BaseAddress = new Uri(settings.BaseUrl);
+                   client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
                 })
                 .AddPolicyHandler(PollyPolicies.RetryPolicy())
                 .AddPolicyHandler(PollyPolicies.TimeoutPolicy())
