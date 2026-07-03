@@ -20,7 +20,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "La fecha de nacimiento es obligatoria.")]
         [Display(Name = "Fecha de nacimiento")]
-        public DateTime DteFechaNacimiento { get; set; }
+        public DateOnly DteFechaNacimiento { get; set; }
 
         [Required(ErrorMessage = "El RFC es obligatorio.")]
         [StringLength(50, ErrorMessage = "El valor no puede superar los 50 caracteres.")]
@@ -44,7 +44,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "El NSS es obligatorio.")]
         [Display(Name = "NSS")]
-        public int IntNss { get; set; }
+        public long LngNss { get; set; }
 
         [Required(ErrorMessage = "El genero es obligatorio.")]
         [Display(Name = "Genero")]

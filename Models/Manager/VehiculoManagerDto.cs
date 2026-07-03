@@ -40,7 +40,7 @@ namespace Cavex.Principal.Models.VehManager
         public decimal DecKilometrajeActual { get; set; }
 
         [Display(Name = "Fecha de registro")]
-        public DateTime DteFechaRegistro { get; set; }
+        public DateOnly DteFechaRegistro { get; set; }
 
         [Display(Name = "Estatus")]
         public string StrVehCatStatus { get; set; } = string.Empty;
@@ -103,13 +103,13 @@ namespace Cavex.Principal.Models.VehManager
         public string? StrUrlTarjetaCirculacion { get; set; }
 
         [Display(Name = "Tarjeta de circulacion - Fecha")]
-        public DateTime? DteFechaTarjetaCirculacion { get; set; }
+        public DateOnly? DteFechaTarjetaCirculacion { get; set; }
 
         [Display(Name = "Factura - Url")]
         public string? StrUrlFactura { get; set; }
 
         [Display(Name = "Factura - Fecha")]
-        public DateTime? DteFechaFactura { get; set; }
+        public DateOnly? DteFechaFactura { get; set; }
 
         public int? IdVehSeguro { get; set; }
 
@@ -117,7 +117,7 @@ namespace Cavex.Principal.Models.VehManager
         public string? StrUrlPolizaSeguro { get; set; }
 
         [Display(Name = "Poliza de seguro - Fecha")]
-        public DateTime? DteFechaPolizaSeguro { get; set; }
+        public DateOnly? DteFechaPolizaSeguro { get; set; }
 
         public int? IdVehTenencia { get; set; }
 
@@ -125,7 +125,7 @@ namespace Cavex.Principal.Models.VehManager
         public string? StrUrlFormatoTenencia { get; set; }
 
         [Display(Name = "Tenencia - Fecha")]
-        public DateTime? DteFechaTenencia { get; set; }
+        public DateOnly? DteFechaTenencia { get; set; }
 
         public int? IdVehPermisoTransporte { get; set; }
 
@@ -133,7 +133,7 @@ namespace Cavex.Principal.Models.VehManager
         public string? StrUrlPermisoTransporte { get; set; }
 
         [Display(Name = "Permiso de transporte - Fecha")]
-        public DateTime? DteFechaPermisoTransporte { get; set; }
+        public DateOnly? DteFechaPermisoTransporte { get; set; }
 
         public int? IdVehRevistaVehicular { get; set; }
 
@@ -141,7 +141,7 @@ namespace Cavex.Principal.Models.VehManager
         public string? StrUrlRevistaVehicular { get; set; }
 
         [Display(Name = "Revista vehicular - Fecha")]
-        public DateTime? DteFechaRevistaVehicular { get; set; }
+        public DateOnly? DteFechaRevistaVehicular { get; set; }
 
         public int? IdVehContratoArrendamiento { get; set; }
 
@@ -149,7 +149,7 @@ namespace Cavex.Principal.Models.VehManager
         public string? StrUrlContratoArrendamiento { get; set; }
 
         [Display(Name = "Contrato de arrendamiento - Fecha")]
-        public DateTime? DteFechaContratoArrendamiento { get; set; }
+        public DateOnly? DteFechaContratoArrendamiento { get; set; }
 
         public int? IdVehPlacas { get; set; }
 
@@ -157,6 +157,6 @@ namespace Cavex.Principal.Models.VehManager
         public string? StrUrlPlacas { get; set; }
 
         [Display(Name = "Placas - Fecha")]
-        public DateTime? DteFechaPlacas { get; set; }
+        public DateOnly? DteFechaPlacas { get; set; }
     }
 }

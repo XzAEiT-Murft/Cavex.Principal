@@ -16,7 +16,7 @@ namespace Cavex.Principal.Models.EmpReferenciasPersonales
 
         [Required(ErrorMessage = "El telefono es obligatorio.")]
         [Display(Name = "Telefono")]
-        public int IntTelefono { get; set; }
+        public long LngTelefono { get; set; }
 
         
     }
