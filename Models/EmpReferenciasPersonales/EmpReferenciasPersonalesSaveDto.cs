@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.EmpReferenciasPersonales
 {
@@ -16,7 +16,7 @@ namespace Cavex.Principal.Models.EmpReferenciasPersonales
 
         [Required(ErrorMessage = "El telefono es obligatorio.")]
         [Display(Name = "Telefono")]
-        public int IntTelefono { get; set; }
+        public long IntTelefono { get; set; }
 
         
     }

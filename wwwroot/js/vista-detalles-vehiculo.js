@@ -356,13 +356,13 @@ $(document).ready(function() {
     };
 
     const vehiculoId = window.vehiculoId || 1;
-    const vehiculo = vehiculosDetalles[vehiculoId] || vehiculosDetalles[1];
+    let vehiculo = vehiculosDetalles[vehiculoId] || vehiculosDetalles[1];
 
     // --- 1. FUNCIONES DE RENDERIZADO GENERAL Y LLENADO DE DATOS ---
     function poblarCabeceraYDatosGenerales() {
         let fotoUrl = vehiculo.foto;
         if (!fotoUrl) {
-            fotoUrl = "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=600&auto=format&fit=crop";
+            fotoUrl = "/svg/vista-detalles-vehiculos/car.svg";
         }
         $('#det-foto').attr('src', fotoUrl);
         $('#det-nombre').text(vehiculo.nombre);
@@ -390,10 +390,10 @@ $(document).ready(function() {
 
     function renderPlaceholderVacio(seccionNombre) {
         return `
-            <div class="empty-section-banner text-center py-5" style="width: 100%; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; margin: 15px 0;">
+            <div class="empty-section-banner text-center py-5" style="width: 100%; border: 2px dashed #cbd5e1; border-radius: 14px; background: #f8fafc; margin: 15px 0;">
                 <img src="/svg/vista-detalles-vehiculos/folder.svg" width="48" height="48" style="opacity: 0.3; margin-bottom: 12px;" />
-                <h5 class="text-muted font-weight-bold">Sin registros de ${seccionNombre}</h5>
-                <p class="small text-muted mb-0">Este vehículo actualmente no contiene información registrada en esta sección.</p>
+                <h5 class="text-muted font-weight-bold">Sin registros aún</h5>
+                <p class="small text-muted mb-0">No se encontraron registros de ${seccionNombre} para este vehículo.</p>
             </div>
         `;
     }
@@ -405,7 +405,7 @@ $(document).ready(function() {
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
                         <img src="/svg/vista-detalles-vehiculos/folder.svg" width="40" height="40" style="opacity: 0.3;" />
                         <div>
-                            <span class="font-weight-bold d-block" style="color: var(--gris-oscuro);">No hay datos disponibles</span>
+                            <span class="font-weight-bold d-block" style="color: var(--gris-oscuro);">Sin registros aún</span>
                             <span class="small text-muted">No se encontraron registros de ${seccionNombre} para este vehículo.</span>
                         </div>
                     </div>
@@ -418,7 +418,7 @@ $(document).ready(function() {
         const container = $('#resumen-alertas-lista');
         container.empty();
         if (!vehiculo.resumen.alertas || vehiculo.resumen.alertas.length === 0) {
-            container.html('<div class="alert-item text-muted text-center py-2"><span class="small">Sin alertas pendientes</span></div>');
+            container.html('<div class="alert-item text-muted text-center py-2"><span class="small font-weight-bold">Sin registros aún</span></div>');
             return;
         }
 
@@ -451,7 +451,7 @@ $(document).ready(function() {
         `);
 
         if (!vehiculo.mantenimientos || vehiculo.mantenimientos.length === 0) {
-            container.append('<div class="p-3 text-center text-muted small">No hay mantenimientos recientes.</div>');
+            container.append('<div class="p-3 text-center text-muted small font-weight-bold">Sin registros aún</div>');
             return;
         }
 
@@ -504,7 +504,7 @@ $(document).ready(function() {
         checklist.empty();
 
         if (!vehiculo.revision.categorias || vehiculo.revision.categorias.length === 0) {
-            checklist.append('<div class="p-3 text-center text-muted small">Sin revisión física registrada.</div>');
+            checklist.append('<div class="p-3 text-center text-muted small font-weight-bold">Sin registros aún</div>');
             return;
         }
 
@@ -556,7 +556,7 @@ $(document).ready(function() {
         container.empty();
 
         if (!vehiculo.documentos || vehiculo.documentos.length === 0) {
-            container.append('<div class="p-3 text-center text-muted small">Sin documentos registrados.</div>');
+            container.append('<div class="p-3 text-center text-muted small font-weight-bold">Sin registros aún</div>');
             return;
         }
 
@@ -585,13 +585,34 @@ $(document).ready(function() {
     }
 
     function renderResumenTab() {
-        $('#resumen-proximo-fecha').text(vehiculo.resumen.proximoFecha);
-        $('#resumen-proximo-km').text(vehiculo.resumen.proximoKm);
-        $('#resumen-ultimo-tipo').text(vehiculo.resumen.ultimoTipo);
-        $('#resumen-ultimo-fecha').text(vehiculo.resumen.ultimoFecha);
-        $('#resumen-ultimo-km').text(vehiculo.resumen.ultimoKm);
-        $('#resumen-km-actual').text(vehiculo.kilometraje);
-        $('#resumen-km-promedio').text(`Promedio: 12,450 km/año`);
+        // Próximo Servicio
+        const proximoBody = $('#resumen-proximo-body');
+        proximoBody.empty();
+        if (!vehiculo.resumen.proximoFecha || vehiculo.resumen.proximoFecha.trim() === "") {
+            proximoBody.html('<div class="text-center text-muted py-3"><span class="small font-weight-bold">Sin registros aún</span></div>');
+        } else {
+            proximoBody.html(`
+                <span class="metric-card-label">Servicio Programado</span>
+                <span class="metric-card-value">${vehiculo.resumen.proximoFecha}</span>
+                <span class="metric-card-subtext">${vehiculo.resumen.proximoKm}</span>
+            `);
+        }
+
+        // Último Servicio
+        const ultimoBody = $('#resumen-ultimo-body');
+        ultimoBody.empty();
+        if (!vehiculo.resumen.ultimoFecha || vehiculo.resumen.ultimoFecha.trim() === "") {
+            ultimoBody.html('<div class="text-center text-muted py-3"><span class="small font-weight-bold">Sin registros aún</span></div>');
+        } else {
+            ultimoBody.html(`
+                <span class="metric-card-label">${vehiculo.resumen.ultimoTipo}</span>
+                <span class="metric-card-value">${vehiculo.resumen.ultimoFecha}</span>
+                <span class="metric-card-subtext">${vehiculo.resumen.ultimoKm}</span>
+            `);
+        }
+
+        // Kilometraje (sin promedio)
+        $('#resumen-km-actual').text(vehiculo.kilometraje || "0 km");
 
         renderAlertasResumen();
         renderMantenimientoResumen();
@@ -780,7 +801,7 @@ $(document).ready(function() {
         detailsList.empty();
         
         if (vehiculo.seguro.detalles.length === 0) {
-            detailsList.append('<div class="p-3 text-muted text-center small">Sin póliza de seguro registrada.</div>');
+            detailsList.append('<div class="p-3 text-muted text-center small font-weight-bold">Sin registros aún</div>');
         } else {
             vehiculo.seguro.detalles.forEach(d => {
                 detailsList.append(`<div><span>${d.label}:</span> <strong>${d.val}</strong></div>`);
@@ -805,7 +826,7 @@ $(document).ready(function() {
         helpList.empty();
         
         if (vehiculo.seguro.coberturasHelp.length === 0) {
-            helpList.append('<div class="text-muted small">No hay contactos ni guías de cobertura disponibles.</div>');
+            helpList.append('<div class="text-muted small font-weight-bold">Sin registros aún</div>');
         } else {
             vehiculo.seguro.coberturasHelp.forEach(c => {
                 helpList.append(`<div><strong>${c.label}:</strong> ${c.val}</div>`);
@@ -945,45 +966,188 @@ $(document).ready(function() {
         });
     }
 
-    // Poblar todos los datos al cargar
-    poblarCabeceraYDatosGenerales();
-    renderResumenTab();
-    renderMantenimientoTab();
-    renderRevisionTab();
-    renderLlantasTab();
-    renderSeguroTab();
-    renderInfraccionesTab();
-    renderDocumentosTab();
-    renderHistorialTab();
+    // Cargar catálogos vehiculares dinámicos y luego los detalles
+    const vehiculoCatalogos = {
+        idVehCatMarcaVehiculo: [],
+        idVehCatColor: [],
+        idVehCatTipoVehiculo: [],
+        idVehCatCapacidad: [],
+        idVehCatTipoCombustible: [],
+        idVehCatStatus: [],
+        idVehCatTransmision: []
+    };
 
-    // --- 4. CONTROL DE TIEMPO SKELETON / FADE ---
-    setTimeout(function() {
-        $('#skeleton-wrapper').fadeOut(150, function() {
-            $('#data-wrapper').fadeIn(200, function() {
-                initMileageChart();
-                
-                // Mostrar alerta global de SweetAlert2 si el vehículo tiene datos vacíos
-                const tieneVacios = 
-                    vehiculo.mantenimientos.length === 0 || 
-                    vehiculo.seguro.siniestros.length === 0 || 
-                    vehiculo.infracciones.length === 0 || 
-                    vehiculo.documentos.length === 0 ||
-                    vehiculo.historial.length === 0;
+    fetch('/Vehiculos/GetVehiculoCatalogos')
+        .then(res => res.json())
+        .then(catalogResult => {
+            if (catalogResult.success && catalogResult.data) {
+                Object.assign(vehiculoCatalogos, catalogResult.data);
+            }
 
-                if (tieneVacios) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Atención: Datos Pendientes',
-                        text: `El vehículo con placa ${vehiculo.placa} cuenta con expedientes y registros vacíos. Por favor complete la información requerida.`,
-                        confirmButtonText: 'Entendido',
-                        confirmButtonColor: '#061B3A',
-                        timer: 5000,
-                        timerProgressBar: true
-                    });
+            return fetch(`/Vehiculos/GetVehiculo?id=${vehiculoId}`);
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success && res.data) {
+                const v = res.data;
+
+                // Si el vehículo no existía previamente en la BD simulada, inicializarlo vacío
+                if (!vehiculosDetalles[v.id]) {
+                    vehiculosDetalles[v.id] = {
+                        id: v.id,
+                        nombre: "",
+                        placa: "",
+                        estatus: "",
+                        foto: null,
+                        vin: "",
+                        tipo: "",
+                        combustible: "",
+                        capacidad: "",
+                        anio: "",
+                        color: "",
+                        motor: "",
+                        transmision: "",
+                        kilometraje: "",
+                        fechacompra: "",
+                        garantia: "",
+                        resumen: {
+                            proximoFecha: "",
+                            proximoKm: "",
+                            ultimoTipo: "",
+                            ultimoFecha: "",
+                            ultimoKm: "",
+                            saludPct: 0,
+                            saludLabel: "Sin datos",
+                            saludDesc: "Sin registros aún",
+                            seguroProvider: "Sin registros aún",
+                            seguroPoliza: "Sin registros aún",
+                            seguroCobertura: "Sin registros aún",
+                            seguroVigencia: "Sin registros aún",
+                            seguroRestante: "Sin registros aún",
+                            infraccionesCount: 0,
+                            infraccionesMonto: "$0.00",
+                            alertas: []
+                        },
+                        mantenimientoStats: {
+                            totalCost: "$0.00 MXN",
+                            totalCount: "0 Servicios",
+                            totalKm: "0 km"
+                        },
+                        mantenimientos: [],
+                        revision: {
+                            aprobados: 0,
+                            total: 24,
+                            status: "Sin datos",
+                            pct: 0,
+                            categorias: []
+                        },
+                        llantas: [],
+                        seguro: {
+                            proveedor: "Sin registros aún",
+                            statusBadge: "SIN REGISTRO",
+                            statusDays: "",
+                            detalles: [],
+                            coberturasHelp: [],
+                            siniestros: []
+                        },
+                        infraccionesTotal: "Pendiente: $0.00",
+                        infracciones: [],
+                        documentos: [],
+                        historial: [],
+                        chartData: {
+                            real: [],
+                            estimado: []
+                        }
+                    };
                 }
+
+                vehiculo = vehiculosDetalles[v.id];
+
+                const strMarca = vehiculoCatalogos.idVehCatMarcaVehiculo.find(item => item.id === v.idVehCatMarcaVehiculo)?.strValor || "Desconocida";
+                const strColor = vehiculoCatalogos.idVehCatColor.find(item => item.id === v.idVehCatColor)?.strValor || "Desconocido";
+                const strTipoVehiculo = vehiculoCatalogos.idVehCatTipoVehiculo.find(item => item.id === v.idVehCatTipoVehiculo)?.strValor || "Desconocido";
+                const strCapacidad = vehiculoCatalogos.idVehCatCapacidad.find(item => item.id === v.idVehCatCapacidad)?.strValor || "—";
+                const strTipoCombustible = vehiculoCatalogos.idVehCatTipoCombustible.find(item => item.id === v.idVehCatTipoCombustible)?.strValor || "—";
+                const strTransmision = vehiculoCatalogos.idVehCatTransmision.find(item => item.id === v.idVehCatTransmision)?.strValor || (v.idVehCatTransmision === 2 ? "Manual" : "Automática");
+                const strStatus = vehiculoCatalogos.idVehCatStatus.find(item => item.id === v.idVehCatStatus)?.strValor || "Activo";
+
+                let strFechaCompra = "Desconocida";
+                if (v.dtFechaCompra) {
+                    const date = new Date(v.dtFechaCompra);
+                    strFechaCompra = date.toLocaleDateString("es-MX");
+                }
+
+                // Sobrescribir datos simulados principales
+                vehiculo.nombre = `${strMarca} ${v.strModelo || ""} ${v.intAnio || ""}`.trim();
+                vehiculo.placa = v.strPlaca || "Sin placa";
+                vehiculo.estatus = strStatus;
+                vehiculo.foto = v.strUrlFoto || null;
+                vehiculo.vin = v.strNumSerie || "—";
+                vehiculo.tipo = strTipoVehiculo;
+                vehiculo.combustible = strTipoCombustible;
+                vehiculo.capacidad = strCapacidad;
+                vehiculo.anio = v.intAnio || "—";
+                vehiculo.color = strColor;
+                vehiculo.motor = v.strMotor || "—";
+                vehiculo.transmision = strTransmision;
+                vehiculo.kilometraje = Number(v.decKilometrajeActual || 0).toLocaleString("es-MX") + " km";
+                vehiculo.fechacompra = strFechaCompra;
+                vehiculo.garantia = v.strObservaciones || "—";
+            }
+
+            poblarCabeceraYDatosGenerales();
+            renderResumenTab();
+            renderMantenimientoTab();
+            renderRevisionTab();
+            renderLlantasTab();
+            renderSeguroTab();
+            renderInfraccionesTab();
+            renderDocumentosTab();
+            renderHistorialTab();
+
+            $('#skeleton-wrapper').fadeOut(150, function() {
+                $('#data-wrapper').fadeIn(200, function() {
+                    initMileageChart();
+
+                    const tieneVacios = 
+                        vehiculo.mantenimientos.length === 0 || 
+                        vehiculo.seguro.siniestros.length === 0 || 
+                        vehiculo.infracciones.length === 0 || 
+                        vehiculo.documentos.length === 0 ||
+                        vehiculo.historial.length === 0;
+
+                    if (tieneVacios) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Atención: Datos Pendientes',
+                            text: `El vehículo con placa ${vehiculo.placa} cuenta con expedientes y registros vacíos. Por favor complete la información requerida.`,
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#061B3A',
+                            timer: 5000,
+                            timerProgressBar: true
+                        });
+                    }
+                });
+            });
+        })
+        .catch(err => {
+            console.error("Error al obtener vehículo:", err);
+            poblarCabeceraYDatosGenerales();
+            renderResumenTab();
+            renderMantenimientoTab();
+            renderRevisionTab();
+            renderLlantasTab();
+            renderSeguroTab();
+            renderInfraccionesTab();
+            renderDocumentosTab();
+            renderHistorialTab();
+
+            $('#skeleton-wrapper').fadeOut(150, function() {
+                $('#data-wrapper').fadeIn(200, function() {
+                    initMileageChart();
+                });
             });
         });
-    }, 800); // Retraso de simulación de API premium de 800ms
 
     // --- 5. MANEJADOR DE CAMBIO DE PESTAÑAS (TABS REACTIVOS) ---
     $('.tab-btn').click(function() {
@@ -1040,7 +1204,18 @@ $(document).ready(function() {
     // --- 7. GRÁFICA COMPARATIVA DE KILOMETRAJE (Chart.js) ---
     function initMileageChart() {
         const ctx = document.getElementById('mileageChart');
+        const placeholder = document.getElementById('mileageChartPlaceholder');
         if (!ctx) return;
+
+        // Si no hay datos de kilometraje, ocultar canvas y mostrar placeholder
+        if (!vehiculo.chartData || !vehiculo.chartData.real || vehiculo.chartData.real.length === 0) {
+            ctx.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'flex';
+            return;
+        }
+
+        ctx.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
 
         if (typeof ChartDataLabels !== 'undefined') {
             Chart.register(ChartDataLabels);

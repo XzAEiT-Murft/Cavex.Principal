@@ -60,11 +60,11 @@
             <section id="infraccionPagoCard" class="cavex-card form-section-card vehiculo-section-card infraccion-pago-card">
                 <div class="infraccion-section-heading">
                     <h3 class="form-section-title"><span class="form-section-number">2</span>Datos de pago</h3>
-                    <span id="infraccionPagoRequirement" class="infraccion-requirement-badge">Opcional</span>
+                    <span id="infraccionPagoRequirement" class="infraccion-requirement-badge" style="display:none;"></span>
                 </div>
                 <div class="row g-3 mt-0">
                     <div class="col-md-4">
-                        <label class="form-label" for="infraccion-mnyMontoPagado">Monto pagado <span class="vehiculo-optional-label infraccion-payment-optional">Opcional</span></label>
+                        <label class="form-label" for="infraccion-mnyMontoPagado">Monto pagado</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input id="infraccion-mnyMontoPagado" name="mnyMontoPagado" type="number" min="0" max="999999" step="0.01" class="form-control" placeholder="0.00" />
@@ -72,12 +72,12 @@
                         <div class="invalid-feedback" id="infraccion-mnyMontoPagadoError">Captura un monto válido.</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="infraccion-dteFechaPago">Fecha de pago <span class="vehiculo-optional-label infraccion-payment-optional">Opcional</span></label>
+                        <label class="form-label" for="infraccion-dteFechaPago">Fecha de pago</label>
                         <input id="infraccion-dteFechaPago" name="dteFechaPago" type="date" class="form-control" />
                         <div class="invalid-feedback" id="infraccion-dteFechaPagoError">La fecha no puede ser anterior a la infracción.</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="infraccion-idVehFormaPago">Forma de pago <span class="vehiculo-optional-label infraccion-payment-optional">Opcional</span></label>
+                        <label class="form-label" for="infraccion-idVehFormaPago">Forma de pago</label>
                         <select id="infraccion-idVehFormaPago" name="idVehFormaPago" class="form-select">
                             <option value="">Seleccionar...</option>
                         </select>
@@ -87,7 +87,7 @@
 
                 <!-- Comprobante auxiliar; la ruta futura se almacenará en strUrlComprobantePago. -->
                 <div class="infraccion-comprobante-block">
-                    <label class="form-label" for="infraccionComprobanteArchivo">Comprobante de pago <span class="vehiculo-optional-label">Recomendado al pagar</span></label>
+                    <label class="form-label" for="infraccionComprobanteArchivo">Comprobante de pago</label>
                     <div id="infraccionComprobanteArea" class="infraccion-comprobante-area" role="button" tabindex="0">
                         <input id="infraccionComprobanteArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" />
                         <input id="infraccion-strUrlComprobantePago" name="strUrlComprobantePago" type="hidden" value="" />
@@ -110,7 +110,7 @@
             <!-- Observaciones: campo NULL independiente del motivo obligatorio. -->
             <section class="cavex-card form-section-card vehiculo-section-card">
                 <h3 class="form-section-title"><span class="form-section-number">3</span>Observaciones</h3>
-                <label class="form-label" for="infraccion-strObservaciones">Observaciones <span class="vehiculo-optional-label">Opcional</span></label>
+                <label class="form-label" for="infraccion-strObservaciones">Observaciones</label>
                 <textarea id="infraccion-strObservaciones" name="strObservaciones" maxlength="500" rows="4" class="form-control" placeholder="Notas administrativas, seguimiento o aclaraciones."></textarea>
                 <div class="invalid-feedback" id="infraccion-strObservacionesError">Las observaciones no deben superar 500 caracteres.</div>
                 <div class="vehiculo-character-counter" aria-live="polite"><span id="infraccionObservacionesCounter">0</span>/500</div>
@@ -150,5 +150,5 @@
 </form>
 
 @section Scripts {
-    <script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>
+    <script src="~/js/vista-infracciones.js" asp-append-version="true"></script>
 }

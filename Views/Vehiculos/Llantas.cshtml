@@ -104,17 +104,17 @@
                 <h3 class="form-section-title"><span class="form-section-number">3</span>Fechas de vida y rotación</h3>
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label" for="llanta-dteFechaFinVidaEstimada">Vida estimada <span class="vehiculo-optional-label">Opcional</span></label>
+                        <label class="form-label" for="llanta-dteFechaFinVidaEstimada">Vida estimada</label>
                         <input id="llanta-dteFechaFinVidaEstimada" name="dteFechaFinVidaEstimada" type="date" class="form-control" />
                         <div class="invalid-feedback" id="llanta-dteFechaFinVidaEstimadaError">Debe ser igual o posterior a la compra.</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="llanta-dteFechaRotacion">Última rotación <span class="vehiculo-optional-label">Opcional</span></label>
+                        <label class="form-label" for="llanta-dteFechaRotacion">Última rotación</label>
                         <input id="llanta-dteFechaRotacion" name="dteFechaRotacion" type="date" class="form-control" />
                         <div class="invalid-feedback" id="llanta-dteFechaRotacionError">Debe ser igual o posterior a la compra.</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="llanta-dteFechaSiguienteRotacion">Siguiente rotación <span class="vehiculo-optional-label">Opcional</span></label>
+                        <label class="form-label" for="llanta-dteFechaSiguienteRotacion">Siguiente rotación</label>
                         <input id="llanta-dteFechaSiguienteRotacion" name="dteFechaSiguienteRotacion" type="date" class="form-control" />
                         <div class="invalid-feedback" id="llanta-dteFechaSiguienteRotacionError">Debe respetar la fecha base de compra o rotación.</div>
                     </div>
@@ -124,7 +124,7 @@
             <!-- Evidencia opcional: el backend futuro convertirá el archivo local en strUrlEvidencia. -->
             <section class="cavex-card form-section-card vehiculo-section-card">
                 <h3 class="form-section-title"><span class="form-section-number">4</span>Evidencia</h3>
-                <label class="form-label" for="llantaEvidenciaArchivo">Archivo <span class="vehiculo-optional-label">Opcional</span></label>
+                <label class="form-label" for="llantaEvidenciaArchivo">Archivo</label>
                 <div id="llantaEvidenciaArea" class="llanta-evidencia-area" role="button" tabindex="0">
                     <input id="llantaEvidenciaArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" />
                     <input id="llanta-strUrlEvidencia" name="strUrlEvidencia" type="hidden" value="" />
@@ -144,33 +144,6 @@
             </section>
         </div>
 
-        <!-- Vista previa lateral en vivo, separando etiquetas y valores para lectura rápida. -->
-        <aside class="vehiculo-side-panel">
-            <div class="summary-panel vehiculo-preview-card llanta-preview-card">
-                <div class="vehiculo-preview-heading">
-                    <div><span class="dashboard-kicker">Vista previa</span></div>
-                </div>
-                <div class="llanta-preview-status">
-                    <span>Estatus</span>
-                    <strong id="previewLlantaEstatus" class="llanta-status llanta-status-active">Activa</strong>
-                </div>
-                <div class="vehiculo-summary-list">
-                    <div class="vehiculo-summary-item"><span>Vehículo</span><strong id="previewLlantaVehiculo">Sin seleccionar</strong></div>
-                    <div class="vehiculo-summary-item"><span>Placa</span><strong id="previewLlantaPlaca">—</strong></div>
-                    <div class="vehiculo-summary-item"><span>Marca</span><strong id="previewLlantaMarca">Sin seleccionar</strong></div>
-                    <div class="vehiculo-summary-item"><span>Modelo</span><strong id="previewLlantaModelo">Sin modelo</strong></div>
-                    <div class="vehiculo-summary-item"><span>Medida</span><strong id="previewLlantaMedida">Sin medida</strong></div>
-                    <div class="vehiculo-summary-item"><span>Posición</span><strong id="previewLlantaPosicion">Sin seleccionar</strong></div>
-                    <div class="vehiculo-summary-item"><span>Compra</span><strong id="previewLlantaFechaCompra">—</strong></div>
-                    <div class="vehiculo-summary-item"><span>Costo</span><strong id="previewLlantaCosto">$0.00</strong></div>
-                    <div class="vehiculo-summary-item"><span>Kilometraje</span><strong id="previewLlantaKilometraje">0 km</strong></div>
-                    <div class="vehiculo-summary-item"><span>Vida estimada</span><strong id="previewLlantaVida">—</strong></div>
-                    <div class="vehiculo-summary-item"><span>Última rotación</span><strong id="previewLlantaRotacion">—</strong></div>
-                    <div class="vehiculo-summary-item"><span>Siguiente rotación</span><strong id="previewLlantaSiguienteRotacion">—</strong></div>
-                    <div class="vehiculo-summary-item"><span>Evidencia</span><strong id="previewLlantaEvidencia">Sin archivo</strong></div>
-                </div>
-            </div>
-        </aside>
     </div>
 
     <!-- Botones de captura: Guardar solo valida mientras no exista POST /api/vehiculos/llantas. -->
@@ -181,5 +154,5 @@
 </form>
 
 @section Scripts {
-    <script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>
+    <script src="~/js/vista-llantas.js" asp-append-version="true"></script>
 }

@@ -7,15 +7,21 @@
     <link rel="stylesheet" href="~/css/vista-detalle-vehiculos.css" asp-append-version="true" />
 }
 
-<!-- Ruta / Breadcrumbs -->
-<div class="breadcrumb-container">
-    <a asp-controller="Home" asp-action="Index">Dashboard</a>
-    <span class="breadcrumb-separator">&gt;</span>
-    <a href="#">Vehículos</a>
-    <span class="breadcrumb-separator">&gt;</span>
-    <span class="breadcrumb-active">Detalles del Vehículo</span>
+<!-- Ruta / Breadcrumbs y Botón Regresar -->
+<div class="d-flex align-items-center justify-content-between mb-4 mt-2">
+    <div class="breadcrumb-container m-0">
+        <a asp-controller="Home" asp-action="Index">Dashboard</a>
+        <span class="breadcrumb-separator">&gt;</span>
+        <a asp-controller="Vehiculos" asp-action="Index">Vehículos</a>
+        <span class="breadcrumb-separator">&gt;</span>
+        <span class="breadcrumb-active">Detalles del Vehículo</span>
+    </div>
+    <a asp-controller="Vehiculos" asp-action="Index" class="btn btn-outline-cavex rounded-pill px-3 py-2 btn-sm d-inline-flex align-items-center" style="font-weight: 750; border: 1px solid rgba(0, 140, 149, 0.18); background: white; color: var(--azul-cavex); transition: all 0.2s ease-in-out;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1" style="vertical-align: -2px;"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al listado
+    </a>
 </div>
-
+    
 <div id="skeleton-wrapper">
     <!-- 1. CARD PRINCIPAL SKELETON -->
     <div class="vehicle-detail-card">
@@ -262,6 +268,7 @@
     <div id="tab-resumen" class="tab-content">
         <!-- Fila de Métricas Reales -->
         <div class="metrics-row">
+
         <!-- Card 1: Próximo Servicio -->
         <div class="metric-card">
             <div class="metric-card-header">
@@ -270,13 +277,8 @@
                 </span>
                 <h4 class="metric-card-title">Próximo Servicio</h4>
             </div>
-            <div class="metric-card-body">
-                <span class="metric-card-label">Servicio Programado</span>
-                <span class="metric-card-value" id="resumen-proximo-fecha">—</span>
-                <span class="metric-card-subtext" id="resumen-proximo-km">—</span>
-            </div>
-            <div class="metric-card-footer">
-                <a href="#" class="btn-metric-outline">Ver detalle</a>
+            <div class="metric-card-body" id="resumen-proximo-body">
+                <!-- Dinámico -->
             </div>
         </div>
 
@@ -288,13 +290,8 @@
                 </span>
                 <h4 class="metric-card-title">Último Servicio</h4>
             </div>
-            <div class="metric-card-body">
-                <span class="metric-card-label" id="resumen-ultimo-tipo">—</span>
-                <span class="metric-card-value" id="resumen-ultimo-fecha">—</span>
-                <span class="metric-card-subtext" id="resumen-ultimo-km">—</span>
-            </div>
-            <div class="metric-card-footer">
-                <a href="#" class="btn-metric-outline">Ver historial</a>
+            <div class="metric-card-body" id="resumen-ultimo-body">
+                <!-- Dinámico -->
             </div>
         </div>
 
@@ -327,7 +324,6 @@
             </div>
             <div class="metric-card-body">
                 <span class="metric-card-value" id="resumen-km-actual" style="font-size: 23px; margin-bottom: 6px;">—</span>
-                <span class="metric-card-subtext" id="resumen-km-promedio">Promedio: — km/año</span>
             </div>
             <div class="metric-card-footer">
                 <a href="#" class="btn-metric-outline">Ver tendencias</a>
@@ -454,8 +450,12 @@
                 </span>
                 <h4 class="secondary-card-title">Historial de Kilometraje</h4>
             </div>
-            <div style="flex-grow: 1; position: relative; height: 220px; width: 100%;">
+            <div style="flex-grow: 1; position: relative; height: 220px; width: 100%; display: flex; align-items: center; justify-content: center;">
                 <canvas id="mileageChart"></canvas>
+                <div id="mileageChartPlaceholder" style="display: none; flex-direction: column; align-items: center; justify-content: center; gap: 8px;" class="text-muted">
+                    <img src="/svg/vista-detalles-vehiculos/speedometer.svg" width="32" height="32" style="opacity: 0.3;" />
+                    <span class="font-weight-bold" style="color: var(--gris-oscuro);">Sin registros aún</span>
+                </div>
             </div>
         </div>
 

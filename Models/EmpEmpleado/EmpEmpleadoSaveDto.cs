@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.EmpEmpleado
 {
@@ -20,7 +20,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "La fecha de nacimiento es obligatoria.")]
         [Display(Name = "Fecha de nacimiento")]
-        public DateTime DteFechaNacimiento { get; set; }
+        public DateOnly DteFechaNacimiento { get; set; }
 
         [Required(ErrorMessage = "El RFC es obligatorio.")]
         [StringLength(50, ErrorMessage = "El valor no puede superar los 50 caracteres.")]
@@ -44,7 +44,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "El NSS es obligatorio.")]
         [Display(Name = "NSS")]
-        public int IntNss { get; set; }
+        public long IntNss { get; set; }
 
         [Required(ErrorMessage = "El genero es obligatorio.")]
         [Display(Name = "Genero")]
@@ -89,6 +89,12 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Display(Name = "Experiencia laboral")]
         public List<EmpExperienciaLaboralSaveDto> ExperienciaLaboral { get; set; } = new();
+
+        [Display(Name = "Área laboral")]
+        public int IdEmpCatAreaLaboral { get; set; }
+
+        [Display(Name = "Telefonos")]
+        public List<EmpTelefono.EmpTelefonoSaveDto> Telefonos { get; set; } = new();
     }
 
     public class EmpDireccionSaveDto
@@ -182,7 +188,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "La fecha de ingreso es obligatoria.")]
         [Display(Name = "Fecha de ingreso")]
-        public DateTime DteFechaIngreso { get; set; }
+        public DateOnly DteFechaIngreso { get; set; }
     }
 
     public class EmpReferenciaSaveDto
@@ -199,7 +205,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "El telefono es obligatorio.")]
         [Display(Name = "Telefono")]
-        public int IntTelefono { get; set; }
+        public long IntTelefono { get; set; }
     }
 
     public class EmpExperienciaLaboralSaveDto
@@ -221,11 +227,11 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "La fecha de inicio es obligatoria.")]
         [Display(Name = "Fecha de inicio")]
-        public DateTime DteFechaIncio { get; set; }
+        public DateOnly DteFechaIncio { get; set; }
 
         [Required(ErrorMessage = "La fecha de fin es obligatoria.")]
         [Display(Name = "Fecha de fin")]
-        public DateTime DteFechaFin { get; set; }
+        public DateOnly DteFechaFin { get; set; }
 
         [Required(ErrorMessage = "El sueldo es obligatorio.")]
         [Display(Name = "Sueldo")]

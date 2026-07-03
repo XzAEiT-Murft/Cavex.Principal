@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace Cavex.Principal.Models.EmpEmpleado
 {
@@ -31,7 +32,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
         public string StrCorreoElectronico { get; set; } = string.Empty;
 
         [Display(Name = "NSS")]
-        public int IntNss { get; set; }
+        public long IntNss { get; set; }
 
         public int IdEmpCatGenero { get; set; }
 
@@ -77,5 +78,63 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Display(Name = "Estatus")]
         public string StrCatStatus { get; set; } = string.Empty;
+
+        public EmpDireccion.EmpDireccionDto? EmpDireccion { get; set; }
+        public EmpCatDatosAcademicos.EmpDatosAcademicosDto? EmpDatosAcademicos { get; set; }
+        public EmpDocumentosLaborales.EmpDocumentosLaboralesDto? EmpDocumentosLaborales { get; set; }
+        public EmpCondicionesLaborales.EmpCondicionesLaboralesDto? EmpCondicionesLaborales { get; set; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        public List<EmpHistorialArea.EmpHistorialAreaDto>? EmpHistorialAreas { get; set; }
+        public List<EmpReferenciasPersonales.EmpReferenciasPersonalesDto>? EmpReferenciasPersonales { get; set; }
+        public List<EmpExperiencia.EmpExperienciaDto>? EmpExperiencias { get; set; }
+        public List<EmpTelefono.EmpTelefonoDto>? EmpTelefonos { get; set; }
     }
 }

@@ -72,7 +72,7 @@
                         <div class="invalid-feedback" id="danio-strDescripcionError">La descripción es obligatoria y admite hasta 500 caracteres.</div>
                     </div>
                     <div class="col-12">
-                        <label class="form-label" for="danio-strUbicacion">Ubicación <span class="vehiculo-optional-label">Opcional</span></label>
+                        <label class="form-label" for="danio-strUbicacion">Ubicación</label>
                         <input id="danio-strUbicacion" name="strUbicacion" type="text" maxlength="300" class="form-control" placeholder="Lugar donde ocurrió el evento" />
                         <div class="invalid-feedback" id="danio-strUbicacionError">La ubicación admite máximo 300 caracteres.</div>
                     </div>
@@ -84,7 +84,7 @@
                 <h3 class="form-section-title"><span class="form-section-number">3</span>Reparación y seguro</h3>
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
-                        <label class="form-label" for="danio-mnyMontoReparacion">Monto de reparación <span class="vehiculo-optional-label">Opcional</span></label>
+                        <label class="form-label" for="danio-mnyMontoReparacion">Monto de reparación</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input id="danio-mnyMontoReparacion" name="mnyMontoReparacion" type="number" min="0" max="999999" step="0.01" class="form-control" placeholder="0.00" />
@@ -103,7 +103,7 @@
                         <input id="danio-bitCubiertoPorSeguro" name="bitCubiertoPorSeguro" type="hidden" value="false" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="danio-idVehSeguro">Póliza <span class="vehiculo-optional-label">Condicional</span></label>
+                        <label class="form-label" for="danio-idVehSeguro">Póliza</label>
                         <select id="danio-idVehSeguro" name="idVehSeguro" class="form-select" disabled>
                             <option value="">No aplica</option>
                         </select>
@@ -115,7 +115,7 @@
             <!-- Evidencia opcional: la carga real y strUrlEvidencia quedan pendientes del backend. -->
             <section class="cavex-card form-section-card vehiculo-section-card">
                 <h3 class="form-section-title"><span class="form-section-number">4</span>Evidencia</h3>
-                <label class="form-label" for="danioEvidenciaArchivo">Archivo <span class="vehiculo-optional-label">Opcional</span></label>
+                <label class="form-label" for="danioEvidenciaArchivo">Archivo</label>
                 <div id="danioEvidenciaArea" class="danio-evidencia-area" role="button" tabindex="0">
                     <input id="danioEvidenciaArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" />
                     <input id="danio-strUrlEvidencia" name="strUrlEvidencia" type="hidden" value="" />
@@ -138,7 +138,7 @@
             <section class="cavex-card form-section-card vehiculo-section-card">
                 <h3 class="form-section-title"><span class="form-section-number">5</span>Observaciones</h3>
                 <div class="danio-label-row">
-                    <label class="form-label" for="danio-strObservaciones">Notas adicionales <span class="vehiculo-optional-label">Opcional</span></label>
+                    <label class="form-label" for="danio-strObservaciones">Notas adicionales</label>
                     <span id="danioObservacionesContador" class="danio-counter">0/500</span>
                 </div>
                 <textarea id="danio-strObservaciones" name="strObservaciones" maxlength="500" rows="3" class="form-control" placeholder="Seguimiento, acuerdos o detalles adicionales..."></textarea>
@@ -146,30 +146,6 @@
             </section>
         </div>
 
-        <!-- Vista previa lateral actualizada en vivo con etiquetas y valores separados. -->
-        <aside class="vehiculo-side-panel">
-            <div class="summary-panel vehiculo-preview-card danio-preview-card">
-                <div class="vehiculo-preview-heading">
-                    <div><span class="dashboard-kicker">Vista previa</span></div>
-                </div>
-                <div class="danio-preview-status">
-                    <span>Estatus</span>
-                </div>
-                <div class="vehiculo-summary-list">
-                    <div class="vehiculo-summary-item"><span>Vehículo</span><strong id="previewDanioVehiculo">Sin seleccionar</strong></div>
-                    <div class="vehiculo-summary-item"><span>Placa</span><strong id="previewDanioPlaca">—</strong></div>
-                    <div class="vehiculo-summary-item"><span>Empleado</span><strong id="previewDanioEmpleado">Sin seleccionar</strong></div>
-                    <div class="vehiculo-summary-item"><span>Fecha</span><strong id="previewDanioFecha">—</strong></div>
-                    <div class="vehiculo-summary-item danio-summary-wide"><span>Descripción</span><strong id="previewDanioDescripcion">Sin descripción</strong></div>
-                    <div class="vehiculo-summary-item danio-summary-wide"><span>Ubicación</span><strong id="previewDanioUbicacion">No especificada</strong></div>
-                    <div class="vehiculo-summary-item"><span>Reparación</span><strong id="previewDanioMonto">$0.00</strong></div>
-                    <div class="vehiculo-summary-item"><span>Cubierto</span><strong id="previewDanioSeguro">No</strong></div>
-                    <div class="vehiculo-summary-item danio-summary-wide"><span>Póliza</span><strong id="previewDanioPoliza">No aplica</strong></div>
-                    <div class="vehiculo-summary-item danio-summary-wide"><span>Evidencia</span><strong id="previewDanioEvidencia">Sin archivo</strong></div>
-                    <div class="vehiculo-summary-item danio-summary-wide"><span>Observaciones</span><strong id="previewDanioObservaciones">Sin observaciones</strong></div>
-                </div>
-            </div>
-        </aside>
     </div>
 
     <!-- Botones de captura; Guardar valida pero no ejecuta POST. -->
@@ -181,5 +157,5 @@
 
 
 @section Scripts {
-    <script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>
+    <script src="~/js/vista-danios.js" asp-append-version="true"></script>
 }
