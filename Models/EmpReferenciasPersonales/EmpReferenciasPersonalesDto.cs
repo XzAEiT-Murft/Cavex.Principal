@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.EmpReferenciasPersonales
 {
@@ -13,7 +13,7 @@ namespace Cavex.Principal.Models.EmpReferenciasPersonales
         public string StrParentezco { get; set; } = string.Empty;
 
         [Display(Name = "Telefono")]
-        public int IntTelefono { get; set; }
+        public long IntTelefono { get; set; }
 
         public int IdEmpEmpleado { get; set; }
 
