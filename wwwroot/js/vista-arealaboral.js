@@ -212,6 +212,18 @@ function renderAreas() {
     if (extraPill) {
         extraPill.textContent = `Página ${currentPage} de ${totalPages}`;
     }
+
+    // Inicializar dropdowns de acciones con estrategia 'fixed' para prevenir recortes
+    document.querySelectorAll('#areasTableBody .btn-action-trigger').forEach(el => {
+        new bootstrap.Dropdown(el, {
+            popperConfig: (defaultConfig) => {
+                return {
+                    ...defaultConfig,
+                    strategy: 'fixed'
+                };
+            }
+        });
+    });
 }
 
 // Función para renderizar los números de página

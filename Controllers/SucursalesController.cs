@@ -24,7 +24,7 @@ namespace Cavex.Principal.Controllers
         [HttpGet]
         public async Task<IActionResult> GetSucursales(CancellationToken cancellationToken)
         {
-            var response = await _service.ObtenerTodosAsync(cancellationToken);
+            var response = await _service.ObtenerTodosAsync(1, 100, cancellationToken);
 
             return Json(response.Success
                 ? new { success = true, data = response.Data?.Items }

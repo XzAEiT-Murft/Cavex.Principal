@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.EmpDocumentosLaborales
 {
@@ -20,5 +20,8 @@ namespace Cavex.Principal.Models.EmpDocumentosLaborales
 
         [Display(Name = "Licencia")]
         public string StrUrlLicencia { get; set; } = string.Empty;
+
+        [Display(Name = "Fotografia del empleado")]
+        public string? StrUrlFotoEmp { get; set; }
     }
 }

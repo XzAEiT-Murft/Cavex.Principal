@@ -21,7 +21,7 @@ namespace Cavex.Principal.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAreas(CancellationToken cancellationToken)
         {
-            var response = await _service.ObtenerTodosAsync(1, 1000, cancellationToken);
+            var response = await _service.ObtenerTodosAsync(1, 100, cancellationToken);
             if (!response.Success)
             {
                 return Json(new { success = false, message = response.Message });

@@ -39,6 +39,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
         [Required(ErrorMessage = "El correo electronico es obligatorio.")]
         [StringLength(100, ErrorMessage = "El valor no puede superar los 100 caracteres.")]
         [EmailAddress(ErrorMessage = "El correo electronico no es valido.")]
+        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com)$", ErrorMessage = "Solo se permiten correos de gmail.com, hotmail.com, outlook.com o yahoo.com.")]
         [Display(Name = "Correo electronico")]
         public string StrCorreoElectronico { get; set; } = string.Empty;
 
@@ -166,6 +167,10 @@ namespace Cavex.Principal.Models.EmpEmpleado
         [StringLength(2048, ErrorMessage = "El valor no puede superar los 2048 caracteres.")]
         [Display(Name = "Licencia")]
         public string StrUrlLicencia { get; set; } = string.Empty;
+
+        [StringLength(2048, ErrorMessage = "El valor no puede superar los 2048 caracteres.")]
+        [Display(Name = "Fotografia del empleado")]
+        public string? StrUrlFotoEmp { get; set; }
     }
 
     public class EmpCondicionesLaboralesSaveDto

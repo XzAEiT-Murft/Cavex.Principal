@@ -1,3 +1,13 @@
+// El formato original viene en otro formato por lo que esta funcion se encarga de traducirlo 
+function decodeUtf8Mojibake(str) {
+    if (!str) return '';
+    try {
+        return decodeURIComponent(escape(str));
+    } catch (e) {
+        return str;
+    }
+}
+
 let maxStepVisited = 1;
 let activeStep = 1;
 
@@ -165,7 +175,7 @@ function limpiarError(input) {
         errorDiv.remove();
     }
 }
-
+// Esta funcion se encarga de calcular la fecha de nacimiento y mostrarla
 function calcularEdad(fechaString) {
     if (!fechaString) return '';
     const hoy = new Date();
@@ -178,6 +188,7 @@ function calcularEdad(fechaString) {
     return edad >= 0 ? edad : '';
 }
 
+// Esta funcion se encarga de validaciones en los campos de nombre
 function validarNombre(input) {
     const valor = input.value.trim();
     if (!valor) {
@@ -219,6 +230,7 @@ function validarCampoTextoGenerico(input) {
     return true;
 }
 
+// Esta funcion se encarga que no se coloque una fecha futura o irreal
 function validarFechaLogica(input) {
     if (!input.value && input.hasAttribute('required')) {
         mostrarError(input, 'Este campo es obligatorio.');
@@ -227,8 +239,8 @@ function validarFechaLogica(input) {
     if (input.value) {
         const dateObj = new Date(input.value);
         const year = dateObj.getFullYear();
-        if (year < 1900 || year > 2100) {
-            mostrarError(input, 'Ingrese un año válido (entre 1900 y 2100).');
+        if (year < 1900 || year > 2026) {
+            mostrarError(input, 'Ingrese un año válido (entre 1900 y 2026).');
             return false;
         }
     }
@@ -236,6 +248,7 @@ function validarFechaLogica(input) {
     return true;
 }
 
+// Se encarga que los cajas de texto eliga alguna opcion
 function validarSelect(input) {
     if (!input.value && input.hasAttribute('required')) {
         mostrarError(input, 'Debe seleccionar una opción.');
@@ -245,6 +258,7 @@ function validarSelect(input) {
     return true;
 }
 
+// Esta funcion se encarga de validar que los realmente algun docuemnto este dentro
 function validarDropZone(key) {
     const input = document.getElementById('file-' + key);
     const zone = document.getElementById('drop-zone-' + key);
@@ -260,6 +274,7 @@ function validarDropZone(key) {
     return true;
 }
 
+// Esta funcion se encarga de tener el formato correcto del RFC
 function validarRFC(input) {
     const valor = input.value.trim().toUpperCase();
     input.value = valor;
@@ -284,6 +299,7 @@ function validarRFC(input) {
     return true;
 }
 
+// Esta funcion se encarga de validar el formato el CURP
 function validarCURP(input) {
     const valor = input.value.trim().toUpperCase();
     input.value = valor;
@@ -307,6 +323,7 @@ function validarCURP(input) {
     return true;
 }
 
+// Se encarga que solo se coloquen numeros 
 function validarCodigoPostal(input) {
     const valor = input.value.trim();
     
@@ -329,6 +346,7 @@ function validarCodigoPostal(input) {
     return true;
 }
 
+// Se encarga de leer la entrada y si no coincide mostrar el error
 function validarCorreo(input) {
     const valor = input.value.trim().toLowerCase();
     if (!valor) {
@@ -347,7 +365,7 @@ function validarCorreo(input) {
     limpiarError(input);
     return true;
 }
-
+// Esta funcion se encarga de solo ingresar numeros
 function validarTelefono(input, obligatorio = false) {
     const valor = input.value.trim();
     if (!valor) {
@@ -403,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const txtNSS = document.getElementById('txtNSS');
 
 
-
+    // Estas dos funciones se encargan de solo ingresar letras y numeros
     function sanitizeRFCOnly(val) {
         let clean = stripEmojis(val);
         clean = clean.replace(/[^a-zA-Z0-9&ñÑ]/g, '');
@@ -524,6 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Validaciones de Pasos individuales
+    // Esta pendiente a cada campo y mostrar si esta lleno o vacio
     function validarPasoEmpleado1() {
         const results = [];
         results.push(obtenerEstadoInput(txtNombre, validarNombre, true));
@@ -545,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 results.push('valid');
             }
         }
-
+        // Estos son los campos que evalua el paso 1
         results.push(obtenerEstadoInput(txtRFC, validarRFC, true));
         results.push(obtenerEstadoInput(txtCURP, validarCURP, true));
         results.push(obtenerEstadoInput(document.getElementById('idGenero'), validarSelect, true));
@@ -561,6 +580,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'valid';
     }
 
+    // Validaciones del paso 2
     function validarPasoEmpleado2() {
         const results = [];
         const ne = document.getElementById('txtNivelEstudios');
@@ -570,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const fi = document.getElementById('txtFechaInicioEstudios');
         const ff = document.getElementById('txtFechaFinEstudios');
 
+        // Estos son los campos que evalua el paso 2
         results.push(obtenerEstadoInput(ne, validarNombre, true));
         results.push(obtenerEstadoInput(inst, validarCampoTextoGenerico, true));
         results.push(obtenerEstadoInput(carr, validarNombre, true));
@@ -586,7 +607,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (results.includes('missing')) return 'missing';
         return 'valid';
     }
-
+    // Validaciones del paso 3
     function validarPasoEmpleado3() {
         const container = document.getElementById('experiencias-container');
         if (!container) return 'valid';
@@ -602,6 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const sueldo = item.querySelector('.txtExpSueldo');
             const motivo = item.querySelector('.txtExpMotivo');
 
+            // Estos son los campos que evalua el paso 3
             results.push(obtenerEstadoInput(emp, validarCampoTextoGenerico, true));
             results.push(obtenerEstadoInput(puesto, validarNombre, true));
             results.push(obtenerEstadoInput(area, validarNombre, true));
@@ -628,6 +650,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'valid';
     }
 
+    // Validaciones del paso 4
     function validarPasoEmpleado4() {
         const results = [];
         const colId = document.getElementById('hdnColoniaId');
@@ -645,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
             limpiarError(colTxt);
             results.push('valid');
         }
-
+        // Estos son los campos que evalua el paso 4
         results.push(obtenerEstadoInput(cp, validarCodigoPostal, true));
         results.push(obtenerEstadoInput(ext, (i) => {
             const num = Number(i.value);
@@ -661,11 +684,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'valid';
     }
 
+    // Validar los campos del paso 5
     function validarPasoEmpleado5() {
         const results = [];
         const sm = document.getElementById('txtSueldoMensual');
         const al = document.getElementById('ddlAreaLaboral');
-
+        // Estos son los campos que evalua el paso 5
         results.push(obtenerEstadoInput(sm, (i) => {
             const num = Number(i.value);
             const ok = !isNaN(num) && num > 0;
@@ -680,6 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'valid';
     }
 
+    // Validar los campos de el paso 6
     function validarPasoEmpleado6() {
         const container = document.getElementById('referencias-container');
         if (!container) return 'valid';
@@ -690,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const nom = item.querySelector('.txtRefNombre');
             const par = item.querySelector('.txtRefParentesco');
             const tel = item.querySelector('.txtRefTelefono');
-
+            // Estos son los campos que evalua el paso 6
             results.push(obtenerEstadoInput(nom, validarNombre, true));
             results.push(obtenerEstadoInput(par, validarNombre, true));
             results.push(obtenerEstadoInput(tel, (i) => validarTelefono(i, true), true));
@@ -700,8 +725,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (results.includes('missing')) return 'missing';
         return 'valid';
     }
-
+    // Validar los campos de el paso 7
     function validarPasoEmpleado7() {
+        // Estos son los campos de arrastrar y soltar que evalua el paso 7
         const results = [];
         ['identificacion', 'comprobante', 'cv', 'contrato', 'licencia', 'fotoEmpleado'].forEach(key => {
             const ok = validarDropZone(key);
@@ -724,6 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'valid';
     }
 
+    // Actualiza el paso depeniendo en el estado que se lleno
     function actualizarStepperEmpleado() {
         const steps = document.querySelectorAll('.stepper .step');
         steps.forEach((step, idx) => {
@@ -939,7 +966,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             : (window.existingDocumentUrls?.contrato || "/uploads/contrato.pdf"),
                         strUrlLicencia: document.getElementById('file-licencia').files[0]?.name 
                             ? "/uploads/" + document.getElementById('file-licencia').files[0].name 
-                            : (window.existingDocumentUrls?.licencia || "/uploads/licencia.pdf")
+                            : (window.existingDocumentUrls?.licencia || "/uploads/licencia.pdf"),
+                        strUrlFotoEmp: document.getElementById('file-fotoEmpleado').files[0]?.name
+                            ? "/uploads/" + document.getElementById('file-fotoEmpleado').files[0].name
+                            : (window.existingDocumentUrls?.fotoEmpleado || null)
                     },
                     condicionesLaborales: {
                         bitCercaniaVivienda: document.getElementById('chkVivienda').checked,
@@ -1159,10 +1189,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             fetch('/Empleado/GetColonia?id=' + colId)
                                 .then(res => res.json())
                                 .then(res => {
-                                    if (res.success && res.data) {
-                                        document.getElementById('txtColonia').value = res.data.strValor;
-                                        document.getElementById('txtCodigoPostal').value = String(res.data.intCodigoPostal).padStart(5, '0');
-                                    }
+                                     if (res.success && res.data) {
+                                         const estado = decodeUtf8Mojibake(res.data.strEstado || 'Estado Desconocido');
+                                         const municipio = decodeUtf8Mojibake(res.data.strMunicipio || 'Municipio Desconocido');
+                                         const cp = String(res.data.intCodigoPostal).padStart(5, '0');
+                                         let colTexto = decodeUtf8Mojibake(res.data.strValor);
+                                         if (cp) {
+                                             colTexto += ', CP ' + cp;
+                                         }
+                                         if (estado && estado !== 'Estado Desconocido') {
+                                             colTexto += ', ' + estado;
+                                         }
+                                         if (municipio && municipio !== 'Municipio Desconocido') {
+                                             colTexto += ', ' + municipio;
+                                         }
+                                         document.getElementById('txtColonia').value = colTexto;
+                                         document.getElementById('txtCodigoPostal').value = cp;
+                                     }
                                 });
                         }
                     }
@@ -1253,7 +1296,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             comprobante: docs.strUrlComprobanteDomicilio,
                             cv: docs.strUrlCurriculumVitae,
                             contrato: docs.strUrlContrato,
-                            licencia: docs.strUrlLicencia
+                            licencia: docs.strUrlLicencia,
+                            fotoEmpleado: docs.strUrlFotoEmp
                         };
 
                         Object.keys(window.existingDocumentUrls).forEach(key => {
@@ -1267,7 +1311,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     
                                     if (prompt) prompt.style.display = 'none';
                                     if (preview) preview.style.display = 'flex';
-                                    if (nameText) nameText.textContent = url.split('/').pop() || 'Archivo guardado.pdf';
+                                    if (nameText) nameText.textContent = url.split('/').pop() || (key === 'fotoEmpleado' ? 'foto_guardada.jpg' : 'Archivo guardado.pdf');
                                     
                                     zone.classList.add('has-file');
                                     const input = document.getElementById('file-' + key);
@@ -1403,12 +1447,29 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const codigoPostal = String(obtenerCodigoPostalColonia(item)).padStart(5, '0');
                                 const div = document.createElement('div');
                                 div.className = 'suggestion-item';
-                                div.textContent = nombreColonia + ' (CP: ' + codigoPostal + ')';
+                                const nombreColoniaItem = decodeUtf8Mojibake(item?.strValor || item?.StrValor || item?.colonia || item?.Colonia || 'Colonia Desconocida');
+                                const estado = decodeUtf8Mojibake(item?.strEstado || item?.StrEstado || 'Estado Desconocido');
+                                const municipio = decodeUtf8Mojibake(item?.strMunicipio || item?.StrMunicipio || 'Municipio Desconocido');
+                                div.innerHTML = `<strong>"${nombreColoniaItem}"</strong>, CP ${codigoPostal}, ${estado}, ${municipio}`;
                                 div.addEventListener('mousedown', (event) => {
                                     event.preventDefault();
-                                    txtColonia.value = nombreColonia;
+                                    
+                                    let colTexto = nombreColoniaItem;
+                                    
+                                    if (codigoPostal) {
+                                        colTexto += ', CP ' + codigoPostal;
+                                    }
+                                    if (estado && estado !== 'Estado Desconocido') {
+                                        colTexto += ', ' + estado;
+                                    }
+                                    if (municipio && municipio !== 'Municipio Desconocido') {
+                                        colTexto += ', ' + municipio;
+                                    }
+                                    
+                                    txtColonia.value = colTexto;
                                     hdnColoniaId.value = obtenerIdColonia(item);
                                     txtCodigoPostal.value = codigoPostal;
+                                    
                                     coloniaSuggestions.innerHTML = '';
                                     coloniaSuggestions.style.display = 'none';
 
@@ -1484,6 +1545,13 @@ function procesarArchivo(file, key) {
     const zone = document.getElementById('drop-zone-' + key);
     if (!input || !zone) return;
     
+    // Para fotos de empleado: convertir a JPG si es necesario
+    if (key === 'fotoEmpleado') {
+        procesarImagenComoJPG(file, input, zone, key);
+        return;
+    }
+    
+    // Para otros documentos: validar que sean PDF
     const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     
     if (ext !== '.pdf' || file.type !== 'application/pdf') {
@@ -1525,6 +1593,103 @@ function procesarArchivo(file, key) {
         const event = new Event('change', { bubbles: true });
         form.dispatchEvent(event);
     }
+}
+
+// Función para convertir cualquier imagen a JPG
+function procesarImagenComoJPG(file, input, zone, key) {
+    const maxSize = 5 * 1024 * 1024; // 5 MB
+    
+    if (file.size > maxSize) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Archivo muy grande',
+            text: 'La imagen no debe superar 5 MB.',
+            confirmButtonColor: 'var(--teal-cavex)'
+        });
+        return;
+    }
+    
+    // Validar que sea una imagen
+    if (!file.type.startsWith('image/')) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Archivo no válido',
+            text: 'Por favor selecciona una imagen (JPG, PNG, WEBP).',
+            confirmButtonColor: 'var(--teal-cavex)'
+        });
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Crear canvas y convertir a JPG
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            
+            // Convertir a blob JPG
+            canvas.toBlob(function(blob) {
+                // Generar nombre de archivo con extensión .jpg
+                const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+                const newFileName = originalName + '.jpg';
+                const jpgFile = new File([blob], newFileName, { type: 'image/jpeg' });
+                
+                // Asignar archivo JPG al input
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(jpgFile);
+                input.files = dataTransfer.files;
+                input.dataset.touched = "true";
+                
+                // Actualizar UI
+                const prompt = zone.querySelector('.drop-zone-prompt');
+                const preview = zone.querySelector('.file-preview-container');
+                const nameText = document.getElementById('name-' + key);
+                const sizeText = document.getElementById('size-' + key);
+                
+                if (prompt) prompt.style.display = 'none';
+                if (preview) preview.style.display = 'flex';
+                if (nameText) nameText.textContent = newFileName + ' (Convertida a JPG)';
+                if (sizeText) {
+                    const sizeKB = (blob.size / 1024).toFixed(1);
+                    sizeText.textContent = sizeKB + ' KB';
+                }
+                
+                zone.classList.remove('has-error');
+                zone.classList.add('has-file');
+                
+                // Disparar evento change en el formulario
+                const form = document.getElementById('form-empleado');
+                if (form) {
+                    const event = new Event('change', { bubbles: true });
+                    form.dispatchEvent(event);
+                }
+            }, 'image/jpeg', 0.92);
+        };
+        img.onerror = function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al procesar imagen',
+                text: 'No se pudo procesar la imagen. Verifica que sea un archivo válido.',
+                confirmButtonColor: 'var(--teal-cavex)'
+            });
+        };
+        img.src = e.target.result;
+    };
+    reader.onerror = function() {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al leer archivo',
+            text: 'No se pudo leer el archivo seleccionado.',
+            confirmButtonColor: 'var(--teal-cavex)'
+        });
+    };
+    reader.readAsDataURL(file);
 }
 
 function removeFile(key) {
