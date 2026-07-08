@@ -8,6 +8,14 @@ function decodeUtf8Mojibake(str) {
     }
 }
 
+function formatNumberWithComas(val) {
+    if (val === null || val === undefined) return '';
+    let clean = val.toString().replace(/,/g, '');
+    let parts = clean.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join('.');
+}
+
 let maxStepVisited = 1;
 let activeStep = 1;
 
@@ -439,6 +447,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const el = e.target;
         if (!el.matches('input, textarea')) return;
 
+        if (el.id === 'txtSueldoMensual' || el.classList.contains('txtExpSueldo')) {
+            let cursorPosition = el.selectionStart;
+            let originalLength = el.value.length;
+            let value = el.value.replace(/[^0-9.]/g, '');
+            let parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            let formattedValue = formatNumberWithComas(value);
+            el.value = formattedValue;
+            let newLength = el.value.length;
+            cursorPosition = cursorPosition + (newLength - originalLength);
+            try {
+                el.setSelectionRange(cursorPosition, cursorPosition);
+            } catch (err) {}
+            return;
+        }
+
         let fn = null;
 
         if (el.id === 'txtNombre' || el.id === 'txtApellidoPaterno' || el.id === 'txtApellidoMaterno' ||
@@ -484,8 +510,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Step by Step (al tocar)
     document.addEventListener('blur', (e) => {
-        if (e.target.matches('input, select, textarea')) {
-            e.target.dataset.touched = "true";
+        const el = e.target;
+        if (el.matches('input, select, textarea')) {
+            if (el.id === 'txtSueldoMensual' || el.classList.contains('txtExpSueldo')) {
+                let val = el.value.replace(/,/g, '').trim();
+                if (val) {
+                    let num = parseFloat(val);
+                    if (!isNaN(num) && num > 0) {
+                        el.value = formatNumberWithComas(num.toFixed(2));
+                    } else {
+                        el.value = '';
+                    }
+                }
+            }
+            el.dataset.touched = "true";
             actualizarStepperEmpleado();
         }
     }, true);
@@ -630,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
             results.push(obtenerEstadoInput(fi, validarFechaLogica, true));
             results.push(obtenerEstadoInput(ff, validarFechaLogica, true));
             results.push(obtenerEstadoInput(sueldo, (i) => {
-                const val = i.value.trim();
+                const val = i.value.replace(/,/g, '').trim();
                 const num = Number(val);
                 const ok = !isNaN(num) && num > 0;
                 if (!ok) mostrarError(i, 'Ingrese un sueldo mensual válido.');
@@ -691,7 +729,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const al = document.getElementById('ddlAreaLaboral');
         // Estos son los campos que evalua el paso 5
         results.push(obtenerEstadoInput(sm, (i) => {
-            const num = Number(i.value);
+            const val = i.value.replace(/,/g, '').trim();
+            const num = Number(val);
             const ok = !isNaN(num) && num > 0;
             if (!ok) mostrarError(i, 'Ingrese un sueldo mensual válido.');
             else limpiarError(i);
@@ -912,7 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         strArea: area,
                         dteFechaIncio: fi,
                         dteFechaFin: ff,
-                        mnySueldo: parseFloat(sueldo),
+                        mnySueldo: parseFloat(sueldo.replace(/,/g, '')),
                         strMotivoSalida: motivo
                     });
                 });
@@ -974,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     condicionesLaborales: {
                         bitCercaniaVivienda: document.getElementById('chkVivienda').checked,
                         bitDisponibilidadDeViaje: document.getElementById('chkViaje').checked,
-                        mnySueldoMensual: parseFloat(document.getElementById('txtSueldoMensual').value),
+                        mnySueldoMensual: parseFloat(document.getElementById('txtSueldoMensual').value.replace(/,/g, '')),
                         bitExperienciaEnArea: document.getElementById('chkExp').checked,
                         bitDisponibilidadCambioResidencia: document.getElementById('chkExpPuesto').checked,
                         dteFechaIngreso: new Date().toISOString().split('T')[0]
@@ -1229,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (emp.empCondicionesLaborales) {
                         document.getElementById('chkVivienda').checked = emp.empCondicionesLaborales.bitCercaniaVivienda;
                         document.getElementById('chkViaje').checked = emp.empCondicionesLaborales.bitDisponibilidadDeViaje;
-                        document.getElementById('txtSueldoMensual').value = emp.empCondicionesLaborales.mnySueldoMensual;
+                        document.getElementById('txtSueldoMensual').value = formatNumberWithComas(emp.empCondicionesLaborales.mnySueldoMensual.toFixed(2));
                         document.getElementById('chkExp').checked = emp.empCondicionesLaborales.bitExperienciaEnArea;
                         document.getElementById('chkExpPuesto').checked = emp.empCondicionesLaborales.bitDisponibilidadCambioResidencia;
                     }
@@ -1261,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     item.querySelector('.txtExpArea').value = exp.strArea;
                                     if (exp.dteFechaIncio) item.querySelector('.txtExpFechaInicio').value = exp.dteFechaIncio.split('T')[0];
                                     if (exp.dteFechaFin) item.querySelector('.txtExpFechaFin').value = exp.dteFechaFin.split('T')[0];
-                                    item.querySelector('.txtExpSueldo').value = exp.mnySueldo;
+                                    item.querySelector('.txtExpSueldo').value = formatNumberWithComas(exp.mnySueldo.toFixed(2));
                                     item.querySelector('.txtExpMotivo').value = exp.strMotivoSalida;
                                 }
                             });

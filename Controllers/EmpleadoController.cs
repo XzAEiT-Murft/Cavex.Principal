@@ -227,7 +227,7 @@ namespace Cavex.Principal.Controllers
                 StrNombre = emp.StrNombre,
                 StrApellidoPaterno = emp.StrApellidoPaterno,
                 StrApellidoMaterno = emp.StrApellidoMaterno,
-                DteFechaNacimiento = DateOnly.FromDateTime(emp.DteFechaNacimiento),
+                DteFechaNacimiento = emp.DteFechaNacimiento,
                 StrRfc = emp.StrRfc,
                 StrCurp = emp.StrCurp,
                 IntEdad = emp.IntEdad,
@@ -263,7 +263,7 @@ namespace Cavex.Principal.Controllers
                     StrUrlCurriculumVitae = string.IsNullOrEmpty(emp.EmpDocumentosLaborales?.StrUrlCurriculumVitae) ? "N/D" : emp.EmpDocumentosLaborales.StrUrlCurriculumVitae,
                     StrUrlContrato = string.IsNullOrEmpty(emp.EmpDocumentosLaborales?.StrUrlContrato) ? "N/D" : emp.EmpDocumentosLaborales.StrUrlContrato,
                     StrUrlLicencia = string.IsNullOrEmpty(emp.EmpDocumentosLaborales?.StrUrlLicencia) ? "N/D" : emp.EmpDocumentosLaborales.StrUrlLicencia,
-                    StrUrlFotoEmp = emp.EmpDocumentosLaborales?.StrUrlFotoEmp
+                    StrUrlFotoEmp = emp.EmpDocumentosLaborales?.StrUrlFotoEmp ?? string.Empty
                 },
 
                 CondicionesLaborales = new EmpCondicionesLaboralesSaveDto

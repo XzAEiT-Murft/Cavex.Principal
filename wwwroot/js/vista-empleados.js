@@ -29,7 +29,7 @@ function loadEmpleadosFromServer() {
                         curp: item.strCurp,
                         rfc: item.strRfc,
                         area: item.strEmpCondicionesLaborales || 'Operativo',
-                        puesto: 'Asesor',
+                        puesto: item.strEmpCatTipoContratacion || 'Asesor',
                         correo: item.strCorreoElectronico,
                         telefono: item.intNss ? item.intNss.toString() : '—',
                         activo: item.idCatStatus === 1 || item.strCatStatus === "Activo" || item.strCatStatus === "1"

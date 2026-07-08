@@ -45,7 +45,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "El NSS es obligatorio.")]
         [Display(Name = "NSS")]
-        public long LngNss { get; set; }
+        public long IntNss { get; set; }
 
         [Required(ErrorMessage = "El genero es obligatorio.")]
         [Display(Name = "Genero")]

@@ -188,7 +188,7 @@
                         </div>
                         <div class="form-group">
                             <label>Sueldo mensual</label>
-                            <input type="number" class="txtExpSueldo" placeholder="$0.00" autocomplete="off" required min="1" />
+                            <input type="text" class="txtExpSueldo" placeholder="$0.00" autocomplete="off" required />
                         </div>
                     </div>
                     <div class="form-row cols-1">
@@ -245,7 +245,7 @@
             <div class="form-row cols-2">
                 <div class="form-group">
                     <label>Sueldo mensual</label>
-                    <input asp-for="SueldoMensual" type="number" id="txtSueldoMensual" placeholder="$0.00" autocomplete="off" required min="1" />
+                    <input asp-for="SueldoMensual" type="text" id="txtSueldoMensual" placeholder="$0.00" autocomplete="off" required />
                 </div>
                 <div class="form-group">
                     <label>Área laboral</label>
@@ -256,25 +256,25 @@
             </div>
 
             <div class="form-row cols-2">
-                <div class="question-group">
+                <label class="question-group" for="chkVivienda" style="cursor: pointer;">
                     <span class="question-text">¿El empleado tiene cercanía a su vivienda?</span>
                     <input asp-for="ViveEnLugarDeTrabajo" type="checkbox" id="chkVivienda" />
-                </div>
-                <div class="question-group">
+                </label>
+                <label class="question-group" for="chkViaje" style="cursor: pointer;">
                     <span class="question-text">¿Tiene disponibilidad para viajar?</span>
                     <input asp-for="DisponibilidadDeViaje" type="checkbox" id="chkViaje" />
-                </div>
+                </label>
             </div>
 
             <div class="form-row cols-2">
-                <div class="question-group">
+                <label class="question-group" for="chkExp" style="cursor: pointer;">
                     <span class="question-text">¿Tiene experiencia en el área?</span>
                     <input asp-for="ExperienciaEnElCampo" type="checkbox" id="chkExp" />
-                </div>
-                <div class="question-group">
+                </label>
+                <label class="question-group" for="chkExpPuesto" style="cursor: pointer;">
                     <span class="question-text">¿Tiene experiencia en el puesto?</span>
                     <input asp-for="ExperienciaEnElPuesto" type="checkbox" id="chkExpPuesto" />
-                </div>
+                </label>
             </div>
         </div>
 
