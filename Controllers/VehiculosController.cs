@@ -58,5 +58,13 @@ namespace Cavex.Principal.Controllers
             ViewBag.VehiculoId = id ?? 1;
             return View();
         }
+
+        // Pantalla de Agregar gasolineras
+        [HttpGet("/Vehiculos/Gasolineras/{id:int?}")]
+        public IActionResult Gasolineras(int? id)
+        {
+            ViewData["GasolineraId"] = id ?? 1;
+            return View();
+        }
     }
 }
