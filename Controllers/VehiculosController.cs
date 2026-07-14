@@ -1,9 +1,12 @@
+using Cavex.Principal.Common;
+using Cavex.Principal.Enums;
 using Cavex.Principal.Models.VehCatCapacidad;
 using Cavex.Principal.Models.VehCatColor;
 using Cavex.Principal.Models.VehCatMarcaVehiculo;
 using Cavex.Principal.Models.VehCatTaller;
 using Cavex.Principal.Models.VehCatTipoCombustible;
 using Cavex.Principal.Models.VehCatTipoVehiculo;
+using Cavex.Principal.Models.VehDatosGenerales;
 using Cavex.Principal.Models.Vehiculo;
 using Cavex.Principal.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -18,14 +21,17 @@ namespace Cavex.Principal.Controllers
         private readonly IVehCatTipoVehiculoService _vehCatTipoVehiculo;
         private readonly IVehCatCapacidadService _vehCatCapacidad;
         private readonly IVehCatTipoCombustibleService _vehCatTipoCombustible;
+        private readonly IVehDatosGeneralesService _vehDatosGenerales;
         public VehiculosController(IVehCatMarcaVehiculoService vehCatMarcaVehiculo, IVehCatColorService vehCatColorService, 
-            IVehCatTipoVehiculoService vehCatTipoVehiculo, IVehCatCapacidadService vehCatCapacidad, IVehCatTipoCombustibleService vehCatTipoCombustible)
+            IVehCatTipoVehiculoService vehCatTipoVehiculo, IVehCatCapacidadService vehCatCapacidad, 
+            IVehCatTipoCombustibleService vehCatTipoCombustible, IVehDatosGeneralesService vehDatosGenerales)
         {
             _vehCatMarcaVehiculo = vehCatMarcaVehiculo;
             _vehCatColorService = vehCatColorService;
             _vehCatTipoVehiculo = vehCatTipoVehiculo;
             _vehCatCapacidad = vehCatCapacidad;
             _vehCatTipoCombustible = vehCatTipoCombustible;
+            _vehDatosGenerales = vehDatosGenerales;
         }
 
         [HttpGet("/Vehiculos")]
@@ -101,11 +107,46 @@ namespace Cavex.Principal.Controllers
         [HttpPost("/Vehiculos/SaveVehiculo")]
         public IActionResult SaveVehiculo([FromBody]  VehiculoManagerSaveDto managerSaveDto) 
         {
-            return Ok(new
+            if (managerSaveDto !=null)
             {
-                success = true,
-                message = "Vehículo guardado correctamente."
-            });
+                VehDatosGeneralesSaveDto saveDto = new VehDatosGeneralesSaveDto();
+                saveDto.StrNumSerie = managerSaveDto.StrNumeroSerie!;
+                saveDto.IdVehCatMarcaVehiculo = managerSaveDto.VehCatMarcaVehiculo!.Id;
+                saveDto.StrModelo = managerSaveDto.StrModelo;
+                saveDto.IntAnio = managerSaveDto.IntAnio;
+                saveDto.StrVersion =managerSaveDto.StrVersion;
+                saveDto.IdVehCatColor = managerSaveDto.VehCatColorDto!.Id;
+                saveDto.StrPlaca = managerSaveDto.StrPlaca;
+                saveDto.StrNumMotor = managerSaveDto?.StrNumMotor;
+                saveDto.IdVehCatTipoVehiculo = managerSaveDto!.VehCatTipoVehiculo!.Id;
+                saveDto.IdVehCatCapacidad = managerSaveDto.VehCatCapacidad!.Id;
+                saveDto.IdVehCatTipoCombustible = managerSaveDto.VehCatTipoCombustibleDto!.Id;
+                saveDto.DecKilometrajeActual = managerSaveDto.DecKilometrajeActual;
+                //temporal necesitamos asociar a la base de datos.
+                saveDto.IdVehCatStatus = (int)EnumStatus.Activo;
+                saveDto.StrUrlFoto = string.Empty;
+                
+                ///fecha la estamos obtiniendo del servidor
+                saveDto.DteFechaRegistro = DateOnly.Parse(DateTime.Now.ToShortDateString());
+                
+                saveDto.StrObservaciones = managerSaveDto.StrDescripcion;
+                saveDto.StrMotor = managerSaveDto.StrNumMotor;
+                
+                //Guardamos los datos principales del vehiculo.
+                if (_vehDatosGenerales.CrearAsync(saveDto).Result.StatusCode == System.Net.HttpStatusCode.Created)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Vehículo guardado correctamente."
+                    });
+                }
+                
+            }
+            return BadRequest(
+                   "No se pudieron guardar los datos de forma correcta."
+                );
+            
         }
         #endregion
 

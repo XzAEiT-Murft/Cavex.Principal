@@ -40,5 +40,7 @@ namespace Cavex.Principal.Models.Vehiculo
         public VehCatCapacidadDto? VehCatCapacidad { get; set; }
 
         public VehCatTipoCombustibleDto? VehCatTipoCombustibleDto { get; set; }
+
+        public string? StrDescripcion { get; set; }
     }
 }

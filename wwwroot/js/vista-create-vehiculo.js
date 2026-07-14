@@ -70,6 +70,7 @@ function inicializarRegistroVehiculo()
             StrPlaca: document.getElementById("strPlaca").value,
             StrNumMotor:(document.getElementById("intNumMotor").value),
             DecKilometrajeActual: Number(document.getElementById("decKilometrajeActual").value),
+            StrDescripcion: document.getElementById("strObservaciones").value,
             VehCatMarcaVehiculo: {
                 Id: parseInt(document.getElementById("idVehCatMarcaVehiculo").value),
             },
@@ -87,7 +88,7 @@ function inicializarRegistroVehiculo()
             }
         }
        
-        console.log(JSON.stringify(managerSaveDto, null, 2));
+        
         Swal.fire({
              title: 'Guardando vehículo...',
              allowOutsideClick: false,
