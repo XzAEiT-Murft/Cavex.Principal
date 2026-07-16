@@ -1,9 +1,11 @@
 "use strict";
 
+// Inicializador de eventos al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     inicializarVistaGasolina();
 });
 
+// Inicializa validaciones, carga de catálogos y el envío de datos de cargas de gasolina
 function inicializarVistaGasolina() {
     const form = document.getElementById("gasolinaVehiculoForm");
     if (!form) return;
@@ -12,7 +14,7 @@ function inicializarVistaGasolina() {
     inicializarCalculoLitros();
     inicializarCargaComprobante();
 
-    // Eventos de validación en tiempo real para todos los inputs
+    // Eventos de validación en tiempo real para todos los inputs/selects obligatorios
     form.querySelectorAll("input:not([type='file']):not([type='hidden']), select").forEach(campo => {
         ["input", "change"].forEach(evento => campo.addEventListener(evento, () => {
             const teniaError = campo.classList.contains("is-invalid");
@@ -30,8 +32,10 @@ function inicializarVistaGasolina() {
         });
     });
 
-    form.addEventListener("submit", event => {
+    // Envío del formulario al backend para registrar la carga de combustible
+    form.addEventListener("submit", async event => {
         event.preventDefault();
+        
         if (!validarFormularioGasolina(form)) {
             Swal.fire({
                 icon: "warning",
@@ -43,16 +47,70 @@ function inicializarVistaGasolina() {
         }
 
         Swal.fire({
-            icon: "success",
-            title: "Carga registrada",
-            text: "Los datos de la carga de combustible han sido validados correctamente (Simulado).",
-            confirmButtonColor: "var(--teal-cavex)"
-        }).then(() => {
-            window.location.href = "/Vehiculos/Index";
+            title: "Registrando carga...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
+
+        // Construcción del DTO mapeado a las propiedades esperadas por VehControlGasolinaSaveDto
+        const payload = {
+            idVehDatosGenerales: parseInt(document.getElementById("gasolina-idVehDatosGenerales").value, 10),
+            dteFechaCarga: document.getElementById("gasolina-dteFechaCarga").value,
+            mnyMontoPagado: parseFloat(document.getElementById("gasolina-mnyMontoPagado").value),
+            mnyPrecioLitro: parseFloat(document.getElementById("gasolina-mnyPrecioLitro").value),
+            decKilometrajeActual: parseFloat(document.getElementById("gasolina-decKilometrajeActual").value),
+            idVehFormaPago: parseInt(document.getElementById("gasolina-idVehFormaPago").value, 10),
+            strUrlComprobantePago: document.getElementById("gasolina-strUrlComprobantePago").value || null,
+            idVehCatGasolineras: parseInt(document.getElementById("gasolina-idVehCatGasolineras").value, 10),
+            idEmpEmpleado: parseInt(document.getElementById("gasolina-idEmpEmpleado").value, 10)
+        };
+
+        try {
+            const response = await fetch("/Vehiculos/SaveGasolina", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            Swal.close();
+
+            if (!result.success) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al registrar",
+                    text: result.message || "No fue posible registrar la carga de combustible.",
+                    confirmButtonColor: "var(--teal-cavex)"
+                });
+                return;
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: "Carga registrada",
+                text: "Los datos de la carga de combustible han sido registrados exitosamente en la base de datos.",
+                confirmButtonColor: "var(--teal-cavex)"
+            }).then(() => {
+                window.location.href = "/Vehiculos/Index";
+            });
+        } catch (err) {
+            Swal.close();
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo establecer. ¡Intenta de nuevo!",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+        }
     });
 }
 
+// Carga los catálogos de vehículos, empleados, gasolineras y formas de pago desde la base de datos
 function cargarCatalogosGasolina() {
     // 1. Cargar vehículos
     fetch("/Vehiculos/GetVehiculos")
@@ -70,13 +128,13 @@ function cargarCatalogosGasolina() {
                 });
             }
         })
-        .catch(err => console.error("Error al cargar vehículos:", err));
+        .catch(() => {});
 
     // 2. Cargar empleados
     fetch("/Empleado/GetEmpleados")
         .then(res => res.json())
         .then(result => {
-            const select = document.getElementById("gasolina-idEmpleadoCarga");
+            const select = document.getElementById("gasolina-idEmpEmpleado");
             if (!select) return;
             select.innerHTML = '<option value="">Seleccionar...</option>';
             if (result.success && result.data) {
@@ -89,7 +147,7 @@ function cargarCatalogosGasolina() {
                 });
             }
         })
-        .catch(err => console.error("Error al cargar empleados:", err));
+        .catch(() => {});
 
     // 3. Cargar catálogos de gasolineras y formas de pago
     fetch("/Vehiculos/GetVehiculoCatalogos")
@@ -109,7 +167,7 @@ function cargarCatalogosGasolina() {
                 }
 
                 // Formas de pago
-                const selectPago = document.getElementById("gasolina-idVehCatFormaPago");
+                const selectPago = document.getElementById("gasolina-idVehFormaPago");
                 if (selectPago && result.data.idVehCatFormaPago) {
                     selectPago.innerHTML = '<option value="">Seleccionar...</option>';
                     result.data.idVehCatFormaPago.forEach(item => {
@@ -121,13 +179,14 @@ function cargarCatalogosGasolina() {
                 }
             }
         })
-        .catch(err => console.error("Error al cargar catálogos de gasolina:", err));
+        .catch(() => {});
 }
 
+// Calcula dinámicamente los litros estimados basados en Monto / Precio por litro
 function inicializarCalculoLitros() {
     const monto = document.getElementById("gasolina-mnyMontoPagado");
-    const precio = document.getElementById("gasolina-decPrecioLitro");
-    const litros = document.getElementById("gasolina-decLitrosCargados");
+    const precio = document.getElementById("gasolina-mnyPrecioLitro");
+    const litros = document.getElementById("gasolinaLitrosEstimados");
 
     if (!monto || !precio || !litros) return;
 
@@ -135,9 +194,9 @@ function inicializarCalculoLitros() {
         const valMonto = parseFloat(monto.value) || 0;
         const valPrecio = parseFloat(precio.value) || 0;
         if (valMonto > 0 && valPrecio > 0) {
-            litros.value = (valMonto / valPrecio).toFixed(2);
+            litros.textContent = (valMonto / valPrecio).toFixed(2) + " L";
         } else {
-            litros.value = "0.00";
+            litros.textContent = "0.00 L";
         }
     };
 
@@ -145,6 +204,7 @@ function inicializarCalculoLitros() {
     precio.addEventListener("input", calcular);
 }
 
+// Configura Drag & Drop y selección manual de archivos para el comprobante
 function inicializarCargaComprobante() {
     const area = document.getElementById("gasolinaComprobanteArea");
     const input = document.getElementById("gasolinaComprobanteArchivo");
@@ -177,6 +237,7 @@ function inicializarCargaComprobante() {
     });
 }
 
+// Valida el formato y tamaño del archivo de comprobante
 function procesarArchivoComprobante(archivo) {
     const limBytes = 5 * 1024 * 1024;
     const tiposPermitidos = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -198,6 +259,7 @@ function procesarArchivoComprobante(archivo) {
     document.getElementById("gasolina-strUrlComprobantePago").value = "/uploads/gasolina_demo.pdf";
 }
 
+// Limpia el input del comprobante de pago cargado
 function limpiarComprobante() {
     const input = document.getElementById("gasolinaComprobanteArchivo");
     if (input) input.value = "";
@@ -220,11 +282,12 @@ function limpiarErrorComprobante() {
     if (error) { error.textContent = ""; error.classList.remove("d-block"); }
 }
 
+// Realiza la validación del conjunto de campos requeridos del formulario
 function validarFormularioGasolina(form) {
     const obligatorios = [
-        "gasolina-idVehDatosGenerales", "gasolina-dteFechaCarga", "gasolina-decKilometrajeCarga",
-        "gasolina-idVehCatGasolineras", "gasolina-mnyMontoPagado", "gasolina-decPrecioLitro",
-        "gasolina-idVehCatFormaPago", "gasolina-idEmpleadoCarga"
+        "gasolina-idVehDatosGenerales", "gasolina-dteFechaCarga", "gasolina-decKilometrajeActual",
+        "gasolina-idVehCatGasolineras", "gasolina-mnyMontoPagado", "gasolina-mnyPrecioLitro",
+        "gasolina-idVehFormaPago", "gasolina-idEmpEmpleado"
     ];
     let valido = true;
     obligatorios.forEach(id => {
@@ -240,6 +303,7 @@ function validarFormularioGasolina(form) {
     return valido;
 }
 
+// Ejecuta la validación lógica y de rango para campos específicos
 function validarCampoGasolina(campo) {
     const original = String(campo.value || "");
     const valor = original.trim();
@@ -251,7 +315,7 @@ function validarCampoGasolina(campo) {
 
     if (!mensaje) {
         switch (campo.id) {
-            case "gasolina-decKilometrajeCarga": {
+            case "gasolina-decKilometrajeActual": {
                 const num = Number(valor);
                 if (isNaN(num) || num < 0 || num > 999999) {
                     mensaje = "Kilometraje no válido.";
@@ -265,7 +329,7 @@ function validarCampoGasolina(campo) {
                 }
                 break;
             }
-            case "gasolina-decPrecioLitro": {
+            case "gasolina-mnyPrecioLitro": {
                 const num = Number(valor);
                 if (isNaN(num) || num <= 0 || num > 999) {
                     mensaje = "Precio por litro no válido (debe ser mayor a 0).";
@@ -289,6 +353,7 @@ function validarCampoGasolina(campo) {
     return true;
 }
 
+// Restablece el estado de error de un input
 function limpiarErrorCampo(campo) {
     campo.classList.remove("is-invalid", "is-valid");
     campo.removeAttribute("aria-invalid");

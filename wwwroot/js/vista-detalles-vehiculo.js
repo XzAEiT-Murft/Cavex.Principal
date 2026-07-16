@@ -2,7 +2,6 @@
 
 $(document).ready(function() {
 
-    // --- BASE DE DATOS SIMULADA PARA DETALLES DE VEHÍCULOS ---
     const vehiculosDetalles = {};
 
     const vehiculoId = window.vehiculoId || 1;
@@ -77,6 +76,8 @@ $(document).ready(function() {
     vehiculosDetalles[vehiculoId] = vehiculo;
 
     // --- 1. FUNCIONES DE RENDERIZADO GENERAL Y LLENADO DE DATOS ---
+
+    // Llena los elementos visuales de la cabecera (placa, foto, estatus) y la tarjeta de información técnica del vehículo
     function poblarCabeceraYDatosGenerales() {
         let fotoUrl = vehiculo.foto;
         if (!fotoUrl) {
@@ -106,6 +107,7 @@ $(document).ready(function() {
         $('#det-garantia').text(vehiculo.garantia);
     }
 
+    // Devuelve un bloque HTML diseñado para alertar que una sección específica no cuenta con registros
     function renderPlaceholderVacio(seccionNombre) {
         return `
             <div class="empty-section-banner text-center py-5" style="width: 100%; border: 2px dashed #cbd5e1; border-radius: 14px; background: #f8fafc; margin: 15px 0;">
@@ -795,7 +797,6 @@ $(document).ready(function() {
                     strFechaCompra = date.toLocaleDateString("es-MX");
                 }
 
-                // Sobrescribir datos simulados principales
                 vehiculo.nombre = `${strMarca} ${v.strModelo || ""} ${v.intAnio || ""}`.trim();
                 vehiculo.placa = v.strPlaca || "Sin placa";
                 vehiculo.estatus = strStatus;

@@ -1,20 +1,4 @@
-// El formato original viene en otro formato por lo que esta funcion se encarga de traducirlo 
-function decodeUtf8Mojibake(str) {
-    if (!str) return '';
-    try {
-        return decodeURIComponent(escape(str));
-    } catch (e) {
-        return str;
-    }
-}
 
-function formatNumberWithComas(val) {
-    if (val === null || val === undefined) return '';
-    let clean = val.toString().replace(/,/g, '');
-    let parts = clean.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return parts.join('.');
-}
 
 let maxStepVisited = 1;
 let activeStep = 1;
@@ -485,16 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (fn) {
-            const originalVal = el.value;
-            const cleanedVal = fn(originalVal);
-            if (originalVal !== cleanedVal) {
-                const selectionStart = el.selectionStart;
-                const selectionEnd = el.selectionEnd;
-                el.value = cleanedVal;
-                try {
-                    el.setSelectionRange(selectionStart, selectionEnd);
-                } catch (err) {}
-            }
+            sanitizeInputElement(el, fn);
         }
     });
 
@@ -1157,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(err => console.error('[Nacionalidad] ERROR:', err));
 
         // ── ÁREA LABORAL ──
-        const p4 = fetch('/EmpCatAreaLaboral/GetAreas')
+        const p4 = fetch('/AreaLaboral/GetAreas')
             .then(res => res.json())
             .then(res => {
                 if (res.success && res.data) {

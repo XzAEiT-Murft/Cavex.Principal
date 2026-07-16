@@ -1,9 +1,11 @@
 "use strict";
 
+// Inicializador de eventos al cargar el DOM de la vista de daños y accidentes
 document.addEventListener("DOMContentLoaded", () => {
     inicializarVistaDanios();
 });
 
+// Configura los eventos iniciales, validaciones en tiempo real y el envío simulado del formulario
 function inicializarVistaDanios() {
     const form = document.getElementById("danioAccidenteForm");
     if (!form) return;
@@ -31,7 +33,7 @@ function inicializarVistaDanios() {
         });
     });
 
-    form.addEventListener("submit", event => {
+    form.addEventListener("submit", async event => {
         event.preventDefault();
         if (!validarFormularioDanio(form)) {
             Swal.fire({
@@ -43,18 +45,76 @@ function inicializarVistaDanios() {
             return;
         }
 
-        // Simular éxito como se acordó para esta fase
         Swal.fire({
-            icon: "success",
-            title: "Evento validado",
-            text: "Los datos del daño/accidente han sido validados correctamente (Simulado).",
-            confirmButtonColor: "var(--teal-cavex)"
-        }).then(() => {
-            window.location.href = "/Vehiculos/Index";
+            title: "Registrando daño/accidente...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
+
+        const statusVal = parseInt(document.getElementById("danio-idVehCatStatus").value, 10);
+        const montoInput = document.getElementById("danio-mnyMontoReparacion").value;
+        const seguroInput = document.getElementById("danio-idVehSeguro").value;
+
+        const payload = {
+            idVehDatosGenerales: parseInt(document.getElementById("danio-idVehDatosGenerales").value, 10),
+            idEmpEmpleado: parseInt(document.getElementById("danio-idEmpEmpleado").value, 10),
+            dteFechaEvento: document.getElementById("danio-dteFechaEvento").value,
+            strDescripcion: document.getElementById("danio-strDescripcion").value,
+            strUbicacion: document.getElementById("danio-strUbicacion").value || null,
+            mnyMontoReparacion: montoInput ? parseFloat(montoInput) : null,
+            bitCubiertoPorSeguro: document.getElementById("danio-bitCubiertoPorSeguro").value === "true",
+            idVehSeguro: seguroInput ? parseInt(seguroInput, 10) : null,
+            idVehCatStatus: statusVal,
+            strUrlEvidencia: document.getElementById("danio-strUrlEvidencia").value || null,
+            strObservaciones: document.getElementById("danio-strObservaciones").value || null
+        };
+
+        try {
+            const response = await fetch("/Vehiculos/SaveDanio", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            Swal.close();
+
+            if (!result.success) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al registrar",
+                    text: result.message || "No fue posible registrar el daño/accidente.",
+                    confirmButtonColor: "var(--teal-cavex)"
+                });
+                return;
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: "Evento registrado",
+                text: "Los datos del daño/accidente han sido registrados exitosamente en la base de datos.",
+                confirmButtonColor: "var(--teal-cavex)"
+            }).then(() => {
+                window.location.href = "/Vehiculos/Index";
+            });
+        } catch (err) {
+            Swal.close();
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo establecer comunicación con el servidor. ¡Intenta de nuevo!",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+        }
     });
 }
 
+// Carga asíncronamente los catálogos de vehículos, empleados y aseguradoras en los campos <select> correspondientes
 function cargarCatalogosDanios() {
     // 1. Cargar vehículos
     fetch("/Vehiculos/GetVehiculos")
@@ -78,7 +138,7 @@ function cargarCatalogosDanios() {
     fetch("/Empleado/GetEmpleados")
         .then(res => res.json())
         .then(result => {
-            const select = document.getElementById("danio-idEmpleadoReporta");
+            const select = document.getElementById("danio-idEmpEmpleado");
             if (!select) return;
             select.innerHTML = '<option value="">Seleccionar...</option>';
             if (result.success && result.data) {
@@ -93,25 +153,40 @@ function cargarCatalogosDanios() {
         })
         .catch(err => console.error("Error al cargar empleados:", err));
 
-    // 3. Cargar aseguradoras
+    // 3. Cargar aseguradoras y estatus
     fetch("/Vehiculos/GetVehiculoCatalogos")
         .then(res => res.json())
         .then(result => {
+            // Cargar aseguradoras
             const select = document.getElementById("danio-idVehSeguro");
-            if (!select) return;
-            select.innerHTML = '<option value="">No aplica</option>';
-            if (result.success && result.data && result.data.idVehCatAseguradora) {
-                result.data.idVehCatAseguradora.forEach(aseg => {
+            if (select) {
+                select.innerHTML = '<option value="">No aplica</option>';
+                if (result.success && result.data && result.data.idVehCatAseguradora) {
+                    result.data.idVehCatAseguradora.forEach(aseg => {
+                        const opt = document.createElement("option");
+                        opt.value = String(aseg.id);
+                        opt.textContent = aseg.strValor || aseg.strDescripcion;
+                        select.appendChild(opt);
+                    });
+                }
+            }
+
+            // Cargar estatus
+            const selectStatus = document.getElementById("danio-idVehCatStatus");
+            if (selectStatus && result.success && result.data && result.data.idVehCatStatus) {
+                selectStatus.innerHTML = '<option value="">Seleccionar...</option>';
+                result.data.idVehCatStatus.forEach(status => {
                     const opt = document.createElement("option");
-                    opt.value = String(aseg.id);
-                    opt.textContent = aseg.strValor || aseg.strDescripcion;
-                    select.appendChild(opt);
+                    opt.value = String(status.id);
+                    opt.textContent = status.strValor || status.strDescripcion;
+                    selectStatus.appendChild(opt);
                 });
             }
         })
-        .catch(err => console.error("Error al cargar aseguradoras:", err));
+        .catch(err => console.error("Error al cargar catálogos:", err));
 }
 
+// Configura el switch para habilitar/deshabilitar de forma condicional el catálogo de aseguradoras
 function inicializarSwitchSeguro() {
     const sw = document.getElementById("danioSeguroSwitch");
     const label = document.getElementById("danioSeguroSwitchLabel");
@@ -152,6 +227,7 @@ function inicializarSwitchSeguro() {
     });
 }
 
+// Inicializa el drag and drop (arrastrar y soltar) y selección manual del archivo de evidencia del accidente
 function inicializarCargaEvidencia() {
     const area = document.getElementById("danioEvidenciaArea");
     const input = document.getElementById("danioEvidenciaArchivo");
@@ -184,6 +260,7 @@ function inicializarCargaEvidencia() {
     });
 }
 
+// Valida el formato y tamaño del archivo (máximo 5MB, PDF, JPG, PNG, WEBP) y actualiza la previsualización
 function procesarArchivoEvidencia(archivo) {
     const limBytes = 5 * 1024 * 1024;
     const tiposPermitidos = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -227,6 +304,7 @@ function limpiarErrorEvidencia() {
     if (error) { error.textContent = ""; error.classList.remove("d-block"); }
 }
 
+// Muestra dinámicamente los caracteres escritos sobre el límite de 500 para observaciones
 function inicializarContadorObservaciones() {
     const campo = document.getElementById("danio-strObservaciones");
     const contador = document.getElementById("danioObservacionesContador");
@@ -239,8 +317,9 @@ function inicializarContadorObservaciones() {
     actualizar();
 }
 
+// Ejecuta la validación lógica completa de todos los campos obligatorios del formulario antes del submit
 function validarFormularioDanio(form) {
-    const obligatorios = ["danio-idVehDatosGenerales", "danio-idEmpleadoReporta", "danio-dteFechaEvento", "danio-strDescripcion"];
+    const obligatorios = ["danio-idVehDatosGenerales", "danio-idEmpEmpleado", "danio-dteFechaEvento", "danio-strDescripcion", "danio-idVehCatStatus"];
     if (document.getElementById("danioSeguroSwitch")?.checked) {
         obligatorios.push("danio-idVehSeguro");
     }

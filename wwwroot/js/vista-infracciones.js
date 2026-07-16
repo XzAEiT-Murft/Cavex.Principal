@@ -4,8 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
     inicializarVistaInfracciones();
 });
 
+// Arreglo temporal de vehículos cargado desde la BD para la vista previa lateral
 let listaVehiculosInfracciones = [];
 
+// Inicializa la configuración de la pantalla de infracciones
 function inicializarVistaInfracciones() {
     const form = document.getElementById("infraccionVehiculoForm");
     if (!form) return;
@@ -35,8 +37,10 @@ function inicializarVistaInfracciones() {
         });
     });
 
-    form.addEventListener("submit", event => {
+    // Envío del formulario al backend para registrar la infracción
+    form.addEventListener("submit", async event => {
         event.preventDefault();
+        
         if (!validarFormularioInfraccion(form)) {
             Swal.fire({
                 icon: "warning",
@@ -48,18 +52,78 @@ function inicializarVistaInfracciones() {
         }
 
         Swal.fire({
-            icon: "success",
-            title: "Infracción registrada",
-            text: "Los datos de la infracción han sido validados correctamente (Simulado).",
-            confirmButtonColor: "var(--teal-cavex)"
-        }).then(() => {
-            window.location.href = "/Vehiculos/Index";
+            title: "Registrando infracción...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
+
+        const statusVal = parseInt(document.getElementById("infraccion-idVehCatStatus").value, 10);
+        const montoInput = document.getElementById("infraccion-mnyMontoPagado").value;
+        const fechaPagoInput = document.getElementById("infraccion-dteFechaPago").value;
+        const formaPagoInput = document.getElementById("infraccion-idVehFormaPago").value;
+
+        // Construcción del payload según el DTO VehInfraccionesSaveDto
+        const payload = {
+            idVehDatosGenerales: parseInt(document.getElementById("infraccion-idVehDatosGenerales").value, 10),
+            idEmpEmpleado: parseInt(document.getElementById("infraccion-idEmpEmpleado").value, 10),
+            dteFechaInfraccion: document.getElementById("infraccion-dteFechaInfraccion").value,
+            strMotivo: document.getElementById("infraccion-strMotivo").value,
+            idVehCatStatus: statusVal,
+            mnyMontoPagado: statusVal === 2 && montoInput ? parseFloat(montoInput) : null,
+            dteFechaPago: statusVal === 2 && fechaPagoInput ? fechaPagoInput : null,
+            idVehFormaPago: statusVal === 2 && formaPagoInput ? parseInt(formaPagoInput, 10) : null,
+            strUrlComprobantePago: statusVal === 2 ? (document.getElementById("infraccion-strUrlComprobantePago").value || null) : null,
+            strObservaciones: document.getElementById("infraccion-strObservaciones").value || null
+        };
+
+        try {
+            const response = await fetch("/Vehiculos/SaveInfraccion", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            Swal.close();
+
+            if (!result.success) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al registrar",
+                    text: result.message || "No fue posible registrar la infracción.",
+                    confirmButtonColor: "var(--teal-cavex)"
+                });
+                return;
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: "Infracción registrada",
+                text: "Los datos de la infracción han sido registrados exitosamente en la base de datos.",
+                confirmButtonColor: "var(--teal-cavex)"
+            }).then(() => {
+                window.location.href = "/Vehiculos/Index";
+            });
+        } catch (err) {
+            Swal.close();
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo establecer comunicación con el servidor. ¡Intenta de nuevo!",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+        }
     });
 
     actualizarVistaPreviaInfraccion();
 }
 
+// Carga catálogos de vehículos, empleados, formas de pago y estatus del servidor
 function cargarCatalogosInfracciones() {
     // 1. Cargar vehículos
     fetch("/Vehiculos/GetVehiculos")
@@ -78,7 +142,7 @@ function cargarCatalogosInfracciones() {
                 });
             }
         })
-        .catch(err => console.error("Error al cargar vehículos:", err));
+        .catch(() => {});
 
     // 2. Cargar empleados
     fetch("/Empleado/GetEmpleados")
@@ -97,7 +161,7 @@ function cargarCatalogosInfracciones() {
                 });
             }
         })
-        .catch(err => console.error("Error al cargar empleados:", err));
+        .catch(() => {});
 
     // 3. Cargar catálogos (Forma de pago, Estatus)
     fetch("/Vehiculos/GetVehiculoCatalogos")
@@ -134,9 +198,10 @@ function cargarCatalogosInfracciones() {
                 }
             }
         })
-        .catch(err => console.error("Error al cargar catálogos de infracción:", err));
+        .catch(() => {});
 }
 
+// Vincula el evento change del select de Estatus
 function inicializarEstatusInfraccion() {
     const selectStatus = document.getElementById("infraccion-idVehCatStatus");
     if (!selectStatus) return;
@@ -148,6 +213,7 @@ function inicializarEstatusInfraccion() {
     });
 }
 
+// Habilita o deshabilita los campos de pago según el estatus de la infracción
 function toggleCamposPago(requerido) {
     const monto = document.getElementById("infraccion-mnyMontoPagado");
     const fecha = document.getElementById("infraccion-dteFechaPago");
@@ -183,6 +249,7 @@ function toggleCamposPago(requerido) {
     }
 }
 
+// Configura el cargador del archivo comprobante (Drag & Drop + Selección manual)
 function inicializarCargaComprobante() {
     const area = document.getElementById("infraccionComprobanteArea");
     const input = document.getElementById("infraccionComprobanteArchivo");
@@ -222,6 +289,7 @@ function inicializarCargaComprobante() {
     });
 }
 
+// Valida el formato y tamaño del archivo comprobante
 function procesarArchivoComprobante(archivo) {
     const limBytes = 5 * 1024 * 1024;
     const tiposPermitidos = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -244,6 +312,7 @@ function procesarArchivoComprobante(archivo) {
     actualizarVistaPreviaInfraccion();
 }
 
+// Limpia el estado del comprobante
 function limpiarComprobante() {
     const input = document.getElementById("infraccionComprobanteArchivo");
     if (input) input.value = "";
@@ -269,6 +338,7 @@ function limpiarErrorComprobante() {
     if (error) { error.textContent = ""; error.classList.remove("d-block"); }
 }
 
+// Configura contadores de caracteres para los campos textarea
 function inicializarContadores() {
     const motivo = document.getElementById("infraccion-strMotivo");
     const counterMotivo = document.getElementById("infraccionMotivoCounter");
@@ -287,6 +357,7 @@ function inicializarContadores() {
     }
 }
 
+// Mapea y actualiza la tarjeta lateral de Vista Previa con los valores del formulario
 function actualizarVistaPreviaInfraccion() {
     const val = id => document.getElementById(id)?.value?.trim() || "";
     const txt = id => {
@@ -329,6 +400,7 @@ function actualizarVistaPreviaInfraccion() {
     setText("previewInfraccionComprobante", val("infraccion-strUrlComprobantePago") ? (compFilename || "Archivo cargado") : "Sin archivo");
 }
 
+// Realiza validación de campos obligatorios requeridos
 function validarFormularioInfraccion(form) {
     const obligatorios = ["infraccion-idVehDatosGenerales", "infraccion-idEmpEmpleado", "infraccion-dteFechaInfraccion", "infraccion-idVehCatStatus", "infraccion-strMotivo"];
     
@@ -351,6 +423,7 @@ function validarFormularioInfraccion(form) {
     return valido;
 }
 
+// Realiza validación lógica individual por campo
 function validarCampoInfraccion(campo) {
     const original = String(campo.value || "");
     const valor = original.trim();
@@ -392,6 +465,7 @@ function validarCampoInfraccion(campo) {
     return true;
 }
 
+// Limpia el estado de error de un input/select
 function limpiarErrorCampo(campo) {
     campo.classList.remove("is-invalid", "is-valid");
     campo.removeAttribute("aria-invalid");

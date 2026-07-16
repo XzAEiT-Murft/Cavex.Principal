@@ -15,48 +15,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const descInput = document.getElementById('strDescripcion');
     
     if (nombreInput) {
+        registerSanitizer(nombreInput, sanitizeLettersOnly);
         nombreInput.addEventListener('input', () => {
-            const originalVal = nombreInput.value;
-            const cleanedVal = sanitizeLettersOnly(originalVal);
-            if (originalVal !== cleanedVal) {
-                const start = nombreInput.selectionStart;
-                const end = nombreInput.selectionEnd;
-                nombreInput.value = cleanedVal;
-                try {
-                    nombreInput.setSelectionRange(start, end);
-                } catch (err) {}
-            }
             nombreInput.classList.remove('is-invalid', 'is-valid');
-        });
-        
-        nombreInput.addEventListener('blur', () => {
-            nombreInput.value = nombreInput.value.trim();
         });
     }
     
     if (descInput) {
+        registerSanitizer(descInput, sanitizeGeneralText);
         descInput.addEventListener('input', () => {
-            const originalVal = descInput.value;
-            const cleanedVal = sanitizeGeneralText(originalVal);
-            if (originalVal !== cleanedVal) {
-                const start = descInput.selectionStart;
-                const end = descInput.selectionEnd;
-                descInput.value = cleanedVal;
-                try {
-                    descInput.setSelectionRange(start, end);
-                } catch (err) {}
-            }
             descInput.classList.remove('is-invalid', 'is-valid');
-        });
-        
-        descInput.addEventListener('blur', () => {
-            descInput.value = descInput.value.trim();
         });
     }
 });
 
+// Obtiene la lista de áreas laborales desde el servidor aplicando paginación y búsqueda
 function loadAreasFromServer() {
-    const url = `/EmpCatAreaLaboral/GetAreas?pagina=${currentPage}&search=${encodeURIComponent(searchQuery)}`;
+    const url = `/AreaLaboral/GetAreas?pagina=${currentPage}&search=${encodeURIComponent(searchQuery)}`;
     fetch(url)
         .then(response => {
             if (!response.ok) {
@@ -367,7 +342,7 @@ function handleFormSubmit(e) {
         descInput.classList.add('is-valid');
     }
 
-    const url = editingId === null ? '/EmpCatAreaLaboral/SaveArea' : '/EmpCatAreaLaboral/UpdateArea';
+    const url = editingId === null ? '/AreaLaboral/SaveArea' : '/AreaLaboral/UpdateArea';
 
     const payload = {
         id: editingId || 0,
@@ -469,7 +444,7 @@ function deleteArea(id) {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch('/EmpCatAreaLaboral/DeleteArea?id=' + id, {
+            fetch('/AreaLaboral/DeleteArea?id=' + id, {
                 method: 'POST'
             })
             .then(response => response.json())
@@ -531,13 +506,4 @@ function resetForm() {
     document.getElementById('btnCancel').style.display = 'none';
 }
 
-// Escape de caracteres HTML para seguridad
-function escapeHtml(text) {
-    if (!text) return '';
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+

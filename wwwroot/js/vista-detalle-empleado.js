@@ -1,42 +1,6 @@
 const empleadoId = document.getElementById('empleadoDetailsContainer').dataset.id;
 
-function decodeUtf8Mojibake(str) {
-    if (!str) return '';
-    try {
-        return decodeURIComponent(escape(str));
-    } catch (e) {
-        return str;
-    }
-}
-
-function toTitleCase(str) {
-    if (!str || str === '—') return '—';
-    const decoded = decodeUtf8Mojibake(str).trim();
-    if (!decoded) return '—';
-    
-    // Si es CURP, RFC o número, mantenerlo en mayúsculas / original
-    if (/^[A-Z]{4}\d{6}[A-Z\d]{8}$/i.test(decoded)) return decoded.toUpperCase();
-    if (/^[A-Z]{3,4}\d{6}[A-Z\d]{3}$/i.test(decoded)) return decoded.toUpperCase();
-    if (/^\d+$/.test(decoded)) return decoded;
-    
-    return decoded
-        .toLowerCase()
-        .split(/\s+/)
-        .map(word => {
-            if (!word) return '';
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        })
-        .join(' ');
-}
-
-function formatNumberWithComas(val) {
-    if (val === null || val === undefined) return '';
-    let clean = val.toString().replace(/,/g, '');
-    let parts = clean.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return parts.join('.');
-}
-
+// Extrae únicamente el nombre del archivo de una ruta URL completa
 function getFilenameFromUrl(url) {
     if (!url || url === 'N/D') return 'No disponible';
     try {
@@ -47,6 +11,7 @@ function getFilenameFromUrl(url) {
     }
 }
 
+// Configura los botones de visualización de documentos en la interfaz abriendo el visor modal
 function setupVerDocButton(btnId, nameId, url, docTitle) {
     const btn = document.getElementById(btnId);
     const nameEl = document.getElementById(nameId);
@@ -67,6 +32,7 @@ function setupVerDocButton(btnId, nameId, url, docTitle) {
     }
 }
 
+// Ejecuta las peticiones asíncronas para cargar los datos del empleado y llenar los elementos DOM correspondientes
 document.addEventListener('DOMContentLoaded', () => {
     Swal.fire({
         title: 'Cargando detalle...',
@@ -82,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/Empleado/GetGeneros').then(res => res.json()),
         fetch('/Empleado/GetEstadosCiviles').then(res => res.json()),
         fetch('/Empleado/GetNacionalidades').then(res => res.json()),
-        fetch('/EmpCatAreaLaboral/GetAreas').then(res => res.json())
+        fetch('/AreaLaboral/GetAreas').then(res => res.json())
     ])
     .then(([empRes, generosRes, estadosRes, nacsRes, areasRes]) => {
         Swal.close();
@@ -210,11 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Mapear puesto y área correctos desde catálogo en Formato Title Case
-            document.getElementById('lblPuesto').textContent = toTitleCase(emp.strEmpCatTipoContratacion) || 'Asesor';
+            const lblPuesto = document.getElementById('lblPuesto');
+            if (lblPuesto) {
+                lblPuesto.textContent = toTitleCase(emp.strEmpCatTipoContratacion || 'Sin Tipo de Contratación');
+            }
             
             const histAreaId = (emp.empHistorialAreas && emp.empHistorialAreas.length > 0) ? emp.empHistorialAreas[0].idEmpCatAreaLaboral : null;
             const areaOpt = histAreaId && areasRes.success && areasRes.data ? areasRes.data.find(x => x.id === histAreaId) : null;
-            const areaNameText = areaOpt ? toTitleCase(areaOpt.strValor || areaOpt.strDescripcion) : toTitleCase(emp.strEmpCondicionesLaborales || 'Operativo');
+            const areaNameText = areaOpt ? toTitleCase(areaOpt.strValor || areaOpt.strDescripcion) : toTitleCase(emp.strEmpCondicionesLaborales || 'Sin Condiciones Laborales');
             document.getElementById('lblArea').textContent = areaNameText;
 
             // Experiencias (Timeline minimalista)

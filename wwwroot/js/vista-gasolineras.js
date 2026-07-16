@@ -96,50 +96,16 @@ function wireFormInputs() {
     const statusField = document.getElementById("intIdStatusGasolinera");
 
     if (nombreInput) {
+        registerSanitizer(nombreInput, sanitizeLettersOnly);
         nombreInput.addEventListener("input", () => {
-            const originalVal = nombreInput.value;
-            const cleanedVal = typeof sanitizeLettersOnly === "function"
-                ? sanitizeLettersOnly(originalVal)
-                : originalVal.replace(/[^a-zA-Z0-9#.\-\s]/g, "");
-
-            if (originalVal !== cleanedVal) {
-                const start = nombreInput.selectionStart;
-                const end = nombreInput.selectionEnd;
-                nombreInput.value = cleanedVal;
-                try {
-                    nombreInput.setSelectionRange(start, end);
-                } catch (err) { }
-            }
-
             nombreInput.classList.remove("is-invalid", "is-valid");
         });
-
-        nombreInput.addEventListener("blur", () => {
-            nombreInput.value = nombreInput.value.trim();
-        });
     }
-
+ 
     if (descInput) {
+        registerSanitizer(descInput, sanitizeGeneralText);
         descInput.addEventListener("input", () => {
-            const originalVal = descInput.value;
-            const cleanedVal = typeof sanitizeGeneralText === "function"
-                ? sanitizeGeneralText(originalVal)
-                : originalVal.replace(/[^a-zA-Z0-9#.,_()\/\-\s]/g, "");
-
-            if (originalVal !== cleanedVal) {
-                const start = descInput.selectionStart;
-                const end = descInput.selectionEnd;
-                descInput.value = cleanedVal;
-                try {
-                    descInput.setSelectionRange(start, end);
-                } catch (err) { }
-            }
-
             descInput.classList.remove("is-invalid", "is-valid");
-        });
-
-        descInput.addEventListener("blur", () => {
-            descInput.value = descInput.value.trim();
         });
     }
 
@@ -538,12 +504,4 @@ function showError(message) {
     });
 }
 
-function escapeHtml(text) {
-    if (!text) return "";
-    return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+
