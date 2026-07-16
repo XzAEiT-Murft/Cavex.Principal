@@ -6,35 +6,49 @@ let pageSize = 10;
 let statusFilter = 'todos';
 let searchQuery = '';
 
-// Al cargar el DOM, renderizamos
+// Al cargar el DOM se inicia la obtención de la lista del servidor
 document.addEventListener('DOMContentLoaded', () => {
     loadEmpleadosFromServer();
 });
 
+// Obtiene los datos paginados de empleados desde la base de datos aplicando filtros de estado y búsqueda en tiempo real
 function loadEmpleadosFromServer() {
+    // Construye la URL de la API con los parámetros de paginación, búsqueda (sanitizada) y filtro de estado
     const url = `/Empleado/GetEmpleados?pagina=${currentPage}&search=${encodeURIComponent(searchQuery)}&status=${encodeURIComponent(statusFilter)}`;
+    
+    // Realiza la petición asíncrona (AJAX) al controlador utilizando Fetch API
     fetch(url)
         .then(response => {
+            // Verifica que la respuesta HTTP del servidor sea correcta (status 200-299)
             if (!response.ok) {
                 throw new Error("HTTP error " + response.status);
             }
+            // Convierte la respuesta recibida a formato JSON
             return response.json();
         })
         .then(result => {
-            console.log("Respuesta de GetEmpleados:", result);
+            // Si la respuesta del servidor indica éxito
             if (result.success) {
+                // Comprueba que los datos contengan un arreglo válido de registros de empleados
                 if (result.data && Array.isArray(result.data)) {
+                    // Mapea la lista de registros de base de datos a un formato estandarizado para la vista
                     empleados = result.data.map(item => {
+                        // Concatena el nombre y apellidos (el materno es opcional y se evalúa si existe)
                         const rawFullName = item.strNombre + ' ' + item.strApellidoPaterno + (item.strApellidoMaterno ? ' ' + item.strApellidoMaterno : '');
                         return {
                             id: item.id,
+                            // Aplica formato Title Case al nombre completo usando el helper global
                             nombre: toTitleCase(rawFullName),
                             curp: item.strCurp,
                             rfc: item.strRfc,
-                            area: toTitleCase(item.strEmpCondicionesLaborales || 'Operativo'),
-                            puesto: toTitleCase(item.strEmpCatTipoContratacion || 'Asesor'),
+                            // Si no tiene condiciones laborales registradas, se indica explícitamente
+                            area: toTitleCase(item.strEmpCondicionesLaborales || 'Sin Condiciones Laborales'),
+                            // Si no tiene tipo de contratación definido, se indica explícitamente
+                            puesto: toTitleCase(item.strEmpCatTipoContratacion || 'Sin Tipo de Contratación'),
                             correo: item.strCorreoElectronico,
+                            // Extrae el número de celular del arreglo de teléfonos si existe un registro, en caso contrario asigna '—'
                             telefono: (item.empTelefonos && item.empTelefonos.length > 0) ? (item.empTelefonos[0].strNumeroCelular || '—') : '—',
+                            // Define el estado activo mapeando el idCatStatus o cadena de texto
                             activo: item.idCatStatus === 1 || item.strCatStatus === "Activo" || item.strCatStatus === "1"
                         };
                     });
@@ -42,31 +56,32 @@ function loadEmpleadosFromServer() {
                     empleados = [];
                 }
                 
-                // Update Counts in Tabs from result
+                // Obtiene las referencias a los elementos DOM que muestran las cantidades totales en cada tab
                 const elTodos = document.getElementById('countTodos');
                 const elActivos = document.getElementById('countActivos');
                 const elBaja = document.getElementById('countBaja');
                 
+                // Actualiza dinámicamente los contadores en las pestañas con los valores provistos por la API
                 if (elTodos) elTodos.textContent = result.totalAllCount ?? 0;
                 if (elActivos) elActivos.textContent = result.activeCount ?? 0;
                 if (elBaja) elBaja.textContent = result.inactiveCount ?? 0;
 
+                // Obtiene la cantidad total de registros coincidentes para calcular la paginación y renderiza
                 const totalCount = result.totalCount ?? 0;
                 renderEmpleados(totalCount);
             } else {
-                console.error("Error al cargar empleados:", result.message);
                 empleados = [];
                 renderEmpleados(0);
             }
         })
         .catch(err => {
-            console.error("Error al cargar empleados:", err);
+            // En caso de fallar la comunicación o haber error de parseo, inicializa vacío y dibuja la tabla
             empleados = [];
             renderEmpleados(0);
         });
 }
 
-// Renderizar la tabla de empleados
+// Dibuja las filas de la tabla de empleados en la interfaz de usuario, controlando estados vacíos y badges
 function renderEmpleados(totalCount) {
     const tbody = document.getElementById('employeesTableBody');
     if (!tbody) return;
@@ -309,7 +324,7 @@ function editEmpleado(id) {
     });
 }
 
-// Acción: Dar de baja / Activar empleado
+// Cambia de forma lógica el estado activo/inactivo (alta/baja) de un empleado enviando una petición POST
 function toggleBajaEmpleado(id) {
     const emp = empleados.find(e => e.id === id);
     if (!emp) return;
@@ -368,41 +383,4 @@ function toggleBajaEmpleado(id) {
     });
 }
 
-// Escapar caracteres HTML por seguridad
-function escapeHtml(text) {
-    if (!text) return '';
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
 
-function decodeUtf8Mojibake(str) {
-    if (!str) return '';
-    try {
-        return decodeURIComponent(escape(str));
-    } catch (e) {
-        return str;
-    }
-}
-
-function toTitleCase(str) {
-    if (!str || str === '—') return '—';
-    const decoded = decodeUtf8Mojibake(str).trim();
-    if (!decoded) return '—';
-    
-    if (/^[A-Z]{4}\d{6}[A-Z\d]{8}$/i.test(decoded)) return decoded.toUpperCase();
-    if (/^[A-Z]{3,4}\d{6}[A-Z\d]{3}$/i.test(decoded)) return decoded.toUpperCase();
-    if (/^\d+$/.test(decoded)) return decoded;
-    
-    return decoded
-        .toLowerCase()
-        .split(/\s+/)
-        .map(word => {
-            if (!word) return '';
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        })
-        .join(' ');
-}

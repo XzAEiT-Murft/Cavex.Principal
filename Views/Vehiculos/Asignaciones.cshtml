@@ -119,6 +119,29 @@
     </div>
 </form>
 
+<div class="cavex-card table-module vehiculo-module-table mt-4">
+    <h3 class="form-section-title mb-3">Asignaciones Activas</h3>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle executive-table table-cavex-compact">
+            <thead>
+                <tr>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Año</th>
+                    <th>Placa</th>
+                    <th>Empleado Responsable</th>
+                    <th class="text-end" style="width: 150px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="asignacionesTableBody">
+                <tr>
+                    <td colspan="6" class="text-center text-muted">Cargando registros...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 @section Scripts {
-    <script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>
+    <script src="~/js/vista-asignaciones.js" asp-append-version="true"></script>
 }

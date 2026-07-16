@@ -1,4 +1,4 @@
-let gasolineras = [];
+let responsables = [];
 let editingId = null;
 let currentPage = 1;
 let pageSize = 10;
@@ -6,13 +6,13 @@ let searchQuery = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
     wireFormInputs();
-    await loadGasolinerasFromServer();
+    await loadResponsablesFromServer();
     resetForm();
 });
 
-async function loadGasolinerasFromServer() {
+async function loadResponsablesFromServer() {
     try {
-        const response = await fetch("/Vehiculos/Gasolineras/GetGasolineras", {
+        const response = await fetch("/Vehiculos/ResponsablesServicio/GetResponsables", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
@@ -20,11 +20,11 @@ async function loadGasolinerasFromServer() {
         const result = await response.json();
 
         if (!result.success) {
-            showError(result.message || "No fue posible cargar las gasolineras.");
+            showError(result.message || "No fue posible cargar los responsables.");
             return;
         }
 
-        gasolineras = (result.data || []).map(item => {
+        responsables = (result.data || []).map(item => {
             return {
                 id: item.id,
                 nombre: item.strValor || item.StrValor || "",
@@ -32,16 +32,16 @@ async function loadGasolinerasFromServer() {
             };
         });
 
-        renderGasolineras();
+        renderResponsables();
     } catch (error) {
         console.error(error);
-        showError("Ocurrio un error al cargar las gasolineras.");
+        showError("Ocurrio un error al cargar los responsables.");
     }
 }
 
 function wireFormInputs() {
-    const nombreInput = document.getElementById("strNombreGasolinera");
-    const descInput = document.getElementById("strDescripcionGasolinera");
+    const nombreInput = document.getElementById("strNombre");
+    const descInput = document.getElementById("strDescripcion");
 
     if (nombreInput) {
         if (typeof registerSanitizer === "function" && typeof sanitizeLettersOnly === "function") {
@@ -62,17 +62,17 @@ function wireFormInputs() {
     }
 }
 
-function renderGasolineras() {
-    const tbody = document.getElementById("gasolinerasTableBody");
+function renderResponsables() {
+    const tbody = document.getElementById("responsablesTableBody");
     if (!tbody) return;
 
     tbody.innerHTML = "";
 
-    const filtered = gasolineras.filter(g => {
+    const filtered = responsables.filter(r => {
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            return g.nombre.toLowerCase().includes(query)
-                || (g.descripcion || "").toLowerCase().includes(query);
+            return r.nombre.toLowerCase().includes(query)
+                || (r.descripcion || "").toLowerCase().includes(query);
         }
         return true;
     });
@@ -92,20 +92,20 @@ function renderGasolineras() {
             <tr>
                 <td colspan="3" class="text-center py-5">
                     <div class="text-muted">
-                        <p class="m-0 font-weight-700">No se encontraron gasolineras</p>
+                        <p class="m-0 font-weight-700">No se encontraron responsables</p>
                         <small>Prueba ajustando la búsqueda</small>
                     </div>
                 </td>
             </tr>`;
     } else {
-        pagedList.forEach(g => {
+        pagedList.forEach(r => {
             const tr = document.createElement("tr");
-            const descText = g.descripcion || "Sin descripcion";
+            const descText = r.descripcion || "Sin descripcion";
             const truncatedDesc = descText.length > 80 ? `${descText.substring(0, 80)}...` : descText;
 
             tr.innerHTML = `
                 <td>
-                    <div class="cotizacion-main-text">${escapeHtml(g.nombre)}</div>
+                    <div class="cotizacion-main-text">${escapeHtml(r.nombre)}</div>
                 </td>
                 <td>
                     <div class="description-text" title="${escapeHtml(descText)}">${escapeHtml(truncatedDesc)}</div>
@@ -118,13 +118,13 @@ function renderGasolineras() {
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editGasolinera(${g.id})">
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editResponsable(${r.id})">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                     Editar
                                 </button>
                             </li>
                             <li>
-                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="deleteGasolinera(${g.id})">
+                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="deleteResponsable(${r.id})">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                                     Eliminar
                                 </button>
@@ -145,7 +145,7 @@ function renderGasolineras() {
     );
 
     const countPill = document.querySelector(".table-module .records-pill");
-    if (countPill) countPill.textContent = `${totalRecords} gasolineras`;
+    if (countPill) countPill.textContent = `${totalRecords} responsables`;
 
     const extraPill = document.querySelector(".table-module .records-pill-soft");
     if (extraPill) extraPill.textContent = `Pagina ${currentPage} de ${totalPages}`;
@@ -153,7 +153,7 @@ function renderGasolineras() {
     renderPagination(totalPages);
 
     // Inicializar dropdowns de acciones con estrategia 'fixed' para prevenir recortes
-    document.querySelectorAll('#gasolinerasTableBody .btn-action-trigger').forEach(el => {
+    document.querySelectorAll('#responsablesTableBody .btn-action-trigger').forEach(el => {
         new bootstrap.Dropdown(el, {
             popperConfig: (defaultConfig) => {
                 return {
@@ -191,20 +191,20 @@ function createPageItem(text, page, disabled, active) {
 function changePage(event, page) {
     if (event) event.preventDefault();
     currentPage = page;
-    renderGasolineras();
+    renderResponsables();
 }
 
 function handleSearch(query) {
     searchQuery = query || "";
     currentPage = 1;
-    renderGasolineras();
+    renderResponsables();
 }
 
 async function handleFormSubmit(e) {
     e.preventDefault();
 
-    const nombreInput = document.getElementById("strNombreGasolinera");
-    const descInput = document.getElementById("strDescripcionGasolinera");
+    const nombreInput = document.getElementById("strNombre");
+    const descInput = document.getElementById("strDescripcion");
 
     if (!nombreInput) return;
 
@@ -215,19 +215,19 @@ async function handleFormSubmit(e) {
         nombreInput.classList.add("is-invalid");
         nombreInput.classList.remove("is-valid");
         const feedback = document.getElementById("nombreFeedback");
-        if (feedback) feedback.textContent = "El nombre de la gasolinera es obligatorio.";
+        if (feedback) feedback.textContent = "El nombre del responsable es obligatorio.";
         nombreInput.focus();
         return;
     }
 
     const nombreLower = nombre.toLowerCase().trim();
-    const existeDuplicado = gasolineras.some(g => g.nombre.toLowerCase().trim() === nombreLower && g.id !== editingId);
+    const existeDuplicado = responsables.some(r => r.nombre.toLowerCase().trim() === nombreLower && r.id !== editingId);
 
     if (existeDuplicado) {
         nombreInput.classList.add("is-invalid");
         nombreInput.classList.remove("is-valid");
         const feedback = document.getElementById("nombreFeedback");
-        if (feedback) feedback.textContent = "El nombre de la gasolinera ya existe.";
+        if (feedback) feedback.textContent = "El nombre del responsable ya existe.";
         nombreInput.focus();
         return;
     }
@@ -242,8 +242,8 @@ async function handleFormSubmit(e) {
     }
 
     const url = editingId === null
-        ? "/Vehiculos/Gasolineras/SaveGasolinera"
-        : "/Vehiculos/Gasolineras/UpdateGasolinera";
+        ? "/Vehiculos/ResponsablesServicio/SaveResponsable"
+        : "/Vehiculos/ResponsablesServicio/UpdateResponsable";
 
     try {
         const response = await fetch(url, {
@@ -258,39 +258,39 @@ async function handleFormSubmit(e) {
         const result = await response.json();
 
         if (!result.success) {
-            showError(result.message || "No fue posible guardar la gasolinera.");
+            showError(result.message || "No fue posible guardar el responsable.");
             return;
         }
 
         Swal.fire({
             icon: "success",
             title: editingId === null ? "Registro exitoso" : "Actualizacion exitosa",
-            text: editingId === null ? "Gasolinera agregada exitosamente." : "Gasolinera actualizada exitosamente.",
+            text: editingId === null ? "Responsable agregado exitosamente." : "Responsable actualizado exitosamente.",
             confirmButtonColor: "var(--teal-cavex)"
         });
 
         resetForm();
-        await loadGasolinerasFromServer();
+        await loadResponsablesFromServer();
     } catch (error) {
         console.error(error);
-        showError("Ocurrio un error al guardar la gasolinera.");
+        showError("Ocurrio un error al guardar el responsable.");
     }
 }
 
-function editGasolinera(id) {
-    const gasolinera = gasolineras.find(g => g.id === id);
-    if (!gasolinera) return;
+function editResponsable(id) {
+    const responsable = responsables.find(r => r.id === id);
+    if (!responsable) return;
 
     clearValidation();
     editingId = id;
 
-    document.getElementById("strNombreGasolinera").value = gasolinera.nombre;
+    document.getElementById("strNombre").value = responsable.nombre;
 
-    const descInput = document.getElementById("strDescripcionGasolinera");
-    if (descInput) descInput.value = gasolinera.descripcion || "";
+    const descInput = document.getElementById("strDescripcion");
+    if (descInput) descInput.value = responsable.descripcion || "";
 
-    setText("formTitle", "Editar gasolinera");
-    setText("formSubtitle", "Modifica los detalles de la gasolinera seleccionada.");
+    setText("formTitle", "Editar responsable");
+    setText("formSubtitle", "Modifica los detalles del responsable seleccionado.");
     setText("btnSubmit", "Guardar cambios");
 
     const btnCancel = document.getElementById("btnCancel");
@@ -299,10 +299,10 @@ function editGasolinera(id) {
     const formCard = document.querySelector(".filter-card");
     if (formCard) formCard.scrollIntoView({ behavior: "smooth" });
 
-    document.getElementById("strNombreGasolinera").focus();
+    document.getElementById("strNombre").focus();
 }
 
-function deleteGasolinera(id) {
+function deleteResponsable(id) {
     Swal.fire({
         title: "¿Estas seguro?",
         text: "No podras revertir esta accion.",
@@ -316,7 +316,7 @@ function deleteGasolinera(id) {
         if (!result.isConfirmed) return;
 
         try {
-            const response = await fetch(`/Vehiculos/Gasolineras/DeleteGasolinera?id=${id}`, {
+            const response = await fetch(`/Vehiculos/ResponsablesServicio/DeleteResponsable?id=${id}`, {
                 method: "POST",
                 headers: { "Accept": "application/json" }
             });
@@ -324,22 +324,22 @@ function deleteGasolinera(id) {
             const data = await response.json();
 
             if (!data.success) {
-                showError(data.message || "No fue posible eliminar la gasolinera.");
+                showError(data.message || "No fue posible eliminar al responsable.");
                 return;
             }
 
             Swal.fire({
                 icon: "success",
                 title: "Eliminado",
-                text: "La gasolinera ha sido eliminada exitosamente.",
+                text: "El responsable ha sido eliminado exitosamente.",
                 confirmButtonColor: "var(--teal-cavex)"
             });
 
             if (editingId === id) resetForm();
-            await loadGasolinerasFromServer();
+            await loadResponsablesFromServer();
         } catch (error) {
             console.error(error);
-            showError("Ocurrio un error al eliminar la gasolinera.");
+            showError("Ocurrio un error al eliminar al responsable.");
         }
     });
 }
@@ -348,20 +348,20 @@ function resetForm() {
     editingId = null;
     clearValidation();
 
-    const form = document.getElementById("formGasolinera");
+    const form = document.getElementById("formResponsableServicio");
     if (form) form.reset();
 
-    setText("formTitle", "Registrar gasolinera");
-    setText("formSubtitle", "Ingresa el nombre y la descripcion para registrar la gasolinera.");
-    setText("btnSubmit", "Guardar gasolinera");
+    setText("formTitle", "Registrar responsable de servicio");
+    setText("formSubtitle", "Ingresa el nombre y la descripcion para registrar el responsable de servicio.");
+    setText("btnSubmit", "Guardar responsable");
 
     const btnCancel = document.getElementById("btnCancel");
     if (btnCancel) btnCancel.style.display = "none";
 }
 
 function clearValidation() {
-    document.getElementById("strNombreGasolinera")?.classList.remove("is-invalid", "is-valid");
-    document.getElementById("strDescripcionGasolinera")?.classList.remove("is-invalid", "is-valid");
+    document.getElementById("strNombre")?.classList.remove("is-invalid", "is-valid");
+    document.getElementById("strDescripcion")?.classList.remove("is-invalid", "is-valid");
 }
 
 function escapeHtml(string) {

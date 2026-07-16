@@ -136,10 +136,10 @@
                         <span>o haz clic para seleccionar</span>
                         <small>PDF, JPG, JPEG, PNG o WEBP · máximo 5 MB</small>
                     </div>
-                    <div class="vehiculo-file-preview" id="llantaFilePreview" hidden>
+                    <div class="vehiculo-file-preview" id="llantaFilePreview" style="display: none;">
                         <div class="vehiculo-file-meta">
                             <strong id="llantaFileName">Evidencia seleccionada</strong>
-                            <small>Vista previa local; aún no se genera strUrlEvidencia</small>
+                            <small id="llantaFileSize"></small>
                         </div>
                         <div class="vehiculo-file-actions llanta-file-actions">
                             <button id="btnQuitarEvidenciaLlanta" type="button" class="btn btn-outline-cavex btn-sm">Quitar</button>
@@ -158,6 +158,28 @@
         <button type="submit" class="btn btn-cavex">Guardar llanta</button>
     </div>
 </form>
+
+<div class="cavex-card table-module vehiculo-module-table mt-4">
+    <h3 class="form-section-title mb-3">Registros de Llantas</h3>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle executive-table table-cavex-compact">
+            <thead>
+                <tr>
+                    <th>Marca/Modelo</th>
+                    <th>Placa</th>
+                    <th>Empleado Responsable</th>
+                    <th>Estatus</th>
+                    <th class="text-end" style="width: 150px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="llantasTableBody">
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Cargando registros...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
 @section Scripts {
     <script src="~/js/vista-llantas.js" asp-append-version="true"></script>
