@@ -1,15 +1,17 @@
-﻿using Cavex.Principal.Models.VehCatCapacidad;
+using Cavex.Principal.Models.VehCatCapacidad;
 using Cavex.Principal.Models.VehCatColor;
 using Cavex.Principal.Models.VehCatMarcaVehiculo;
 using Cavex.Principal.Models.VehCatTipoCombustible;
 using Cavex.Principal.Models.VehCatTipoVehiculo;
+using Cavex.Principal.Models.VehCatTransmision;
 using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.Vehiculo
 {
     public class VehiculoManagerSaveDto
     {
-       
+        public int? Id { get; set; }
+
         //nos llevamos la entidad de la marca del vehiculo
         public VehCatMarcaVehiculoDto? VehCatMarcaVehiculo { get; set; }
 
@@ -40,6 +42,8 @@ namespace Cavex.Principal.Models.Vehiculo
         public VehCatCapacidadDto? VehCatCapacidad { get; set; }
 
         public VehCatTipoCombustibleDto? VehCatTipoCombustibleDto { get; set; }
+
+        public VehCatTransmisionDto? VehCatTransmisionDto { get; set; }
 
         public string? StrDescripcion { get; set; }
     }

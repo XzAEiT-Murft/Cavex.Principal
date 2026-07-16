@@ -1,9 +1,17 @@
 "use strict";
 
+let listaLlantas = [];
+let editModeLlantaId = null;
+let listaVehiculosLlantas = [];
+let listaEmpleadosLlantas = [];
+let asignacionesActivasLlantas = [];
+
+// Inicializador de eventos al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     inicializarVistaLlantas();
 });
 
+// Inicializa las validaciones, Drag & Drop y catálogos de la vista de Llantas
 function inicializarVistaLlantas() {
     const form = document.getElementById("llantaVehiculoForm");
     if (!form) return;
@@ -11,7 +19,7 @@ function inicializarVistaLlantas() {
     cargarCatalogosLlantas();
     inicializarCargaEvidencia();
 
-    // Eventos de validación en tiempo real para todos los inputs
+    // Eventos de validación en tiempo real para todos los inputs/selects obligatorios
     form.querySelectorAll("input:not([type='file']):not([type='hidden']), select").forEach(campo => {
         ["input", "change"].forEach(evento => campo.addEventListener(evento, () => {
             const teniaError = campo.classList.contains("is-invalid");
@@ -29,8 +37,10 @@ function inicializarVistaLlantas() {
         });
     });
 
-    form.addEventListener("submit", event => {
+    // Envío asíncrono de los datos de la llanta a guardar en la base de datos
+    form.addEventListener("submit", async event => {
         event.preventDefault();
+        
         if (!validarFormularioLlanta(form)) {
             Swal.fire({
                 icon: "warning",
@@ -42,34 +52,114 @@ function inicializarVistaLlantas() {
         }
 
         Swal.fire({
-            icon: "success",
-            title: "Llanta registrada",
-            text: "Los datos de la llanta han sido validados correctamente (Simulado).",
-            confirmButtonColor: "var(--teal-cavex)"
-        }).then(() => {
-            window.location.href = "/Vehiculos/Index";
+            title: "Registrando llanta...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
+
+        const finVidaInput = document.getElementById("llanta-dteFechaFinVidaEstimada").value;
+        const rotacionInput = document.getElementById("llanta-dteFechaRotacion").value;
+        const sigRotacionInput = document.getElementById("llanta-dteFechaSiguienteRotacion").value;
+
+        // Construcción del FormData para soportar la subida física del archivo
+        const formData = new FormData();
+        formData.append("Id", editModeLlantaId || 0);
+        formData.append("IdVehDatosGenerales", parseInt(document.getElementById("llanta-idVehDatosGenerales").value, 10));
+        formData.append("IdVehCatMarcaLlanta", parseInt(document.getElementById("llanta-idVehCatMarcaLlanta").value, 10));
+        formData.append("StrModelo", document.getElementById("llanta-strModelo").value);
+        formData.append("StrMedida", document.getElementById("llanta-strMedida").value);
+        formData.append("DteFechaCompra", document.getElementById("llanta-dteFechaCompra").value);
+        formData.append("MnyCosto", parseFloat(document.getElementById("llanta-mnyCosto").value));
+        formData.append("IdVehCatPosicionLlanta", parseInt(document.getElementById("llanta-idVehCatPosicionLlanta").value, 10));
+        formData.append("DecKilometrajeActual", parseFloat(document.getElementById("llanta-decKilometrajeActual").value));
+        
+        if (finVidaInput) formData.append("DteFechaFinVidaEstimada", finVidaInput);
+        if (rotacionInput) formData.append("DteFechaRotacion", rotacionInput);
+        if (sigRotacionInput) formData.append("DteFechaSiguienteRotacion", sigRotacionInput);
+        
+        formData.append("StrUrlEvidencia", document.getElementById("llanta-strUrlEvidencia").value || "");
+        formData.append("IdVehCatStatus", parseInt(document.getElementById("llanta-idVehCatStatus").value, 10));
+
+        const fileInput = document.getElementById("llantaEvidenciaArchivo");
+        if (fileInput && fileInput.files.length > 0) {
+            formData.append("EvidenciaArchivo", fileInput.files[0]);
+        }
+
+        try {
+            const response = await fetch("/Vehiculos/SaveLlanta", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+            Swal.close();
+
+            if (!result.success) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al registrar",
+                    text: result.message || "No fue posible registrar la llanta.",
+                    confirmButtonColor: "var(--teal-cavex)"
+                });
+                return;
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: editModeLlantaId ? "Llanta actualizada" : "Llanta registrada",
+                text: editModeLlantaId ? "Los datos de la llanta han sido actualizados exitosamente." : "Los datos de la llanta han sido registrados exitosamente.",
+                confirmButtonColor: "var(--teal-cavex)"
+            }).then(() => {
+                resetearFormularioLlanta();
+                cargarLlantasList();
+            });
+        } catch (err) {
+            Swal.close();
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo establecer comunicación con el servidor. ¡Intenta de nuevo!",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+        }
     });
 }
 
-function cargarCatalogosLlantas() {
-    // 1. Cargar vehículos
-    fetch("/Vehiculos/GetVehiculos")
-        .then(res => res.json())
-        .then(result => {
-            const select = document.getElementById("llanta-idVehDatosGenerales");
-            if (!select) return;
+// Carga catálogos de vehículos, marcas de llantas, posiciones y estados desde base de datos
+async function cargarCatalogosLlantas() {
+    try {
+        const [vehRes, empRes, asigRes] = await Promise.all([
+            fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
+            fetch("/Empleado/GetEmpleados").then(r => r.json()),
+            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+        ]);
+
+        // 1. Cargar vehículos
+        const select = document.getElementById("llanta-idVehDatosGenerales");
+        if (select && vehRes.success && vehRes.data) {
+            listaVehiculosLlantas = vehRes.data;
             select.innerHTML = '<option value="">Seleccionar...</option>';
-            if (result.success && result.data) {
-                result.data.forEach(v => {
-                    const opt = document.createElement("option");
-                    opt.value = String(v.id);
-                    opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                    select.appendChild(opt);
-                });
-            }
-        })
-        .catch(err => console.error("Error al cargar vehículos:", err));
+            vehRes.data.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = String(v.id);
+                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
+                select.appendChild(opt);
+            });
+        }
+
+        // Empleados y asignaciones
+        if (empRes.success && empRes.data) {
+            listaEmpleadosLlantas = empRes.data;
+        }
+        if (asigRes.success && asigRes.data) {
+            asignacionesActivasLlantas = asigRes.data;
+        }
+
+    } catch (err) {
+        console.error("Error al cargar catálogos base de llantas:", err);
+    }
 
     // 2. Cargar catálogos de llantas (marcas y posiciones)
     fetch("/Vehiculos/GetVehiculoCatalogos")
@@ -99,11 +189,27 @@ function cargarCatalogosLlantas() {
                         selectPos.appendChild(opt);
                     });
                 }
+
+                // Estatus de la llanta
+                const selectStatus = document.getElementById("llanta-idVehCatStatus");
+                if (selectStatus && result.data.idVehCatStatus) {
+                    selectStatus.innerHTML = '<option value="">Seleccionar...</option>';
+                    result.data.idVehCatStatus.forEach(item => {
+                        const opt = document.createElement("option");
+                        opt.value = String(item.id);
+                        opt.textContent = item.strValor || item.strDescripcion;
+                        selectStatus.appendChild(opt);
+                    });
+                    selectStatus.value = "1";
+                }
             }
+            // Cargar registros de llantas
+            cargarLlantasList();
         })
-        .catch(err => console.error("Error al cargar catálogos de llanta:", err));
+        .catch(() => {});
 }
 
+// Configura el Drag & Drop e input de selección de archivo para la evidencia
 function inicializarCargaEvidencia() {
     const area = document.getElementById("llantaEvidenciaArea");
     const input = document.getElementById("llantaEvidenciaArchivo");
@@ -122,10 +228,19 @@ function inicializarCargaEvidencia() {
             input.click();
         }
     });
-    area.addEventListener("dragover", event => { event.preventDefault(); area.classList.add("is-drag-over"); });
-    area.addEventListener("dragleave", () => area.classList.remove("is-drag-over"));
+    area.addEventListener("dragover", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.add("is-drag-over");
+    });
+    area.addEventListener("dragleave", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.remove("is-drag-over");
+    });
     area.addEventListener("drop", event => {
         event.preventDefault();
+        event.stopPropagation();
         area.classList.remove("is-drag-over");
         const archivo = event.dataTransfer.files?.[0];
         if (archivo) procesarArchivoEvidencia(archivo);
@@ -136,13 +251,15 @@ function inicializarCargaEvidencia() {
     });
 }
 
+// Valida el formato y tamaño del archivo
 function procesarArchivoEvidencia(archivo) {
     const limBytes = 5 * 1024 * 1024;
-    const tiposPermitidos = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const extensionesPermitidas = ["jpg", "jpeg", "png", "webp", "pdf"];
 
     limpiarErrorEvidencia();
 
-    if (!tiposPermitidos.includes(archivo.type)) {
+    const ext = archivo.name.split('.').pop().toLowerCase();
+    if (!extensionesPermitidas.includes(ext)) {
         mostrarErrorEvidencia("El archivo debe ser PDF, JPG, PNG o WEBP.");
         return;
     }
@@ -151,19 +268,36 @@ function procesarArchivoEvidencia(archivo) {
         return;
     }
 
-    document.getElementById("llantaEvidenciaPrompt").hidden = true;
-    document.getElementById("llantaFilePreview").hidden = false;
+    // Sincronizar el archivo con el input nativo usando DataTransfer
+    const input = document.getElementById("llantaEvidenciaArchivo");
+    if (input) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(archivo);
+        input.files = dataTransfer.files;
+    }
+
+    const prompt = document.getElementById("llantaEvidenciaPrompt");
+    const preview = document.getElementById("llantaFilePreview");
+    if (prompt) prompt.style.display = "none";
+    if (preview) preview.style.display = "flex";
+
     document.getElementById("llantaFileName").textContent = archivo.name;
-    document.getElementById("llanta-strUrlEvidencia").value = "/uploads/llanta_demo.pdf";
+    document.getElementById("llantaFileSize").textContent = (archivo.size / 1024 / 1024).toFixed(2) + " MB";
+    document.getElementById("llanta-strUrlEvidencia").value = archivo.name;
 }
 
+// Limpia el archivo de evidencia
 function limpiarEvidencia() {
     const input = document.getElementById("llantaEvidenciaArchivo");
     if (input) input.value = "";
     const hidden = document.getElementById("llanta-strUrlEvidencia");
     if (hidden) hidden.value = "";
-    document.getElementById("llantaEvidenciaPrompt").hidden = false;
-    document.getElementById("llantaFilePreview").hidden = true;
+    
+    const prompt = document.getElementById("llantaEvidenciaPrompt");
+    const preview = document.getElementById("llantaFilePreview");
+    if (prompt) prompt.style.display = "flex";
+    if (preview) preview.style.display = "none";
+    
     limpiarErrorEvidencia();
 }
 
@@ -179,11 +313,12 @@ function limpiarErrorEvidencia() {
     if (error) { error.textContent = ""; error.classList.remove("d-block"); }
 }
 
+// Realiza validación lógica del formulario
 function validarFormularioLlanta(form) {
     const obligatorios = [
         "llanta-idVehDatosGenerales", "llanta-idVehCatMarcaLlanta", "llanta-strModelo",
         "llanta-strMedida", "llanta-idVehCatPosicionLlanta", "llanta-dteFechaCompra",
-        "llanta-mnyCosto", "llanta-decKilometrajeCompra"
+        "llanta-mnyCosto", "llanta-decKilometrajeActual", "llanta-idVehCatStatus"
     ];
     let valido = true;
     obligatorios.forEach(id => {
@@ -191,7 +326,7 @@ function validarFormularioLlanta(form) {
         if (campo && !validarCampoLlanta(campo)) valido = false;
     });
 
-    // Validaciones de fechas condicionales
+    // Validaciones de fechas cruzadas
     const compra = document.getElementById("llanta-dteFechaCompra")?.value;
     const vida = document.getElementById("llanta-dteFechaFinVidaEstimada");
     const rot = document.getElementById("llanta-dteFechaRotacion");
@@ -228,6 +363,7 @@ function mensajeCampo(campo, msg) {
     if (error) error.textContent = msg;
 }
 
+// Valida valores individuales e intervalos válidos
 function validarCampoLlanta(campo) {
     const original = String(campo.value || "");
     const valor = original.trim();
@@ -240,7 +376,7 @@ function validarCampoLlanta(campo) {
     if (!mensaje) {
         switch (campo.id) {
             case "llanta-strModelo":
-                if (valor.length > 150) mensaje = "El modelo no debe superar 150 caracteres.";
+                if (valor.length > 50) mensaje = "El modelo no debe superar 50 caracteres.";
                 break;
             case "llanta-strMedida":
                 if (valor.length > 50) mensaje = "La medida no debe superar 50 caracteres.";
@@ -252,7 +388,7 @@ function validarCampoLlanta(campo) {
                 }
                 break;
             }
-            case "llanta-decKilometrajeCompra": {
+            case "llanta-decKilometrajeActual": {
                 const num = Number(valor);
                 if (isNaN(num) || num < 0 || num > 999999) {
                     mensaje = "Kilometraje no válido.";
@@ -272,6 +408,7 @@ function validarCampoLlanta(campo) {
     return true;
 }
 
+// Limpia el estado de error de un input/select
 function limpiarErrorCampo(campo) {
     campo.classList.remove("is-invalid", "is-valid");
     campo.removeAttribute("aria-invalid");
@@ -281,3 +418,232 @@ function limpiarErrorCampo(campo) {
         error.classList.remove("d-block");
     }
 }
+
+// ─── CRUD Actions y Renderizado ───
+
+async function cargarLlantasList() {
+    try {
+        const response = await fetch("/Vehiculos/GetLlantas");
+        const result = await response.json();
+        if (result.success && result.data) {
+            listaLlantas = result.data;
+        } else {
+            listaLlantas = [];
+        }
+        renderLlantasTable();
+    } catch (err) {
+        console.error("Error al cargar llantas:", err);
+        listaLlantas = [];
+        renderLlantasTable();
+    }
+}
+
+// Dibuja la tabla de llantas registradas en pantalla
+function renderLlantasTable() {
+    const tbody = document.getElementById("llantasTableBody");
+    if (!tbody) return;
+
+    // Si la lista está vacía, mostramos un renglón informativo con colspan 5
+    if (!listaLlantas || listaLlantas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No se encontraron llantas registradas.</td></tr>';
+        return;
+    }
+
+    // Mapeamos cada llanta a un renglón (tr) de la tabla
+    tbody.innerHTML = listaLlantas.map(ll => {
+        // Buscamos los datos completos del vehículo vinculado
+        const v = listaVehiculosLlantas.find(veh => veh.id === ll.idVehDatosGenerales);
+        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
+        const modelo = v ? v.strModelo : "Desconocido";
+        const placa = v ? v.strPlaca : "—";
+        const brandModel = `${marca} ${modelo}`;
+
+        // Buscamos el chofer asignado actualmente a este vehículo
+        const asig = asignacionesActivasLlantas.find(a => a.idVehDatosGenerales === ll.idVehDatosGenerales);
+        let responsableName = "Sin chofer asignado";
+        if (asig) {
+            const emp = listaEmpleadosLlantas.find(e => e.id === asig.idEmpEmpleado);
+            responsableName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : "Chofer asignado";
+        }
+
+        // Retornamos el HTML del renglón con las 5 columnas correspondientes
+        return `
+            <tr>
+                <td>${escapeHtml(brandModel)}</td>
+                <td><span class="badge bg-light text-dark border">${escapeHtml(placa)}</span></td>
+                <td>${escapeHtml(responsableName)}</td>
+                <td><span class="badge bg-secondary">${escapeHtml(ll.strVehCatStatus)}</span></td>
+                <td class="text-end">
+                    <!-- Botón de Acciones dropdown estándar -->
+                    <div class="dropdown actions-dropdown d-inline-block">
+                        <button class="btn-action-trigger btn-sm" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                            <span>Acciones</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="verDetalleLlanta(${ll.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-info"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Ver detalles
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editarLlanta(${ll.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Editar
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="eliminarLlanta(${ll.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                    Eliminar
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    // Inicializamos dinámicamente cada trigger de dropdown mediante Bootstrap Popper
+    tbody.querySelectorAll('.btn-action-trigger').forEach(el => {
+        new bootstrap.Dropdown(el, {
+            popperConfig: (defaultConfig) => {
+                return {
+                    ...defaultConfig,
+                    strategy: 'fixed'
+                };
+            }
+        });
+    });
+}
+
+function verDetalleLlanta(id) {
+    const ll = listaLlantas.find(item => item.id === id);
+    if (!ll) return;
+
+    const v = listaVehiculosLlantas.find(veh => veh.id === ll.idVehDatosGenerales);
+    
+    // Obtener chofer asignado actualmente a este vehículo
+    const asig = asignacionesActivasLlantas.find(a => a.idVehDatosGenerales === ll.idVehDatosGenerales);
+    let responsableName = "Sin chofer asignado";
+    if (asig) {
+        const emp = listaEmpleadosLlantas.find(e => e.id === asig.idEmpEmpleado);
+        responsableName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : "Chofer asignado";
+    }
+
+    Swal.fire({
+        title: "Detalle de Registro de Llanta",
+        html: `
+            <div class="text-start fs-6" style="line-height: 1.6;">
+                <p><strong>Vehículo:</strong> ${v ? `${v.strModelo} (${v.intAnio})` : "Desconocido"}</p>
+                <p><strong>Placa:</strong> ${v ? v.strPlaca : "—"}</p>
+                <p><strong>Chofer Responsable:</strong> ${responsableName}</p>
+                <p><strong>Marca de Llanta:</strong> ${escapeHtml(ll.strVehCatMarcaLlanta)}</p>
+                <p><strong>Modelo de Llanta:</strong> ${escapeHtml(ll.strModelo)}</p>
+                <p><strong>Medida:</strong> ${escapeHtml(ll.strMedida)}</p>
+                <p><strong>Posición:</strong> ${escapeHtml(ll.strVehCatPosicionLlanta)}</p>
+                <p><strong>Estatus:</strong> <span class="badge bg-secondary">${escapeHtml(ll.strVehCatStatus)}</span></p>
+                <p><strong>Kilometraje Actual:</strong> ${Number(ll.decKilometrajeActual).toLocaleString("es-MX")} km</p>
+                <p><strong>Costo:</strong> $${Number(ll.mnyCosto).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</p>
+                <p><strong>Fecha Compra:</strong> ${ll.dteFechaCompra ? new Date(ll.dteFechaCompra).toLocaleDateString("es-MX") : "—"}</p>
+                <p><strong>Vida Estimada:</strong> ${ll.dteFechaFinVidaEstimada ? new Date(ll.dteFechaFinVidaEstimada).toLocaleDateString("es-MX") : "No especificada"}</p>
+                <p><strong>Última Rotación:</strong> ${ll.dteFechaRotacion ? new Date(ll.dteFechaRotacion).toLocaleDateString("es-MX") : "No especificada"}</p>
+                <p><strong>Siguiente Rotación:</strong> ${ll.dteFechaSiguienteRotacion ? new Date(ll.dteFechaSiguienteRotacion).toLocaleDateString("es-MX") : "No especificada"}</p>
+            </div>
+        `,
+        confirmButtonColor: "var(--teal-cavex)"
+    });
+}
+
+function editarLlanta(id) {
+    const ll = listaLlantas.find(item => item.id === id);
+    if (!ll) return;
+
+    editModeLlantaId = id;
+
+    document.getElementById("llanta-idVehDatosGenerales").value = ll.idVehDatosGenerales;
+    document.getElementById("llanta-decKilometrajeActual").value = ll.decKilometrajeActual;
+    document.getElementById("llanta-idVehCatMarcaLlanta").value = ll.idVehCatMarcaLlanta;
+    document.getElementById("llanta-strModelo").value = ll.strModelo;
+    document.getElementById("llanta-strMedida").value = ll.strMedida;
+    document.getElementById("llanta-dteFechaCompra").value = ll.dteFechaCompra ? ll.dteFechaCompra.split("T")[0] : "";
+    document.getElementById("llanta-mnyCosto").value = ll.mnyCosto;
+    document.getElementById("llanta-idVehCatPosicionLlanta").value = ll.idVehCatPosicionLlanta;
+    document.getElementById("llanta-idVehCatStatus").value = ll.idVehCatStatus;
+
+    document.getElementById("llanta-dteFechaFinVidaEstimada").value = ll.dteFechaFinVidaEstimada ? ll.dteFechaFinVidaEstimada.split("T")[0] : "";
+    document.getElementById("llanta-dteFechaRotacion").value = ll.dteFechaRotacion ? ll.dteFechaRotacion.split("T")[0] : "";
+    document.getElementById("llanta-dteFechaSiguienteRotacion").value = ll.dteFechaSiguienteRotacion ? ll.dteFechaSiguienteRotacion.split("T")[0] : "";
+
+    if (ll.strUrlEvidencia) {
+        document.getElementById("llanta-strUrlEvidencia").value = ll.strUrlEvidencia;
+        
+        const prompt = document.getElementById("llantaEvidenciaPrompt");
+        const preview = document.getElementById("llantaFilePreview");
+        if (prompt) prompt.style.display = "none";
+        if (preview) preview.style.display = "flex";
+
+        document.getElementById("llantaFileName").textContent = ll.strUrlEvidencia.split("/").pop();
+        document.getElementById("llantaFileSize").textContent = "Evidencia guardada";
+    } else {
+        limpiarEvidencia();
+    }
+
+    document.getElementById("llantaVehiculoForm").scrollIntoView({ behavior: "smooth" });
+}
+
+function eliminarLlanta(id) {
+    Swal.fire({
+        title: "¿Estás seguro?",
+        text: "Este registro de llanta será eliminado permanentemente.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: "Eliminando...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            try {
+                const response = await fetch(`/Vehiculos/DeleteLlanta/${id}`, { method: "POST" });
+                const res = await response.json();
+                Swal.close();
+                if (res.success) {
+                    Swal.fire("Eliminado", "El registro ha sido eliminado.", "success");
+                    cargarLlantasList();
+                } else {
+                    Swal.fire("Error", res.message || "No se pudo eliminar el registro.", "error");
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire("Error", "Error de red al intentar eliminar.", "error");
+            }
+        }
+    });
+}
+
+function resetearFormularioLlanta() {
+    editModeLlantaId = null;
+    const form = document.getElementById("llantaVehiculoForm");
+    if (form) {
+        form.reset();
+        form.querySelectorAll(".is-valid, .is-invalid").forEach(el => el.classList.remove("is-valid", "is-invalid"));
+        
+        // Por defecto: Activo (1)
+        const statusSelect = document.getElementById("llanta-idVehCatStatus");
+        if (statusSelect) statusSelect.value = "1";
+    }
+    limpiarEvidencia();
+}
+
+function escapeHtml(text) {
+    return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+

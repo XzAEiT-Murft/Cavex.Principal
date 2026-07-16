@@ -1,8 +1,9 @@
+// Manejador del ciclo de vida del DOM
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('.quote-form');
     if (!form) return;
-
-    // Mapping card numbers in DOM to stepper indexes (1-6)
+ 
+    // Mapeo entre números de tarjeta visual (cards 1-6) e índices del stepper (pasos 1-6)
     const cardToStepMap = {
         1: 1, // Datos del solicitante (Card 1) -> Paso 1
         2: 1, // Dirección del solicitante (Card 2) -> Paso 1
@@ -11,8 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
         5: 4, // Sucursal y destino (Card 5) -> Paso 4
         6: 5  // Costos adicionales (Card 6) -> Paso 5
     };
-
-    // Mapping steps to card index in querySelectorAll('.form-section-card')
+ 
+    // Mapeo entre pasos del stepper e índice del arreglo de tarjetas en el DOM (.form-section-card)
     const stepToCardIndexMap = {
         1: 0, // Card 1 (Datos)
         2: 2, // Card 3 (Pasajero)
@@ -20,17 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
         4: 4, // Card 5 (Ruta)
         5: 5  // Card 6 (Costos)
     };
-
-    // Relas de validacion
+ 
+    // Expresiones regulares para la validación de formato de los campos
     const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/;
     const regexTelefono = /^\d{10}$/;
     const regexEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const regexCP = /^\d{5}$/;
     const regexTextoGenerico = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,;:'"()\-#]+$/;
-
-
-
-    // Selector de elementos en sus respectivos limpiadores
+ 
+    // Mapeo que define qué funciones de sanitización de site.js aplicar a cada input por su ID
     const sanitizersMap = [
         { ids: ['strNombreSolicitante', 'strApellidoPaternoSolicitante', 'strApellidoMaternoSolicitante', 'strNombrePasajero', 'strColoniaSolicitante', 'strMunicipioSolicitante', 'strEstadoSolicitante'], fn: sanitizeLettersOnly },
         { ids: ['strTelefonoCelular', 'strTelefonoFijo', 'strCodigoPostalSolicitante', 'intCantidadPasajeros'], fn: sanitizeDigitsOnly },
@@ -38,38 +37,19 @@ document.addEventListener('DOMContentLoaded', () => {
         { ids: ['strNumeroExteriorSolicitante', 'strNumeroInteriorSolicitante'], fn: sanitizeAlphanumericDash },
         { ids: ['strCalleSolicitante', 'strDestino', 'strReferenciasDireccionSolicitante', 'strReferenciasDestino', 'strObservacionesAtencion', 'strObservaciones'], fn: sanitizeGeneralText }
     ];
-
+ 
+    // Registra los eventos de sanitización reutilizando la función global registerSanitizer para evitar duplicación
     function setupSanitizers() {
         sanitizersMap.forEach(({ ids, fn }) => {
             ids.forEach(id => {
                 const el = document.getElementById(id);
-                if (!el) return;
-                
-                const handler = () => {
-                    const originalVal = el.value;
-                    const cleanedVal = fn(originalVal);
-                    if (originalVal !== cleanedVal) {
-                        const selectionStart = el.selectionStart;
-                        const selectionEnd = el.selectionEnd;
-                        el.value = cleanedVal;
-                        try {
-                            el.setSelectionRange(selectionStart, selectionEnd);
-                        } catch (err) {}
-                    }
-                };
-
-                el.addEventListener('input', handler);
-                el.addEventListener('paste', () => setTimeout(handler, 0));
-                el.addEventListener('blur', () => {
-                    el.value = el.value.trim();
-                    handler();
-                });
+                registerSanitizer(el, fn);
             });
         });
     }
-
+ 
     setupSanitizers();
-
+ 
     let activeStep = 1;
     let maxStepVisited = 1;
 
@@ -95,7 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (state === 'warning') el.classList.add('is-warning');
         else if (state === 'invalid') el.classList.add('is-invalid');
     }
-
+ 
+    // Valida un campo de texto general comprobando si es requerido, su expresión regular y asigna estilos visuales
     function validarCampoTexto(el, required, regex = null) {
         if (!el) return 'valid';
         const val = stripEmojis(el.value).trim();
@@ -115,11 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
             marcarElemento(el, 'warning');
             return 'missing';
         }
-        // Opcional y vacío
+        // Opcional y vacío: remueve estilos previos
         el.classList.remove('is-valid', 'is-warning', 'is-invalid');
         return 'valid';
     }
-
+ 
+    // Valida el formato y los dominios comerciales permitidos de un correo electrónico
     function validarCorreo(el, required) {
         if (!el) return 'valid';
         const val = stripEmojis(el.value).trim().toLowerCase();
@@ -142,7 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.classList.remove('is-valid', 'is-warning', 'is-invalid');
         return 'valid';
     }
-
+ 
+    // Valida que se haya seleccionado un elemento (valor no vacío) en un dropdown
     function validarSelect(el, required) {
         if (!el) return 'valid';
         const val = el.value;
@@ -153,7 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
         marcarElemento(el, 'valid');
         return 'valid';
     }
-
+ 
+    // Valida que el campo contenga un valor numérico válido y sea mayor o igual al valor mínimo indicado
     function validarNumero(el, required, min = null) {
         if (!el) return 'valid';
         const val = stripEmojis(el.value).trim();
@@ -167,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 marcarElemento(el, 'invalid');
                 return 'invalid';
             }
-            // Verificar la validacion
+            // Valida que no existan caracteres especiales no numéricos
             if (/[^0-9.]/.test(val)) {
                 marcarElemento(el, 'invalid');
                 return 'invalid';
@@ -182,7 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.classList.remove('is-valid', 'is-warning', 'is-invalid');
         return 'valid';
     }
-
+ 
+    // Valida que al menos una opción esté seleccionada dentro de un grupo de radio buttons
     function validarRadios(name) {
         const radios = document.getElementsByName(name);
         let checked = false;
@@ -206,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (stepNum > maxStepVisited) shouldMark = false;
             }
         }
-
+ 
         if (!checked) {
             if (container && shouldMark) container.classList.add('is-warning');
             return 'missing';
@@ -215,33 +200,34 @@ document.addEventListener('DOMContentLoaded', () => {
             return 'valid';
         }
     }
-
+ 
+    // Valida que la fecha y hora del viaje seleccionadas no correspondan al pasado
     function validarFechaViaje(elFecha, elHora) {
         if (!elFecha) return 'valid';
         const fechaVal = elFecha.value.trim();
         const horaVal = elHora ? elHora.value.trim() : '';
-
+ 
         if (fechaVal === '') {
             marcarElemento(elFecha, 'warning');
             return 'missing';
         }
-
+ 
         // Comprobar formato y fecha lógica
         const viajeDate = new Date(`${fechaVal}T${horaVal || '00:00'}`);
         if (isNaN(viajeDate.getTime())) {
             marcarElemento(elFecha, 'invalid');
             return 'invalid';
         }
-
+ 
         // Comparar con el día de hoy
         const hoy = new Date();
         const hoyString = hoy.toISOString().split('T')[0];
-
+ 
         if (fechaVal < hoyString) {
             marcarElemento(elFecha, 'invalid');
             return 'invalid';
         }
-
+ 
         // Si es hoy, comprobar la hora
         if (fechaVal === hoyString && horaVal !== '') {
             const [hH, hM] = horaVal.split(':').map(Number);
@@ -253,12 +239,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return 'invalid';
             }
         }
-
+ 
         marcarElemento(elFecha, 'valid');
         if (elHora && horaVal !== '') marcarElemento(elHora, 'valid');
         return 'valid';
     }
-
+ 
+    // Valida los campos obligatorios y opcionales del Paso 1 (Datos Personales y Dirección Solicitante)
     function validarPaso1() {
         const results = [];
         results.push(validarCampoTexto(document.getElementById('strNombreSolicitante'), true, regexSoloLetras));
@@ -267,11 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
         results.push(validarCampoTexto(document.getElementById('strTelefonoCelular'), true, regexTelefono));
         validarCampoTexto(document.getElementById('strTelefonoFijo'), false, regexTelefono);
         results.push(validarCorreo(document.getElementById('strCorreo'), false));
-
+ 
         // Dirección radio buttons
         const radioState = validarRadios('RegistrarDireccionSolicitante');
         results.push(radioState);
-
+ 
         // Dirección condicional
         const registrarDireccionSi = document.getElementById('strRegistrarDireccionSolicitanteSi');
         if (registrarDireccionSi && registrarDireccionSi.checked) {
