@@ -117,7 +117,7 @@
                 <h3 class="form-section-title"><span class="form-section-number">4</span>Evidencia</h3>
                 <label class="form-label" for="danioEvidenciaArchivo">Archivo</label>
                 <div id="danioEvidenciaArea" class="vehiculo-upload-area danio-evidencia-area" role="button" tabindex="0">
-                    <input id="danioEvidenciaArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" />
+                    <input id="danioEvidenciaArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" multiple />
                     <input id="danio-strUrlEvidencia" name="strUrlEvidencia" type="hidden" value="" />
                     <div id="danioEvidenciaPrompt" class="vehiculo-upload-prompt danio-evidencia-prompt">
                         <span class="vehiculo-upload-icon" aria-hidden="true">
@@ -127,15 +127,8 @@
                         <span>o haz clic para seleccionar</span>
                         <small>PDF, JPG, JPEG, PNG o WEBP · máximo 5 MB</small>
                     </div>
-                    <div class="vehiculo-file-preview" id="danioFilePreview" hidden>
-                        <div class="vehiculo-file-meta">
-                            <strong id="danioFileName">Evidencia seleccionada</strong>
-                            <small>Vista previa local; aún no se genera strUrlEvidencia</small>
-                        </div>
-                        <div class="vehiculo-file-actions danio-file-actions">
-                            <button id="btnQuitarEvidenciaDanio" type="button" class="btn btn-outline-cavex btn-sm">Quitar</button>
-                        </div>
-                    </div>
+                    <!-- Lista de archivos seleccionados y preexistentes -->
+                    <div id="danioFilePreviewList" class="mt-2 w-100 d-flex flex-column gap-2" style="pointer-events: auto;"></div>
                 </div>
                 <div id="danioEvidenciaArchivoError" class="invalid-feedback danio-upload-error"></div>
             </section>
@@ -160,6 +153,28 @@
         <button type="submit" class="btn btn-cavex">Guardar evento</button>
     </div>
 </form>
+
+<div class="cavex-card table-module vehiculo-module-table mt-4">
+    <h3 class="form-section-title mb-3">Registros de Daños y Accidentes</h3>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle executive-table table-cavex-compact">
+            <thead>
+                <tr>
+                    <th>Marca/Modelo</th>
+                    <th>Placa</th>
+                    <th>Empleado Responsable</th>
+                    <th>Descripción</th>
+                    <th class="text-end" style="width: 150px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="daniosTableBody">
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Cargando registros...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
 
 @section Scripts {

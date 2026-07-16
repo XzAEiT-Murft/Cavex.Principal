@@ -1,9 +1,11 @@
-using Cavex.Principal.ApiClients.CatStatus;
+ï»¿using Cavex.Principal.ApiClients.CatStatus;
 using Cavex.Principal.ApiClients.EmpCatAreaLaboral;
 using Cavex.Principal.ApiClients.EmpEmpleado;
 using Cavex.Principal.ApiClients.EmpCatColonia;
 using Cavex.Principal.ApiClients.ServicioAClientes;
 using Cavex.Principal.ApiClients.Sucursales;
+using Cavex.Principal.ApiClients.VehCatTransmision;
+using Cavex.Principal.Models.VehCatTransmision;
 using Cavex.Principal.Infrastructure.Policies;
 using Cavex.Principal.Infrastructure.Settings;
 using Cavex.Principal.Services.Implementations;
@@ -97,6 +99,7 @@ namespace Cavex.Principal.Infrastructure.Extensions
             services.AddScoped<IVehCatTallerService, VehCatTallerService>();
             services.AddScoped<IVehCatRefaccionesService, VehCatRefaccionesService>();
             services.AddScoped<IVehCatGasolinerasService, VehCatGasolinerasService>();
+            services.AddScoped<IVehCatTransmisionService, VehCatTransmisionService>();
 
             return services;
         }
@@ -174,7 +177,7 @@ namespace Cavex.Principal.Infrastructure.Extensions
                 .AddPolicyHandler(PollyPolicies.TimeoutPolicy())
                 .AddPolicyHandler(PollyPolicies.CircuitBreakerPolicy());
 
-            // Vehículos
+            // Vehï¿½culos
 
             services.AddRefitClient<IVehDatosGeneralesApi>(refitSettings)
                 .ConfigureHttpClient((sp, client) =>
@@ -353,6 +356,17 @@ namespace Cavex.Principal.Infrastructure.Extensions
                 .AddPolicyHandler(PollyPolicies.CircuitBreakerPolicy());
 
             services.AddRefitClient<IVehDaniosAccidentesApi>(refitSettings)
+                .ConfigureHttpClient((sp, client) =>
+                {
+                    var settings = sp.GetRequiredService<IOptions<ApiSettings>>().Value;
+                    client.BaseAddress = new Uri(settings.BaseUrl);
+                    client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
+                })
+                .AddPolicyHandler(PollyPolicies.RetryPolicy())
+                .AddPolicyHandler(PollyPolicies.TimeoutPolicy())
+                .AddPolicyHandler(PollyPolicies.CircuitBreakerPolicy());
+
+            services.AddRefitClient<IVehCatTransmisionApi>(refitSettings)
                 .ConfigureHttpClient((sp, client) =>
                 {
                     var settings = sp.GetRequiredService<IOptions<ApiSettings>>().Value;

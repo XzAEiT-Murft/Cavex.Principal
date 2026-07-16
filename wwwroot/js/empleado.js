@@ -876,14 +876,16 @@ document.addEventListener('DOMContentLoaded', function() {
             let isValid = true;
             
             for (let i = 1; i <= 7; i++) {
-                if (validarPasoEmpleado(i) !== 'valid') {
+                const stepState = validarPasoEmpleado(i);
+                if (stepState !== 'valid') {
                     isValid = false;
-                    activarPasoEmpleado(i);
-                    const cards = document.querySelectorAll('.empleado-card');
-                    if (cards[i - 1]) {
-                        firstInvalidCard = cards[i - 1];
+                    if (!firstInvalidCard) {
+                        activarPasoEmpleado(i);
+                        const cards = document.querySelectorAll('.empleado-card');
+                        if (cards[i - 1]) {
+                            firstInvalidCard = cards[i - 1];
+                        }
                     }
-                    break;
                 }
             }
             
@@ -893,7 +895,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Formulario incompleto',
+                    title: 'Datos incompletos',
                     text: 'Faltan campos por llenar o contienen errores. Revise los campos marcados en rojo.',
                     confirmButtonColor: 'var(--teal-cavex)'
                 });
@@ -926,7 +928,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         strArea: area,
                         dteFechaIncio: fi,
                         dteFechaFin: ff,
-                        mnySueldo: parseFloat(sueldo.replace(/,/g, '')),
+                        mnySueldo: parseFloat(sueldo.replace(/,/g, '')) || 0,
                         strMotivoSalida: motivo
                     });
                 });
@@ -988,7 +990,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     condicionesLaborales: {
                         bitCercaniaVivienda: document.getElementById('chkVivienda').checked,
                         bitDisponibilidadDeViaje: document.getElementById('chkViaje').checked,
-                        mnySueldoMensual: parseFloat(document.getElementById('txtSueldoMensual').value.replace(/,/g, '')),
+                        mnySueldoMensual: parseFloat(document.getElementById('txtSueldoMensual').value.replace(/,/g, '')) || 0,
                         bitExperienciaEnArea: document.getElementById('chkExp').checked,
                         bitDisponibilidadCambioResidencia: document.getElementById('chkExpPuesto').checked,
                         dteFechaIngreso: new Date().toISOString().split('T')[0]
@@ -1002,7 +1004,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     ]
                 };
-
                 try {
                     Swal.fire({
                         title: 'Guardando empleado...',
@@ -1012,12 +1013,30 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                     
+                    const formData = new FormData();
+                    formData.append("employeeData", JSON.stringify(payload));
+                    
+                    const fileIdentificacion = document.getElementById('file-identificacion')?.files[0];
+                    if (fileIdentificacion) formData.append("Identificacion", fileIdentificacion);
+                    
+                    const fileComprobante = document.getElementById('file-comprobante')?.files[0];
+                    if (fileComprobante) formData.append("Comprobante", fileComprobante);
+                    
+                    const fileCv = document.getElementById('file-cv')?.files[0];
+                    if (fileCv) formData.append("Cv", fileCv);
+                    
+                    const fileContrato = document.getElementById('file-contrato')?.files[0];
+                    if (fileContrato) formData.append("Contrato", fileContrato);
+                    
+                    const fileLicencia = document.getElementById('file-licencia')?.files[0];
+                    if (fileLicencia) formData.append("Licencia", fileLicencia);
+                    
+                    const fileFotoEmpleado = document.getElementById('file-fotoEmpleado')?.files[0];
+                    if (fileFotoEmpleado) formData.append("FotoEmpleado", fileFotoEmpleado);
+                    
                     fetch(requestUrl, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
+                        body: formData
                     })
                     .then(response => response.json())
                     .then(result => {
@@ -1132,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(err => console.error('[Nacionalidad] ERROR:', err));
 
         // ── ÁREA LABORAL ──
-        const p4 = fetch('/AreaLaboral/GetAreas')
+        const p4 = fetch('/AreaLaboral/GetAreas?pageSize=100')
             .then(res => res.json())
             .then(res => {
                 if (res.success && res.data) {
@@ -1188,8 +1207,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('txtNSS').value = emp.intNss;
 
                     document.getElementById('idGenero').value = emp.idEmpCatGenero;
+                    document.getElementById('idGenero').dispatchEvent(new Event('change'));
+                    
                     document.getElementById('ddlEstadoCivil').value = emp.idEmpCatEstadoCivil;
+                    document.getElementById('ddlEstadoCivil').dispatchEvent(new Event('change'));
+
                     document.getElementById('ddlNacionalidad').value = emp.idEmpCatNacionalidad;
+                    document.getElementById('ddlNacionalidad').dispatchEvent(new Event('change'));
 
                     // Mapear Dirección
                     if (emp.empDireccion) {
@@ -1257,6 +1281,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Mapear Área Laboral
                     if (emp.empHistorialAreas && emp.empHistorialAreas.length > 0) {
                         document.getElementById('ddlAreaLaboral').value = emp.empHistorialAreas[0].idEmpCatAreaLaboral;
+                        document.getElementById('ddlAreaLaboral').dispatchEvent(new Event('change'));
                     }
 
                     // Mapear Experiencias Laborales

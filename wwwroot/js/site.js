@@ -185,6 +185,13 @@ function initializeCustomSelects() {
  
         // Regenera la lista de opciones customizadas basándose en el select nativo
         const rebuildOptions = () => {
+            if (select.disabled) {
+                wrapper.classList.add('disabled');
+                trigger.classList.add('disabled');
+            } else {
+                wrapper.classList.remove('disabled');
+                trigger.classList.remove('disabled');
+            }
             optionsContainer.innerHTML = '';
             Array.from(select.options).forEach((opt, idx) => {
                 const optDiv = document.createElement('div');
@@ -206,7 +213,7 @@ function initializeCustomSelects() {
  
                 // Evento click al elegir una opción customizada
                 optDiv.addEventListener('click', (e) => {
-                    if (opt.disabled) return;
+                    if (opt.disabled || select.disabled) return;
                     e.stopPropagation();
  
                     // Sincroniza la selección en el select oculto nativo
@@ -232,6 +239,7 @@ function initializeCustomSelects() {
  
         // Evento para abrir y cerrar el dropdown
         trigger.addEventListener('click', (e) => {
+            if (select.disabled) return;
             e.stopPropagation();
             // Cierra cualquier otro custom select que esté abierto
             document.querySelectorAll('.custom-select-options.show').forEach(openContainer => {
@@ -246,13 +254,13 @@ function initializeCustomSelects() {
             trigger.classList.toggle('active');
         });
  
-        // MutationObserver para reconstruir las opciones cuando el select original cambie dinámicamente (ej. cargas en cascada)
+        // MutationObserver para reconstruir las opciones cuando el select original cambie dinámicamente o se deshabilite
         const observer = new MutationObserver(() => {
             rebuildOptions();
             const currentSelOpt = select.options[select.selectedIndex];
             triggerText.textContent = currentSelOpt ? currentSelOpt.textContent : 'Seleccionar...';
         });
-        observer.observe(select, { childList: true, subtree: true });
+        observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
  
         // Escucha cambios manuales sobre el select nativo para mantener actualizada la UI personalizada
         select.addEventListener('change', () => {

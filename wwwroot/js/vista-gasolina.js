@@ -1,5 +1,12 @@
 "use strict";
 
+// Variable global para almacenar el archivo comprobante de gasolina seleccionado
+let comprobanteArchivoSeleccionado = null;
+// Datos globales para vinculación vehículo-chofer
+let listaVehiculosGasolina = [];
+let listaEmpleadosGasolina = [];
+let asignacionesActivasGasolina = [];
+
 // Inicializador de eventos al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
     inicializarVistaGasolina();
@@ -32,6 +39,7 @@ function inicializarVistaGasolina() {
         });
     });
 
+
     // Envío del formulario al backend para registrar la carga de combustible
     form.addEventListener("submit", async event => {
         event.preventDefault();
@@ -54,27 +62,28 @@ function inicializarVistaGasolina() {
             }
         });
 
-        // Construcción del DTO mapeado a las propiedades esperadas por VehControlGasolinaSaveDto
-        const payload = {
-            idVehDatosGenerales: parseInt(document.getElementById("gasolina-idVehDatosGenerales").value, 10),
-            dteFechaCarga: document.getElementById("gasolina-dteFechaCarga").value,
-            mnyMontoPagado: parseFloat(document.getElementById("gasolina-mnyMontoPagado").value),
-            mnyPrecioLitro: parseFloat(document.getElementById("gasolina-mnyPrecioLitro").value),
-            decKilometrajeActual: parseFloat(document.getElementById("gasolina-decKilometrajeActual").value),
-            idVehFormaPago: parseInt(document.getElementById("gasolina-idVehFormaPago").value, 10),
-            strUrlComprobantePago: document.getElementById("gasolina-strUrlComprobantePago").value || null,
-            idVehCatGasolineras: parseInt(document.getElementById("gasolina-idVehCatGasolineras").value, 10),
-            idEmpEmpleado: parseInt(document.getElementById("gasolina-idEmpEmpleado").value, 10)
-        };
+        // Construcción de FormData para soportar multipart upload del archivo comprobante
+        const formData = new FormData();
+        formData.append("Id", editModeGasolinaId || 0);
+        formData.append("IdVehDatosGenerales", parseInt(document.getElementById("gasolina-idVehDatosGenerales").value, 10));
+        formData.append("DteFechaCarga", document.getElementById("gasolina-dteFechaCarga").value);
+        formData.append("MnyMontoPagado", parseFloat(document.getElementById("gasolina-mnyMontoPagado").value));
+        formData.append("MnyPrecioLitro", parseFloat(document.getElementById("gasolina-mnyPrecioLitro").value));
+        formData.append("DecKilometrajeActual", parseFloat(document.getElementById("gasolina-decKilometrajeActual").value));
+        formData.append("IdVehFormaPago", parseInt(document.getElementById("gasolina-idVehFormaPago").value, 10));
+        formData.append("StrUrlComprobantePago", document.getElementById("gasolina-strUrlComprobantePago").value || "");
+        formData.append("IdVehCatGasolineras", parseInt(document.getElementById("gasolina-idVehCatGasolineras").value, 10));
+        formData.append("IdEmpEmpleado", parseInt(document.getElementById("gasolina-idEmpEmpleado").value, 10));
+
+        const fileInput = document.getElementById("gasolinaComprobanteArchivo");
+        if (fileInput && fileInput.files.length > 0) {
+            formData.append("ComprobanteArchivo", fileInput.files[0]);
+        }
 
         try {
             const response = await fetch("/Vehiculos/SaveGasolina", {
                 method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
+                body: formData
             });
 
             const result = await response.json();
@@ -92,11 +101,12 @@ function inicializarVistaGasolina() {
 
             Swal.fire({
                 icon: "success",
-                title: "Carga registrada",
-                text: "Los datos de la carga de combustible han sido registrados exitosamente en la base de datos.",
+                title: editModeGasolinaId ? "Carga actualizada" : "Carga registrada",
+                text: editModeGasolinaId ? "Los datos de la carga de combustible han sido actualizados exitosamente." : "Los datos de la carga de combustible han sido registrados exitosamente.",
                 confirmButtonColor: "var(--teal-cavex)"
             }).then(() => {
-                window.location.href = "/Vehiculos/Index";
+                resetearFormularioGasolina();
+                cargarGasolinaList();
             });
         } catch (err) {
             Swal.close();
@@ -111,43 +121,127 @@ function inicializarVistaGasolina() {
 }
 
 // Carga los catálogos de vehículos, empleados, gasolineras y formas de pago desde la base de datos
-function cargarCatalogosGasolina() {
-    // 1. Cargar vehículos
-    fetch("/Vehiculos/GetVehiculos")
-        .then(res => res.json())
-        .then(result => {
-            const select = document.getElementById("gasolina-idVehDatosGenerales");
-            if (!select) return;
-            select.innerHTML = '<option value="">Seleccionar...</option>';
-            if (result.success && result.data) {
-                result.data.forEach(v => {
-                    const opt = document.createElement("option");
-                    opt.value = String(v.id);
-                    opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                    select.appendChild(opt);
-                });
-            }
-        })
-        .catch(() => {});
+async function cargarCatalogosGasolina() {
+    try {
+        const [vehRes, empRes, asigRes] = await Promise.all([
+            fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
+            fetch("/Empleado/GetEmpleados").then(r => r.json()),
+            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+        ]);
 
-    // 2. Cargar empleados
-    fetch("/Empleado/GetEmpleados")
-        .then(res => res.json())
-        .then(result => {
-            const select = document.getElementById("gasolina-idEmpEmpleado");
-            if (!select) return;
-            select.innerHTML = '<option value="">Seleccionar...</option>';
-            if (result.success && result.data) {
-                result.data.forEach(e => {
-                    const opt = document.createElement("option");
-                    opt.value = String(e.id);
-                    const nombreCompleto = e.strNombre + ' ' + e.strApellidoPaterno + (e.strApellidoMaterno ? ' ' + e.strApellidoMaterno : '');
-                    opt.textContent = nombreCompleto;
-                    select.appendChild(opt);
-                });
+        // 1. Cargar vehículos
+        const selectVeh = document.getElementById("gasolina-idVehDatosGenerales");
+        if (selectVeh && vehRes.success && vehRes.data) {
+            listaVehiculosGasolina = vehRes.data;
+            selectVeh.innerHTML = '<option value="">Seleccionar...</option>';
+            vehRes.data.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = String(v.id);
+                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
+                selectVeh.appendChild(opt);
+            });
+        }
+
+        // 2. Cargar empleados
+        const selectEmp = document.getElementById("gasolina-idEmpEmpleado");
+        if (selectEmp && empRes.success && empRes.data) {
+            listaEmpleadosGasolina = empRes.data;
+            selectEmp.innerHTML = '<option value="">Seleccionar...</option>';
+            empRes.data.forEach(e => {
+                const opt = document.createElement("option");
+                opt.value = String(e.id);
+                const nombreCompleto = e.strNombre + ' ' + e.strApellidoPaterno + (e.strApellidoMaterno ? ' ' + e.strApellidoMaterno : '');
+                opt.textContent = nombreCompleto;
+                selectEmp.appendChild(opt);
+            });
+        }
+
+        // Asignaciones activas para vinculación
+        if (asigRes.success && asigRes.data) {
+            asignacionesActivasGasolina = asigRes.data;
+        }
+
+        // Vinculación bidireccional segura
+        let isVinculandoGasolina = false;
+
+        selectVeh?.addEventListener("change", () => {
+            if (isVinculandoGasolina) return;
+            isVinculandoGasolina = true;
+            try {
+                const vehId = parseInt(selectVeh.value, 10);
+                if (editModeGasolinaId === null) {
+                    if (vehId) {
+                        const asig = asignacionesActivasGasolina.find(a => a.idVehDatosGenerales === vehId);
+                        if (asig && selectEmp) {
+                            if (selectEmp.value !== String(asig.idEmpEmpleado)) {
+                                selectEmp.value = String(asig.idEmpEmpleado);
+                                selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+                            }
+                            selectEmp.disabled = true;
+                        } else if (selectEmp) {
+                            selectEmp.disabled = false;
+                        }
+                    } else if (selectEmp) {
+                        if (selectEmp.value !== "") {
+                            selectEmp.value = "";
+                            selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                        selectEmp.disabled = false;
+                    }
+                } else {
+                    const asig = asignacionesActivasGasolina.find(a => a.idVehDatosGenerales === vehId);
+                    if (asig && selectEmp) {
+                        if (selectEmp.value !== String(asig.idEmpEmpleado)) {
+                            selectEmp.value = String(asig.idEmpEmpleado);
+                            selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                    }
+                }
+            } finally {
+                isVinculandoGasolina = false;
             }
-        })
-        .catch(() => {});
+        });
+
+        selectEmp?.addEventListener("change", () => {
+            if (isVinculandoGasolina) return;
+            isVinculandoGasolina = true;
+            try {
+                const empId = parseInt(selectEmp.value, 10);
+                if (editModeGasolinaId === null) {
+                    if (empId) {
+                        const asig = asignacionesActivasGasolina.find(a => a.idEmpEmpleado === empId);
+                        if (asig && selectVeh) {
+                            if (selectVeh.value !== String(asig.idVehDatosGenerales)) {
+                                selectVeh.value = String(asig.idVehDatosGenerales);
+                                selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+                            }
+                            selectVeh.disabled = true;
+                        } else if (selectVeh) {
+                            selectVeh.disabled = false;
+                        }
+                    } else if (selectVeh) {
+                        if (selectVeh.value !== "") {
+                            selectVeh.value = "";
+                            selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                        selectVeh.disabled = false;
+                    }
+                } else {
+                    const asig = asignacionesActivasGasolina.find(a => a.idEmpEmpleado === empId);
+                    if (asig && selectVeh) {
+                        if (selectVeh.value !== String(asig.idVehDatosGenerales)) {
+                            selectVeh.value = String(asig.idVehDatosGenerales);
+                            selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                    }
+                }
+            } finally {
+                isVinculandoGasolina = false;
+            }
+        });
+    } catch (err) {
+        console.error("Error al cargar catálogos de gasolina:", err);
+    }
 
     // 3. Cargar catálogos de gasolineras y formas de pago
     fetch("/Vehiculos/GetVehiculoCatalogos")
@@ -178,6 +272,8 @@ function cargarCatalogosGasolina() {
                     });
                 }
             }
+            // Cargar registros de gasolina
+            cargarGasolinaList();
         })
         .catch(() => {});
 }
@@ -204,47 +300,71 @@ function inicializarCalculoLitros() {
     precio.addEventListener("input", calcular);
 }
 
-// Configura Drag & Drop y selección manual de archivos para el comprobante
+// Configura el área de Drag & Drop y la selección manual del archivo de comprobante de gasolina
 function inicializarCargaComprobante() {
     const area = document.getElementById("gasolinaComprobanteArea");
     const input = document.getElementById("gasolinaComprobanteArchivo");
     if (!area || !input) return;
 
+    // Al hacer clic en el área, abre el selector de archivos nativo (evitando el botón Quitar)
     area.addEventListener("click", event => {
-        if (!event.target.closest(".gasolina-file-actions button")) input.click();
+        if (event.target.closest("#btnQuitarComprobanteGasolina")) {
+            return;
+        }
+        input.click();
     });
+
     document.getElementById("btnQuitarComprobanteGasolina")?.addEventListener("click", event => {
         event.stopPropagation();
         limpiarComprobante();
     });
+
+    // Permite abrir el selector al presionar Enter o Espacio estando enfocados
     area.addEventListener("keydown", event => {
         if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             input.click();
         }
     });
-    area.addEventListener("dragover", event => { event.preventDefault(); area.classList.add("is-drag-over"); });
-    area.addEventListener("dragleave", () => area.classList.remove("is-drag-over"));
+
+    // Cambia la clase visual del área al arrastrar un archivo sobre ella
+    area.addEventListener("dragover", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.add("is-drag-over");
+    });
+    area.addEventListener("dragleave", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.remove("is-drag-over");
+    });
+
+    // Procesa el archivo soltado en el área
     area.addEventListener("drop", event => {
         event.preventDefault();
+        event.stopPropagation();
         area.classList.remove("is-drag-over");
         const archivo = event.dataTransfer.files?.[0];
         if (archivo) procesarArchivoComprobante(archivo);
     });
+
+    // Procesa el archivo cuando es seleccionado manualmente a través del explorador
     input.addEventListener("change", () => {
         const archivo = input.files?.[0];
         if (archivo) procesarArchivoComprobante(archivo);
     });
 }
 
-// Valida el formato y tamaño del archivo de comprobante
+// Valida el formato y tamaño del archivo de comprobante de gasolina (usando la extensión del nombre)
 function procesarArchivoComprobante(archivo) {
     const limBytes = 5 * 1024 * 1024;
-    const tiposPermitidos = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const extensionesPermitidas = ["jpg", "jpeg", "png", "webp", "pdf"];
 
     limpiarErrorComprobante();
 
-    if (!tiposPermitidos.includes(archivo.type)) {
+    // Extrae y valida la extensión del archivo para mayor compatibilidad en Windows
+    const ext = archivo.name.split('.').pop().toLowerCase();
+    if (!extensionesPermitidas.includes(ext)) {
         mostrarErrorComprobante("El archivo debe ser PDF, JPG, PNG o WEBP.");
         return;
     }
@@ -253,20 +373,73 @@ function procesarArchivoComprobante(archivo) {
         return;
     }
 
-    document.getElementById("gasolinaComprobantePrompt").hidden = true;
-    document.getElementById("gasolinaFilePreview").hidden = false;
-    document.getElementById("gasolinaFileName").textContent = archivo.name;
-    document.getElementById("gasolina-strUrlComprobantePago").value = "/uploads/gasolina_demo.pdf";
+    // Asignar el archivo al input usando DataTransfer (estilo Nuevo Empleado)
+    const input = document.getElementById("gasolinaComprobanteArchivo");
+    if (input) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(archivo);
+        input.files = dataTransfer.files;
+    }
+
+    comprobanteArchivoSeleccionado = archivo;
+    renderizarPreviaComprobante();
 }
+
+function renderizarPreviaComprobante() {
+    const prompt = document.getElementById("gasolinaComprobantePrompt");
+    const preview = document.getElementById("gasolinaFilePreview");
+    const hidden = document.getElementById("gasolina-strUrlComprobantePago");
+    if (!prompt || !preview) return;
+
+    const urlExistente = hidden ? hidden.value : "";
+
+    if (!comprobanteArchivoSeleccionado && !urlExistente) {
+        prompt.style.display = "flex";
+        preview.style.display = "none";
+        return;
+    }
+
+    prompt.style.display = "none";
+    preview.style.display = "flex";
+
+    const nameText = document.getElementById("gasolinaFileName");
+    const sizeText = document.getElementById("gasolinaFileSize");
+
+    if (urlExistente) {
+        const name = urlExistente.split("/").pop();
+        if (nameText) nameText.textContent = name;
+        if (sizeText) sizeText.textContent = "Comprobante guardado";
+    } else if (comprobanteArchivoSeleccionado) {
+        if (nameText) nameText.textContent = comprobanteArchivoSeleccionado.name;
+        if (sizeText) sizeText.textContent = (comprobanteArchivoSeleccionado.size / 1024 / 1024).toFixed(2) + " MB";
+    }
+}
+
+window.quitarComprobanteExistenteGasolina = function() {
+    const hidden = document.getElementById("gasolina-strUrlComprobantePago");
+    if (hidden) hidden.value = "";
+    renderizarPreviaComprobante();
+};
+
+window.quitarArchivoComprobanteGasolina = function() {
+    comprobanteArchivoSeleccionado = null;
+    const input = document.getElementById("gasolinaComprobanteArchivo");
+    if (input) input.value = "";
+    renderizarPreviaComprobante();
+};
 
 // Limpia el input del comprobante de pago cargado
 function limpiarComprobante() {
+    comprobanteArchivoSeleccionado = null;
     const input = document.getElementById("gasolinaComprobanteArchivo");
     if (input) input.value = "";
     const hidden = document.getElementById("gasolina-strUrlComprobantePago");
     if (hidden) hidden.value = "";
-    document.getElementById("gasolinaComprobantePrompt").hidden = false;
-    document.getElementById("gasolinaFilePreview").hidden = true;
+    
+    const prompt = document.getElementById("gasolinaComprobantePrompt");
+    const preview = document.getElementById("gasolinaFilePreview");
+    if (prompt) prompt.style.display = "flex";
+    if (preview) preview.style.display = "none";
     limpiarErrorComprobante();
 }
 
@@ -362,4 +535,237 @@ function limpiarErrorCampo(campo) {
         error.textContent = "";
         error.classList.remove("d-block");
     }
+}
+
+// ─── CRUD Actions y Renderizado ───
+let listaGasolinas = [];
+let editModeGasolinaId = null;
+
+async function cargarGasolinaList() {
+    try {
+        const response = await fetch("/Vehiculos/GetGasolinas");
+        const result = await response.json();
+        if (result.success && result.data) {
+            listaGasolinas = result.data;
+        } else {
+            listaGasolinas = [];
+        }
+        renderGasolinaTable();
+    } catch (err) {
+        console.error("Error al cargar gasolina:", err);
+        listaGasolinas = [];
+        renderGasolinaTable();
+    }
+}
+
+function renderGasolinaTable() {
+    const tbody = document.getElementById("gasolinaTableBody");
+    if (!tbody) return;
+
+    if (!listaGasolinas || listaGasolinas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No se encontraron cargas de gasolina registradas.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = listaGasolinas.map(g => {
+        const v = listaVehiculosGasolina.find(veh => veh.id === g.idVehDatosGenerales);
+        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
+        const modelo = v ? v.strModelo : "Desconocido";
+        const placa = v ? v.strPlaca : "—";
+        const brandModel = `${marca} ${modelo}`;
+
+        const emp = listaEmpleadosGasolina.find(e => e.id === g.idEmpEmpleado);
+        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (g.strEmpEmpleado || "Desconocido");
+
+        return `
+            <tr>
+                <td>${escapeHtml(brandModel)}</td>
+                <td><span class="badge bg-light text-dark border">${escapeHtml(placa)}</span></td>
+                <td>${escapeHtml(empleadoName)}</td>
+                <td class="text-end">
+                    <div class="dropdown actions-dropdown d-inline-block">
+                        <button class="btn-action-trigger btn-sm" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                            <span>Acciones</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="verDetalleGasolina(${g.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-info"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Ver detalles
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editarGasolina(${g.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Editar
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="eliminarGasolina(${g.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                    Eliminar
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    tbody.querySelectorAll('.btn-action-trigger').forEach(el => {
+        new bootstrap.Dropdown(el, {
+            popperConfig: (defaultConfig) => {
+                return {
+                    ...defaultConfig,
+                    strategy: 'fixed'
+                };
+            }
+        });
+    });
+}
+
+function verDetalleGasolina(id) {
+    const g = listaGasolinas.find(item => item.id === id);
+    if (!g) return;
+
+    const v = listaVehiculosGasolina.find(veh => veh.id === g.idVehDatosGenerales);
+    const emp = listaEmpleadosGasolina.find(e => e.id === g.idEmpEmpleado);
+    const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (g.strEmpEmpleado || "Desconocido");
+
+    const litros = g.mnyPrecioLitro > 0 ? (g.mnyMontoPagado / g.mnyPrecioLitro).toFixed(2) : "0.00";
+    let comprobanteHtml = '<span class="text-muted small">No registrado</span>';
+    if (g.strUrlComprobantePago) {
+        const isPdf = g.strUrlComprobantePago.toLowerCase().endsWith(".pdf");
+        const filename = g.strUrlComprobantePago.split("/").pop();
+        if (isPdf) {
+            comprobanteHtml = `<a href="${g.strUrlComprobantePago}" target="_blank" class="text-teal-cavex fw-semibold small" style="text-decoration: underline;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                ${escapeHtml(filename)}
+                               </a>`;
+        } else {
+            comprobanteHtml = `<a href="${g.strUrlComprobantePago}" target="_blank" class="d-inline-block border rounded p-1">
+                                <img src="${g.strUrlComprobantePago}" style="max-height: 80px; object-fit: contain;" />
+                               </a>`;
+        }
+    }
+
+    Swal.fire({
+        title: "Detalle de Carga de Gasolina",
+        html: `
+            <div class="text-start fs-6" style="line-height: 1.6;">
+                <p><strong>Vehículo:</strong> ${v ? `${v.strModelo} (${v.intAnio})` : "Desconocido"}</p>
+                <p><strong>Placa:</strong> ${v ? v.strPlaca : "—"}</p>
+                <p><strong>Chofer Responsable:</strong> ${empleadoName}</p>
+                <p><strong>Fecha de Carga:</strong> ${g.dteFechaCarga ? new Date(g.dteFechaCarga).toLocaleDateString("es-MX") : "—"}</p>
+                <p><strong>Gasolinera:</strong> ${escapeHtml(g.strVehCatGasolineras)}</p>
+                <p><strong>Monto Pagado:</strong> $${Number(g.mnyMontoPagado).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</p>
+                <p><strong>Precio por Litro:</strong> $${Number(g.mnyPrecioLitro).toLocaleString("es-MX", { minimumFractionDigits: 2 })} / L</p>
+                <p><strong>Litros Cargados (Aprox):</strong> ${litros} L</p>
+                <p><strong>Kilometraje al Cargar:</strong> ${Number(g.decKilometrajeActual).toLocaleString("es-MX")} km</p>
+                <p><strong>Forma de Pago:</strong> ${escapeHtml(g.strVehFormaPago)}</p>
+                <p><strong>Comprobante:</strong></p>
+                <div class="mb-3">${comprobanteHtml}</div>
+            </div>
+        `,
+        confirmButtonColor: "var(--teal-cavex)"
+    });
+}
+
+function editarGasolina(id) {
+    const g = listaGasolinas.find(item => item.id === id);
+    if (!g) return;
+
+    editModeGasolinaId = id;
+
+    const selectVeh = document.getElementById("gasolina-idVehDatosGenerales");
+    const selectEmp = document.getElementById("gasolina-idEmpEmpleado");
+    if (selectVeh) selectVeh.disabled = false;
+    if (selectEmp) selectEmp.disabled = false;
+
+    if (selectVeh) {
+        selectVeh.value = String(g.idVehDatosGenerales);
+        selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    document.getElementById("gasolina-decKilometrajeActual").value = g.decKilometrajeActual;
+    
+    if (g.dteFechaCarga) {
+        document.getElementById("gasolina-dteFechaCarga").value = g.dteFechaCarga.split("T")[0];
+    }
+    
+    document.getElementById("gasolina-idVehCatGasolineras").value = g.idVehCatGasolineras;
+    if (selectEmp) {
+        selectEmp.value = String(g.idEmpEmpleado);
+        selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    document.getElementById("gasolina-mnyMontoPagado").value = g.mnyMontoPagado;
+    document.getElementById("gasolina-mnyPrecioLitro").value = g.mnyPrecioLitro;
+    document.getElementById("gasolina-idVehFormaPago").value = g.idVehFormaPago;
+
+    if (g.strUrlComprobantePago) {
+        document.getElementById("gasolina-strUrlComprobantePago").value = g.strUrlComprobantePago;
+    } else {
+        document.getElementById("gasolina-strUrlComprobantePago").value = "";
+    }
+    comprobanteArchivoSeleccionado = null;
+    renderizarPreviaComprobante();
+
+    // Trigger calculation
+    document.getElementById("gasolina-mnyMontoPagado").dispatchEvent(new Event("input"));
+
+    document.getElementById("gasolinaVehiculoForm").scrollIntoView({ behavior: "smooth" });
+}
+
+function eliminarGasolina(id) {
+    Swal.fire({
+        title: "¿Estás seguro?",
+        text: "Este registro de carga de combustible será eliminado permanentemente.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: "Eliminando...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            try {
+                const response = await fetch(`/Vehiculos/DeleteGasolina/${id}`, { method: "POST" });
+                const res = await response.json();
+                Swal.close();
+                if (res.success) {
+                    Swal.fire("Eliminado", "La carga ha sido eliminada.", "success");
+                    cargarGasolinaList();
+                } else {
+                    Swal.fire("Error", res.message || "No se pudo eliminar la carga.", "error");
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire("Error", "Error de red al intentar eliminar.", "error");
+            }
+        }
+    });
+}
+
+function resetearFormularioGasolina() {
+    editModeGasolinaId = null;
+    const form = document.getElementById("gasolinaVehiculoForm");
+    if (form) {
+        form.reset();
+        form.querySelectorAll(".is-valid, .is-invalid").forEach(el => el.classList.remove("is-valid", "is-invalid"));
+    }
+    limpiarComprobante();
+    // Reset calculations
+    const litros = document.getElementById("gasolinaLitrosEstimados");
+    if (litros) litros.textContent = "0.00 L";
+}
+
+function escapeHtml(text) {
+    return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }

@@ -1,334 +1,220 @@
-﻿let vehiculoCatalogos = {
+let vehiculoCatalogos = {
     idVehCatMarcaVehiculo: [],
     idVehCatColor: [],
     idVehCatTipoVehiculo: [],
     idVehCatCapacidad: [],
     idVehCatTipoCombustible: [],
+    idVehCatTransmision: [],
+    idVehCatStatus: []
 };
-let managerSaveDto = {};
+
+let vehiculoImagenSeleccionadaUrl = "";
+
 document.addEventListener("DOMContentLoaded", async () => {
-    await loadingMarcas();
-    await loadingColorVehiculos();
-    await loadingTipoVehiculos();
-    await loadingCapacidad();
-    await loadingTipoCombustible();
+    await cargarCatalogos();
     inicializarRegistroVehiculo();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const vehiculoId = urlParams.get('id');
+    if (vehiculoId) {
+        await cargarDatosVehiculoParaEditar(vehiculoId);
+    }
 });
 
-///diseño del formulario y envio de los datos completos
-function inicializarRegistroVehiculo()
-{
-    const form = document.getElementById("vehiculoForm");
-    if (!form) return;
-    inicializarFechaRegistro();
-    configurarSanitizadores();
-    inicializarContadorObservaciones();
-
-    form.querySelectorAll("input:not([type='file']):not([type='hidden']), select, textarea").forEach(campo => {
-        ["input", "change"].forEach(evento => campo.addEventListener(evento, () => {
-            const teniaError = campo.classList.contains("is-invalid");
-            limpiarErrorCampo(campo);
-            if (teniaError) validarCampoVehiculo(campo);
-            actualizarVistaPrevia();
-        }));
-
-        campo.addEventListener("blur", () => {
-            if (campo.type !== "number" && campo.tagName !== "SELECT" && !campo.readOnly) {
-                campo.value = campo.value.trim().replace(/\s{2,}/g, " ");
-            }
-            if (campo.required || campo.value) validarCampoVehiculo(campo);
-            actualizarVistaPrevia();
-        });
-    });
-
-   /* Swal.fire({
-        title: 'Guardando vehículo...',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });*/
-
-   
-    //terminamos el llenado del formulario
-    document.getElementById("btnLimpiarVehiculo")?.addEventListener("click", () => limpiarFormularioVehiculo(form));
-    form.addEventListener("submit", event => {
-        event.preventDefault();
-        if (!validarFormularioVehiculo(form)) {
-            Swal.fire({ icon: "warning", title: "Formulario incompleto", text: "Revisa los campos marcados antes de guardar.", confirmButtonColor: "var(--teal-cavex)" });
-            return;
-        }
-
-        //datos principales de la entidad manager a
-        let managerSaveDto = {
-
-            StrNumeroSerie: document.getElementById("strNumSerie").value,
-            //idVehCatMarcaVehiculo: parseInt(document.getElementById("idVehCatMarcaVehiculo").value),
-            StrModelo: document.getElementById("strModelo").value,
-            IntAnio: parseInt(document.getElementById("intAnio").value),
-            StrVersion: document.getElementById("strVersion").value || null,
-            StrPlaca: document.getElementById("strPlaca").value,
-            StrNumMotor:(document.getElementById("intNumMotor").value),
-            DecKilometrajeActual: Number(document.getElementById("decKilometrajeActual").value),
-            StrDescripcion: document.getElementById("strObservaciones").value,
-            VehCatMarcaVehiculo: {
-                Id: parseInt(document.getElementById("idVehCatMarcaVehiculo").value),
-            },
-            VehCatColorDto: {
-                Id: parseInt(document.getElementById("idVehCatColor").value),
-            },
-            VehCatTipoVehiculo: {
-                Id: parseInt(document.getElementById("idVehCatTipoVehiculo").value),
-            },
-            VehCatCapacidad: {
-                Id: parseInt(document.getElementById("idVehCatCapacidad").value),
-            },
-            VehCatTipoCombustibleDto : {
-                Id: parseInt(document.getElementById("idVehCatTipoCombustible").value),
-            }
-        }
-       
-        
-        Swal.fire({
-             title: 'Guardando vehículo...',
-             allowOutsideClick: false,
-             didOpen: () => {
-                 Swal.showLoading();
-             }
-         });
-        fetch('/Vehiculos/SaveVehiculo', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(managerSaveDto )
-        })
-            .then(res => res.json())
-            .then(result => {
-                Swal.close();
-                if (result.success) {
-                    Swal.fire({
-                        icon: "success",
-                        title: "Vehículo guardado",
-                        text: "El vehículo se ha registrado exitosamente en la base de datos.",
-                        confirmButtonColor: "var(--teal-cavex)",
-                        confirmButtonText: "Ver listado de vehículos"
-                    }).then(() => {
-                        window.location.href = '/Vehiculos/Index';
-                    });
-                } else {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error al guardar",
-                        text: result.message || "No se pudo guardar el vehículo.",
-                        confirmButtonColor: "var(--teal-cavex)"
-                    });
-                }
-            })
-            .catch(err => {
-                Swal.close();
-                console.error("Error al registrar vehículo:", err);
-                Swal.fire({
-                    icon: "error",
-                    title: "Error de red",
-                    text: "No se pudo conectar con el servidor.",
-                    confirmButtonColor: "var(--teal-cavex)"
+async function cargarCatalogos() {
+    try {
+        const response = await fetch('/Vehiculos/GetVehiculoCatalogos');
+        const result = await response.json();
+        if (result.success && result.data) {
+            Object.assign(vehiculoCatalogos, result.data);
+            
+            // Llenar selectores dinámicamente según la respuesta del backend
+            Object.entries(vehiculoCatalogos).forEach(([selectId, registros]) => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+                select.innerHTML = '<option value="">Seleccionar...</option>';
+                registros.forEach(registro => {
+                    const option = document.createElement("option");
+                    option.value = String(registro.id);
+                    option.textContent = registro.strValor || registro.strDescripcion || ("Opción " + registro.id);
+                    option.title = registro.strDescripcion;
+                    select.appendChild(option);
                 });
             });
-
-
-    });
-  
-
-}
-
-//lamada a el metodo de carga de marca de vehiculos
-async function loadGasolinerasFromServer() {
-    try {
-        const response = await fetch("/api/v1/VehCatMarcaVehiculo", {
-            method: "GET",
-            headers: { "Accept": "application/json" }
-        });
-
-        const result = await response.json();
-
-        if (!result.success) {
-            showError(result.message || "No fue posible cargar las gasolineras.");
-            return;
         }
-
-        gasolineras = (result.data || []).map(item => {
-            const idCatStatus = item.idCatStatus ?? item.IdCatStatus;
-
-            return {
-                id: item.id,
-                nombre: item.strValor || item.StrValor || "",
-                descripcion: item.strDescripcion || item.StrDescripcion || "",
-                idCatStatus: idCatStatus === null || idCatStatus === undefined ? "" : String(idCatStatus),
-                strCatStatus: item.strCatStatus || item.StrCatStatus || ""
-            };
-        });
-
-        renderStatusTabs();
-        renderGasolineras();
     } catch (error) {
-        console.error(error);
-        showError("Ocurrio un error al cargar las gasolineras.");
+        console.error("Error al cargar catálogos:", error);
     }
 }
 
-async function cargarCatalogos1() {
-    return await fetch('/Vehiculos/Marcas')
-        .then(res => res.json())
-        .then(result => {
-            if (result.success && result.data) {
-                Object.assign(vehiculoCatalogos, result.data);
-                Object.entries(vehiculoCatalogos).forEach(([selectId, registros]) => {
-                    console.log("Select:", selectId);
+function formatNumberWithCommas(value) {
+    let clean = String(value).replace(/[^0-9]/g, "");
+    if (!clean) return "";
+    return Number(clean).toLocaleString("es-MX");
+}
 
-                    console.log("Registros:", registros);
+function inicializarRegistroVehiculo() {
+    const form = document.getElementById("vehiculoForm");
+    if (!form) return;
 
-                    console.log("Cantidad:", registros.length);
+    inicializarFechaRegistro();
+    configurarSanitizadores();
+    inicializarContadorObservaciones();
+    inicializarCargaImagen();
 
-                    const select = document.getElementById(selectId);
-                    console.log("Select encontrado:", select);
-                    if (!select) return;
-                    select.innerHTML = '<option value="">Seleccionar...</option>';
-                    registros.forEach(registro => {
-                        const option = document.createElement("option");
-                        option.value = String(registro.id);
-                        option.textContent = registro.strValor || registro.strDescripcion || ("Opción " + registro.id);
-                        option.title = registro.strDescripcion;
-                        select.appendChild(option);
-                    });
-                    console.log("Opciones:", select.options.length);
-                });
-                
+    // Eventos de cambios e inputs en los controles
+    form.querySelectorAll("input:not([type='file']):not([type='hidden']), select, textarea").forEach(campo => {
+        campo.addEventListener("input", () => {
+            validarCampoVehiculoEnTyping(campo);
+            actualizarVistaPrevia();
+        });
+
+        campo.addEventListener("change", () => {
+            validarCampoVehiculo(campo);
+            actualizarVistaPrevia();
+        });
+
+        campo.addEventListener("blur", () => {
+            if (campo.type !== "number" && campo.id !== "decKilometrajeActual" && campo.tagName !== "SELECT" && !campo.readOnly) {
+                campo.value = campo.value.trim().replace(/\s{2,}/g, " ");
+            }
+            validarCampoVehiculo(campo);
+            actualizarVistaPrevia();
+        });
+    });
+
+    // Formateador en tiempo real para el kilometraje actual
+    const kilometrajeInput = document.getElementById("decKilometrajeActual");
+    kilometrajeInput?.addEventListener("input", () => {
+        const cursorPosition = kilometrajeInput.selectionStart;
+        const originalLength = kilometrajeInput.value.length;
+        const formatted = formatNumberWithCommas(kilometrajeInput.value);
+        
+        kilometrajeInput.value = formatted;
+        
+        const newLength = formatted.length;
+        const diff = newLength - originalLength;
+        kilometrajeInput.setSelectionRange(cursorPosition + diff, cursorPosition + diff);
+        actualizarVistaPrevia();
+    });
+
+    form.addEventListener("submit", event => {
+        event.preventDefault();
+        
+        const isFormValid = validarFormularioVehiculo(form);
+        const isImageValid = validarCampoImagen();
+
+        if (!isFormValid || !isImageValid) {
+            Swal.fire({ 
+                icon: "warning", 
+                title: "Formulario incompleto", 
+                text: "Revisa los campos marcados y asegúrate de cargar la foto obligatoria.", 
+                confirmButtonColor: "var(--teal-cavex)" 
+            });
+            return;
+        }
+
+        // Crear FormData para enviar campos y archivo multipart
+        const formData = new FormData();
+        const idInput = document.getElementById("editVehiculoId");
+        if (idInput && idInput.value) {
+            formData.append("Id", parseInt(idInput.value));
+        }
+        formData.append("StrNumeroSerie", document.getElementById("strNumSerie").value);
+        formData.append("VehCatMarcaVehiculo.Id", parseInt(document.getElementById("idVehCatMarcaVehiculo").value));
+        formData.append("StrModelo", document.getElementById("strModelo").value);
+        formData.append("IntAnio", parseInt(document.getElementById("intAnio").value));
+        formData.append("StrVersion", document.getElementById("strVersion").value || "");
+        formData.append("VehCatColorDto.Id", parseInt(document.getElementById("idVehCatColor").value));
+        formData.append("StrPlaca", document.getElementById("strPlaca").value);
+        formData.append("StrNumMotor", document.getElementById("strNumMotor").value);
+        formData.append("VehCatTipoVehiculo.Id", parseInt(document.getElementById("idVehCatTipoVehiculo").value));
+        formData.append("VehCatCapacidad.Id", parseInt(document.getElementById("idVehCatCapacidad").value));
+        formData.append("VehCatTipoCombustibleDto.Id", parseInt(document.getElementById("idVehCatTipoCombustible").value));
+        formData.append("VehCatTransmisionDto.Id", parseInt(document.getElementById("idVehCatTransmision").value));
+        
+        const kilometrajeRaw = document.getElementById("decKilometrajeActual").value.replace(/,/g, '');
+        formData.append("DecKilometrajeActual", Number(kilometrajeRaw));
+        formData.append("StrDescripcion", document.getElementById("strObservaciones").value || "");
+
+        const fileInput = document.getElementById("vehiculoFotoArchivo");
+        if (fileInput.files.length > 0) {
+            formData.append("FotoArchivo", fileInput.files[0]);
+        }
+
+        Swal.fire({
+            title: 'Guardando vehículo...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
             }
         });
-}
 
-async function loadingMarcas() {
-
-    const response = await fetch('/Vehiculos/Marcas');
-    const result = await response.json();
-    if (!result.success)
-        return;
-    const select = document.getElementById("idVehCatMarcaVehiculo");
-    if (!select)
-        return;
-    select.innerHTML = '<option value="">Seleccionar...</option>';
-    result.data.forEach(registro => {
-        const option = document.createElement("option");
-        option.value = registro.id;
-        option.textContent = registro.strValor;
-        option.title = registro.strDescripcion;
-        select.appendChild(option);
-
+        fetch('/Vehiculos/SaveVehiculo', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, body: data })))
+        .then(result => {
+            Swal.close();
+            if (result.ok && result.body.success) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Vehículo guardado",
+                    text: "El vehículo se ha registrado exitosamente en la base de datos.",
+                    confirmButtonColor: "var(--teal-cavex)",
+                    confirmButtonText: "Ver listado de vehículos"
+                }).then(() => {
+                    window.location.href = '/Vehiculos/Index';
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al guardar",
+                    text: result.body.message || "No se pudo guardar el vehículo.",
+                    confirmButtonColor: "var(--teal-cavex)"
+                });
+            }
+        })
+        .catch(err => {
+            Swal.close();
+            console.error("Error al registrar vehículo:", err);
+            Swal.fire({
+                icon: "error",
+                title: "Error de red",
+                text: "No se pudo conectar con el servidor.",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+        });
     });
 
+    actualizarVistaPrevia();
 }
 
-
-async function loadingColorVehiculos() {
-
-    const response = await fetch('/Vehiculos/Color');
-    const result = await response.json();
-    if (!result.success)
-        return;
-    const select = document.getElementById("idVehCatColor");
-    if (!select)
-        return;
-    select.innerHTML = '<option value="">Seleccionar...</option>';
-    result.data.forEach(registro => {
-        const option = document.createElement("option");
-        option.value = registro.id;
-        option.textContent = registro.strValor;
-        option.title = registro.strDescripcion;
-        select.appendChild(option);
-
-    });
-
-}
-
-async function loadingTipoVehiculos() {
-    const response = await fetch('/Vehiculos/TipoVehiculo');
-    const result = await response.json();
-    if (!result.success)
-        return;
-    const select = document.getElementById("idVehCatTipoVehiculo");
-    if (!select)
-        return;
-    select.innerHTML = '<option value="">Seleccionar...</option>';
-    result.data.forEach(registro => {
-        const option = document.createElement("option");
-        option.value = registro.id;
-        option.textContent = registro.strValor;
-        option.title = registro.strDescripcion;
-        select.appendChild(option);
-
-    });
-}
-
-async function loadingCapacidad() {
-
-    const response = await fetch('/Vehiculos/Capacidad');
-    const result = await response.json();
-    if (!result.success)
-        return;
-    const select = document.getElementById("idVehCatCapacidad");
-    if (!select)
-        return;
-    select.innerHTML = '<option value="">Seleccionar...</option>';
-    result.data.forEach(registro => {
-        const option = document.createElement("option");
-        option.value = registro.id;
-        option.textContent = registro.strValor;
-        option.title = registro.strDescripcion;
-        select.appendChild(option);
-
-    });
-
-}
-
-async function loadingTipoCombustible() {
-
-    const response = await fetch('/Vehiculos/Combustible');
-    const result = await response.json();
-    if (!result.success)
-        return;
-    const select = document.getElementById("idVehCatTipoCombustible");
-    if (!select)
-        return;
-    select.innerHTML = '<option value="">Seleccionar...</option>';
-    result.data.forEach(registro => {
-        const option = document.createElement("option");
-        option.value = registro.id;
-        option.textContent = registro.strValor;
-        option.title = registro.strDescripcion;
-        select.appendChild(option);
-
-    });
-
-}
-
-///Inicializador de la funcion que se encarga de Realizar la fecha de registro
 function inicializarFechaRegistro() {
-    const fecha = document.getElementById("dteFechaRegistro");
-    if (!fecha) return;
+    const fechaInput = document.getElementById("dteFechaRegistro");
+    const fechaVisual = document.getElementById("fechaRegistroVisual");
+    if (!fechaInput) return;
     const hoy = new Date();
-    fecha.value = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+    const isoDate = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+    fechaInput.value = isoDate;
+    
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    if (fechaVisual) {
+        fechaVisual.textContent = hoy.toLocaleDateString('es-MX', options);
+    }
 }
 
-// Mantiene serie y placa en el formato admitido por las columnas varchar, establece el formato adecuado de la placa y
-//numero de serie.
 function configurarSanitizadores() {
     const serie = document.getElementById("strNumSerie");
     const placa = document.getElementById("strPlaca");
+    const motor = document.getElementById("strNumMotor");
+
     serie?.addEventListener("input", () => { serie.value = serie.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
     placa?.addEventListener("input", () => { placa.value = placa.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""); });
+    motor?.addEventListener("input", () => { motor.value = motor.value.replace(/[^0-9]/g, ""); });
 }
-// Actualiza el contador sin permitir superar el varchar(500).
+
 function inicializarContadorObservaciones() {
     const campo = document.getElementById("strObservaciones");
     const contador = document.getElementById("observacionesCounter");
@@ -341,15 +227,130 @@ function inicializarContadorObservaciones() {
     actualizar();
 }
 
+function inicializarCargaImagen() {
+    const area = document.getElementById("vehiculoUploadArea");
+    const input = document.getElementById("vehiculoFotoArchivo");
+    if (!area || !input) return;
+
+    area.addEventListener("click", event => {
+        if (!event.target.closest(".vehiculo-file-actions button")) input.click();
+    });
+    area.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            input.click();
+        }
+    });
+    area.addEventListener("dragover", event => { event.preventDefault(); area.classList.add("is-drag-over"); });
+    area.addEventListener("dragleave", () => area.classList.remove("is-drag-over"));
+    area.addEventListener("drop", event => {
+        event.preventDefault();
+        area.classList.remove("is-drag-over");
+        const archivo = event.dataTransfer.files?.[0];
+        if (archivo) procesarImagenVehiculo(archivo);
+    });
+    input.addEventListener("change", () => {
+        const archivo = input.files?.[0];
+        if (archivo) procesarImagenVehiculo(archivo);
+    });
+    document.getElementById("btnCambiarImagen")?.addEventListener("click", event => { event.stopPropagation(); input.click(); });
+    document.getElementById("btnQuitarImagen")?.addEventListener("click", event => {
+        event.stopPropagation();
+        limpiarImagenVehiculo();
+    });
+}
+
+function procesarImagenVehiculo(archivo) {
+    const tipos = ["image/jpeg", "image/png", "image/webp"];
+    const extensiones = [".jpg", ".jpeg", ".png", ".webp"];
+    limpiarErrorImagen();
+
+    if (!tipos.includes(archivo.type) || !extensiones.some(extension => archivo.name.toLowerCase().endsWith(extension))) {
+        limpiarImagenVehiculo();
+        mostrarErrorImagen("Solo se permiten imágenes JPG, JPEG, PNG o WEBP.");
+        return;
+    }
+    if (archivo.size > 5 * 1024 * 1024) {
+        limpiarImagenVehiculo();
+        mostrarErrorImagen("La imagen no debe superar 5 MB.");
+        return;
+    }
+
+    const input = document.getElementById("vehiculoFotoArchivo");
+    if (input && window.DataTransfer) {
+        const transferencia = new DataTransfer();
+        transferencia.items.add(archivo);
+        input.files = transferencia.files;
+    }
+    if (vehiculoImagenSeleccionadaUrl) URL.revokeObjectURL(vehiculoImagenSeleccionadaUrl);
+    vehiculoImagenSeleccionadaUrl = URL.createObjectURL(archivo);
+    
+    document.getElementById("vehiculoUploadPrompt").hidden = true;
+    document.getElementById("vehiculoFilePreview").hidden = false;
+    document.getElementById("vehiculoUploadImage").src = vehiculoImagenSeleccionadaUrl;
+    setText("vehiculoFileName", archivo.name);
+    
+    validarCampoImagen();
+}
+
+function limpiarImagenVehiculo() {
+    if (vehiculoImagenSeleccionadaUrl) URL.revokeObjectURL(vehiculoImagenSeleccionadaUrl);
+    vehiculoImagenSeleccionadaUrl = "";
+    const input = document.getElementById("vehiculoFotoArchivo");
+    if (input) input.value = "";
+    
+    document.getElementById("vehiculoUploadPrompt").hidden = false;
+    document.getElementById("vehiculoFilePreview").hidden = true;
+    document.getElementById("vehiculoUploadImage")?.removeAttribute("src");
+    
+    const area = document.getElementById("vehiculoUploadArea");
+    area?.classList.remove("is-valid");
+    
+    validarCampoImagen();
+}
+
+function mostrarErrorImagen(mensaje) {
+    const area = document.getElementById("vehiculoUploadArea");
+    area?.classList.remove("is-valid");
+    area?.classList.add("is-invalid");
+    const error = document.getElementById("vehiculoFotoArchivoError");
+    if (error) { 
+        error.textContent = mensaje; 
+        error.classList.remove("d-none");
+        error.classList.add("d-block"); 
+    }
+}
+
+function limpiarErrorImagen() {
+    document.getElementById("vehiculoUploadArea")?.classList.remove("is-invalid");
+    const error = document.getElementById("vehiculoFotoArchivoError");
+    if (error) { 
+        error.textContent = ""; 
+        error.classList.remove("d-block");
+        error.classList.add("d-none"); 
+    }
+}
+
+function validarCampoImagen() {
+    const input = document.getElementById("vehiculoFotoArchivo");
+    const area = document.getElementById("vehiculoUploadArea");
+    if (!input || (input.files.length === 0 && !vehiculoImagenSeleccionadaUrl)) {
+        mostrarErrorImagen("La foto del vehículo es obligatoria.");
+        return false;
+    }
+    limpiarErrorImagen();
+    area?.classList.add("is-valid");
+    return true;
+}
+
 function validarFormularioVehiculo(form) {
-    const obligatorios = ["strNumSerie", "idVehCatMarcaVehiculo", "strModelo", "intAnio", "idVehCatColor", "strPlaca", "idVehCatTipoVehiculo", "idVehCatCapacidad", "idVehCatTipoCombustible", "decKilometrajeActual", "idVehCatStatus", "dteFechaRegistro"];
-    const opcionales = ["strVersion", "intNumMotor", "strObservaciones"];
+    const obligatorios = ["strNumSerie", "idVehCatMarcaVehiculo", "strModelo", "intAnio", "idVehCatColor", "strPlaca", "strNumMotor", "idVehCatTipoVehiculo", "idVehCatCapacidad", "idVehCatTipoCombustible", "idVehCatTransmision", "decKilometrajeActual"];
+    const opcionales = ["strVersion", "strObservaciones"];
     let valido = true;
     [...obligatorios, ...opcionales].forEach(id => {
         const campo = document.getElementById(id);
         if (campo && !validarCampoVehiculo(campo)) valido = false;
     });
-    if (document.getElementById("vehiculoUploadArea")?.classList.contains("is-invalid")) valido = false;
 
     const primerError = form.querySelector(".is-invalid");
     if (primerError) {
@@ -359,20 +360,21 @@ function validarFormularioVehiculo(form) {
     return valido;
 }
 
-//metodo que se encarga de validar el campo de un vehiculo, recibe el nombre del campo
 function validarCampoVehiculo(campo) {
     const original = String(campo.value || "");
     const valor = original.trim();
     const anioMaximo = new Date().getFullYear() + 1;
     let mensaje = "";
 
-    if (campo.required && !valor) mensaje = campo.tagName === "SELECT" ? "Selecciona una opción." : "Este campo es obligatorio.";
-    if (!mensaje) {
+    if (campo.required && !valor) {
+        mensaje = campo.tagName === "SELECT" ? "Selecciona una opción." : "Este campo es obligatorio.";
+    }
+    if (!mensaje && valor) {
         switch (campo.id) {
             case "strNumSerie":
                 if (original !== valor) mensaje = "La serie no debe iniciar ni terminar con espacios.";
                 else if (valor.length > 20) mensaje = "La serie no debe superar 20 caracteres.";
-                else if (valor && !/^[A-Z0-9]+$/.test(valor)) mensaje = "La serie solo permite letras y números.";
+                else if (!/^[A-Z0-9]+$/.test(valor)) mensaje = "La serie solo permite letras y números.";
                 break;
             case "strModelo":
             case "strVersion":
@@ -380,22 +382,27 @@ function validarCampoVehiculo(campo) {
                 break;
             case "intAnio": {
                 const numero = Number(valor);
-                if (valor && (!Number.isInteger(numero) || numero < 1990 || numero > anioMaximo)) mensaje = `El año debe ser un entero entre 1990 y ${anioMaximo}.`;
+                if (!Number.isInteger(numero) || numero < 1990 || numero > anioMaximo) {
+                    mensaje = `El año debe ser un entero entre 1990 y ${anioMaximo}.`;
+                }
                 break;
             }
             case "strPlaca":
                 if (original !== valor) mensaje = "La placa no debe iniciar ni terminar con espacios.";
                 else if (valor.length > 20) mensaje = "La placa no debe superar 20 caracteres.";
-                else if (valor && !/^[A-Z0-9-]+$/.test(valor)) mensaje = "La placa solo permite letras, números y guiones.";
+                else if (!/^[A-Z0-9-]+$/.test(valor)) mensaje = "La placa solo permite letras, números y guiones.";
                 break;
-            case "intNumMotor": {
-                const numero = Number(valor);
-                if (valor && (!Number.isInteger(numero) || numero < 0 || numero > 2147483647)) mensaje = "El número de motor debe ser un entero entre 0 y 2147483647.";
+            case "strNumMotor":
+                if (original !== valor) mensaje = "El número de motor no debe iniciar ni terminar con espacios.";
+                else if (!/^[0-9]+$/.test(valor)) mensaje = "El número de motor solo permite números.";
+                else if (Number(valor) > 2147483647) mensaje = "El número de motor supera el límite máximo permitido.";
                 break;
-            }
             case "decKilometrajeActual": {
-                const numero = Number(valor);
-                if (valor && (!Number.isInteger(numero) || numero < 0 || numero > 999999)) mensaje = "El kilometraje debe ser un entero entre 0 y 999999.";
+                const rawVal = valor.replace(/,/g, "");
+                const numero = Number(rawVal);
+                if (isNaN(numero) || numero < 0) {
+                    mensaje = "El kilometraje debe ser un número mayor o igual a 0.";
+                }
                 break;
             }
             case "strObservaciones":
@@ -409,48 +416,101 @@ function validarCampoVehiculo(campo) {
         campo.classList.add("is-invalid");
         campo.setAttribute("aria-invalid", "true");
         const error = document.getElementById(`${campo.id}Error`);
-        if (error) error.textContent = mensaje;
+        if (error) {
+            error.textContent = mensaje;
+            error.classList.remove("d-none");
+            error.classList.add("d-block");
+        }
         return false;
     }
+
     limpiarErrorCampo(campo);
-    if (campo.required && !campo.readOnly) campo.classList.add("is-valid");
+    if (valor || campo.required) {
+        if (!campo.readOnly) {
+            campo.classList.add("is-valid");
+        }
+    }
     return true;
 }
 
-//funcion que se encarga de limpiar un error en caso de ocurrir
+function validarCampoVehiculoEnTyping(campo) {
+    if (campo.tagName === "SELECT") {
+        validarCampoVehiculo(campo);
+        return;
+    }
+
+    const original = String(campo.value || "");
+    const valor = original.trim();
+    const anioMaximo = new Date().getFullYear() + 1;
+    let mensaje = "";
+
+    // Si ya tiene error visual previo, validamos por completo en tiempo real
+    if (campo.classList.contains("is-invalid")) {
+        validarCampoVehiculo(campo);
+        return;
+    }
+
+    // Validar silenciosamente para ver si ya es válido
+    if (campo.required && !valor) {
+        mensaje = "Requerido";
+    }
+    if (!mensaje && valor) {
+        switch (campo.id) {
+            case "strNumSerie":
+                if (original !== valor || valor.length > 20 || !/^[A-Z0-9]+$/.test(valor)) mensaje = "Invalido";
+                break;
+            case "strModelo":
+            case "strVersion":
+                if (valor.length > 250) mensaje = "Invalido";
+                break;
+            case "intAnio": {
+                const numero = Number(valor);
+                if (!Number.isInteger(numero) || numero < 1990 || numero > anioMaximo) mensaje = "Invalido";
+                break;
+            }
+            case "strPlaca":
+                if (original !== valor || valor.length > 20 || !/^[A-Z0-9-]+$/.test(valor)) mensaje = "Invalido";
+                break;
+            case "strNumMotor":
+                if (original !== valor || !/^[0-9]+$/.test(valor) || Number(valor) > 2147483647) mensaje = "Invalido";
+                break;
+            case "decKilometrajeActual": {
+                const rawVal = valor.replace(/,/g, "");
+                const numero = Number(rawVal);
+                if (isNaN(numero) || numero < 0) mensaje = "Invalido";
+                break;
+            }
+            case "strObservaciones":
+                if (original.length > 500) mensaje = "Invalido";
+                break;
+        }
+    }
+
+    if (!mensaje && (valor || campo.required)) {
+        if (!campo.readOnly) {
+            campo.classList.add("is-valid");
+        }
+    } else {
+        campo.classList.remove("is-valid");
+    }
+}
+
 function limpiarErrorCampo(campo) {
     campo.classList.remove("is-invalid", "is-valid");
     campo.removeAttribute("aria-invalid");
-    document.getElementById(`${campo.id}Error`)?.classList.remove("d-block");
+    const error = document.getElementById(`${campo.id}Error`);
+    if (error) {
+        error.textContent = "";
+        error.classList.remove("d-block");
+        error.classList.add("d-none");
+    }
 }
+
 function setText(id, value) {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
 }
 
-function escapeHtml(text) {
-    return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-}
-
-///funcion que se encarga de valdiar el formulario  con todos los campos
-function validarFormularioVehiculo(form) {
-    const obligatorios = ["strNumSerie", "idVehCatMarcaVehiculo", "strModelo", "intAnio", "idVehCatColor", "strPlaca", "idVehCatTipoVehiculo", "idVehCatCapacidad", "idVehCatTipoCombustible", "decKilometrajeActual", "idVehCatStatus", "dteFechaRegistro"];
-    const opcionales = ["strVersion", "intNumMotor", "strObservaciones"];
-    let valido = true;
-    [...obligatorios, ...opcionales].forEach(id => {
-        const campo = document.getElementById(id);
-        if (campo && !validarCampoVehiculo(campo)) valido = false;
-    });
-    if (document.getElementById("vehiculoUploadArea")?.classList.contains("is-invalid")) valido = false;
-
-    const primerError = form.querySelector(".is-invalid");
-    if (primerError) {
-        primerError.scrollIntoView({ behavior: "smooth", block: "center" });
-        if (typeof primerError.focus === "function") primerError.focus({ preventScroll: true });
-    }
-    return valido;
-}
-///funcion que se encarga de establecer los datos capturados en los elementos del lado derecho de la pantalla
 function actualizarVistaPrevia() {
     const valor = id => document.getElementById(id)?.value?.trim() || "";
     const texto = id => {
@@ -465,22 +525,116 @@ function actualizarVistaPrevia() {
     setText("previewTipoVehiculo", texto("idVehCatTipoVehiculo") || "Sin seleccionar");
     setText("previewCapacidad", texto("idVehCatCapacidad") || "Sin seleccionar");
     setText("previewCombustible", texto("idVehCatTipoCombustible") || "Sin seleccionar");
-    const kilometraje = Number(valor("decKilometrajeActual") || 0);
+    setText("previewTransmision", texto("idVehCatTransmision") || "Sin seleccionar");
+    
+    const kilometrajeRaw = valor("decKilometrajeActual").replace(/,/g, '');
+    const kilometraje = Number(kilometrajeRaw || 0);
     setText("previewKilometraje", `${kilometraje.toLocaleString("es-MX")} km`);
-    const status = texto("idVehCatStatus") || "Activo";
-    setText("previewEstatus", status);
-    const badge = document.getElementById("previewEstatus");
-    if (badge) badge.className = status === "Activo" ? "badge-active" : status === "En mantenimiento" ? "badge-maintenance" : status === "Vendido" ? "badge-muted" : "badge-inactive";
 }
-// Actualiza el contador sin permitir superar el varchar(500).
-function inicializarContadorObservaciones() {
-    const campo = document.getElementById("strObservaciones");
-    const contador = document.getElementById("observacionesCounter");
-    if (!campo || !contador) return;
-    const actualizar = () => {
-        contador.textContent = String(campo.value.length);
-        contador.parentElement?.classList.toggle("is-near-limit", campo.value.length >= 450);
-    };
-    campo.addEventListener("input", actualizar);
-    actualizar();
+
+async function cargarDatosVehiculoParaEditar(id) {
+    try {
+        const headerTitle = document.querySelector(".header-title") || document.querySelector("h1");
+        if (headerTitle) headerTitle.textContent = "Editar vehículo";
+        
+        const subtitle = document.querySelector(".header-subtitle");
+        if (subtitle) subtitle.textContent = "Modifica los datos del vehículo y guarda los cambios en el sistema.";
+
+        const submitBtn = document.querySelector("#vehiculoForm button[type='submit']");
+        if (submitBtn) submitBtn.textContent = "Guardar cambios";
+
+        Swal.fire({
+            title: 'Cargando datos del vehículo...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const response = await fetch(`/Vehiculos/GetVehiculo?id=${id}`);
+        const result = await response.json();
+        Swal.close();
+
+        if (result.success && result.data) {
+            const v = result.data;
+
+            const form = document.getElementById("vehiculoForm");
+            let idInput = document.getElementById("editVehiculoId");
+            if (!idInput) {
+                idInput = document.createElement("input");
+                idInput.type = "hidden";
+                idInput.id = "editVehiculoId";
+                idInput.name = "Id";
+                form.appendChild(idInput);
+            }
+            idInput.value = id;
+
+            document.getElementById("strNumSerie").value = v.strNumSerie || "";
+            document.getElementById("strModelo").value = v.strModelo || "";
+            document.getElementById("intAnio").value = v.intAnio || "";
+            document.getElementById("strVersion").value = v.strVersion || "";
+            document.getElementById("strPlaca").value = v.strPlaca || "";
+            document.getElementById("strNumMotor").value = v.strNumMotor || v.strMotor || "";
+            document.getElementById("decKilometrajeActual").value = formatNumberWithCommas(v.decKilometrajeActual || 0);
+            document.getElementById("strObservaciones").value = v.strObservaciones || "";
+
+            document.getElementById("idVehCatMarcaVehiculo").value = String(v.idVehCatMarcaVehiculo || "");
+            document.getElementById("idVehCatColor").value = String(v.idVehCatColor || "");
+            document.getElementById("idVehCatTipoVehiculo").value = String(v.idVehCatTipoVehiculo || "");
+            document.getElementById("idVehCatCapacidad").value = String(v.idVehCatCapacidad || "");
+            document.getElementById("idVehCatTipoCombustible").value = String(v.idVehCatTipoCombustible || "");
+            document.getElementById("idVehCatTransmision").value = String(v.idVehCatTransmision || "");
+
+            if (v.dteFechaRegistro) {
+                const fechaInput = document.getElementById("dteFechaRegistro");
+                const fechaVisual = document.getElementById("fechaRegistroVisual");
+                
+                fechaInput.value = v.dteFechaRegistro;
+                
+                const parts = v.dteFechaRegistro.split("-");
+                if (parts.length === 3) {
+                    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                    if (fechaVisual) fechaVisual.textContent = dateObj.toLocaleDateString('es-MX', options);
+                }
+            }
+
+            if (v.strUrlFoto) {
+                vehiculoImagenSeleccionadaUrl = v.strUrlFoto;
+                
+                document.getElementById("vehiculoUploadPrompt").hidden = true;
+                document.getElementById("vehiculoFilePreview").hidden = false;
+                document.getElementById("vehiculoUploadImage").src = v.strUrlFoto;
+                
+                const fileNameSpan = document.getElementById("vehiculoFileName");
+                if (fileNameSpan) fileNameSpan.textContent = "Foto_actual.jpg";
+                
+                const area = document.getElementById("vehiculoUploadArea");
+                area?.classList.add("is-valid");
+            }
+
+            form.querySelectorAll("input:not([type='file']):not([type='hidden']), select, textarea").forEach(campo => {
+                validarCampoVehiculo(campo);
+            });
+
+            actualizarVistaPrevia();
+        } else {
+            Swal.fire({
+                icon: "error",
+                title: "Error al cargar",
+                text: result.message || "No se pudieron obtener los datos del vehículo.",
+                confirmButtonColor: "var(--teal-cavex)"
+            }).then(() => {
+                window.location.href = '/Vehiculos/Index';
+            });
+        }
+    } catch (error) {
+        console.error("Error al cargar datos del vehículo:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "No se pudo conectar con el servidor.",
+            confirmButtonColor: "var(--teal-cavex)"
+        });
+    }
 }

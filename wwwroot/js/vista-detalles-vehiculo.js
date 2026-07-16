@@ -788,7 +788,7 @@ $(document).ready(function() {
                 const strTipoVehiculo = vehiculoCatalogos.idVehCatTipoVehiculo.find(item => item.id === v.idVehCatTipoVehiculo)?.strValor || "Desconocido";
                 const strCapacidad = vehiculoCatalogos.idVehCatCapacidad.find(item => item.id === v.idVehCatCapacidad)?.strValor || "—";
                 const strTipoCombustible = vehiculoCatalogos.idVehCatTipoCombustible.find(item => item.id === v.idVehCatTipoCombustible)?.strValor || "—";
-                const strTransmision = vehiculoCatalogos.idVehCatTransmision.find(item => item.id === v.idVehCatTransmision)?.strValor || (v.idVehCatTransmision === 2 ? "Manual" : "Automática");
+                const strTransmision = v.strVehCatTransmision || vehiculoCatalogos.idVehCatTransmision.find(item => item.id === v.idVehCatTransmision)?.strValor || "Desconocida";
                 const strStatus = vehiculoCatalogos.idVehCatStatus.find(item => item.id === v.idVehCatStatus)?.strValor || "Activo";
 
                 let strFechaCompra = "Desconocida";

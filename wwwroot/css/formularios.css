@@ -208,4 +208,40 @@
     }
 }
 
+/* Sincronización de validaciones con Custom Selects */
+.is-invalid ~ .custom-select-trigger {
+    border-color: var(--error, #ef4444) !important;
+    box-shadow: 0 0 0 .2rem rgba(239, 68, 68, .15) !important;
+}
+
+.is-valid ~ .custom-select-trigger {
+    border-color: var(--exito, #10b981) !important;
+    box-shadow: 0 0 0 .16rem rgba(16, 185, 129, .1) !important;
+}
+
+.form-group.has-error .custom-select-trigger {
+    border-color: var(--error, #ef4444) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+.form-group.has-success .custom-select-trigger {
+    border-color: var(--exito, #10b981) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Estado deshabilitado del Custom Select */
+.custom-select-trigger.disabled,
+.custom-select-wrapper:has(select:disabled) .custom-select-trigger {
+    background-color: #f3f4f6 !important;
+    color: #9ca3af !important;
+    cursor: not-allowed !important;
+    border-color: #e5e7eb !important;
+    box-shadow: none !important;
+}
+
+.custom-select-trigger.disabled .custom-select-arrow,
+.custom-select-wrapper:has(select:disabled) .custom-select-arrow {
+    color: #cbd5e1 !important;
+}
+
 

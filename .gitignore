@@ -5,6 +5,7 @@
 
 # Ignorar appsettings
 /appsettings.json
+/wwwroot/Vehiculos/
 
 # User-specific files
 *.rsuser
@@ -367,3 +368,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Temporary scratch folder
+/scratch/

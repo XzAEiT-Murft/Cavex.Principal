@@ -1,0 +1,569 @@
+"use strict";
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let listaVehiculosAsignacion = [];
+let listaEmpleadosAsignacion = [];
+let asignacionesActivas = [];
+let editModeId = null;
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+    inicializarVistaAsignaciones();
+});
+
+function inicializarVistaAsignaciones() {
+    const form = document.getElementById("asignacionVehiculoForm");
+    if (!form) return;
+
+    cargarCatalogosAsignacion();
+    inicializarFechaAsignacion();
+    inicializarFormatoKilometraje();
+
+    // Validación en tiempo real
+    form.querySelectorAll("input:not([type='hidden']), select").forEach(campo => {
+        ["input", "change"].forEach(evt => campo.addEventListener(evt, () => {
+            const teniaError = campo.classList.contains("is-invalid");
+            limpiarErrorCampo(campo);
+            if (teniaError) validarCampoAsignacion(campo);
+            actualizarVistaPreviaAsignacion();
+        }));
+
+        campo.addEventListener("blur", () => {
+            if (!campo.readOnly && campo.tagName !== "SELECT") {
+                campo.value = campo.value.trim();
+            }
+            if (campo.required || campo.value) {
+                validarCampoAsignacion(campo);
+            }
+            actualizarVistaPreviaAsignacion();
+        });
+    });
+
+    // Submit
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        if (!validarFormularioAsignacion(form)) {
+            Swal.fire({
+                icon: "warning",
+                title: "Formulario incompleto",
+                text: "Revisa los campos obligatorios antes de continuar.",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: editModeId ? "Actualizando asignación..." : "Registrando asignación...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const parseKm = id => {
+            const raw = document.getElementById(id)?.value || "0";
+            return parseFloat(raw.replace(/,/g, "")) || 0;
+        };
+
+        const payload = {
+            id: editModeId || 0,
+            idVehDatosGenerales: parseInt(document.getElementById("asignacion-idVehDatosGenerales").value, 10),
+            idEmpEmpleado: parseInt(document.getElementById("asignacion-idEmpEmpleado").value, 10),
+            dteFechaAsigncion: document.getElementById("asignacion-dteFechaAsigncion").value,
+            decKilometrajeInicial: parseKm("asignacion-decKilometrajeInicial"),
+            decKilometrajeFinal: parseKm("asignacion-decKilometrajeFinal") || null,
+            decKilometrajeTotal: parseKm("asignacion-decKilometrajeTotal") || null
+        };
+
+        try {
+            const response = await fetch("/Vehiculos/SaveAsignacion", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            Swal.close();
+
+            if (!result.success) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: result.message || "No fue posible guardar la asignación.",
+                    confirmButtonColor: "var(--teal-cavex)"
+                });
+                return;
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: editModeId ? "Asignación actualizada" : "Asignación registrada",
+                text: result.message || "Guardado exitoso.",
+                confirmButtonColor: "var(--teal-cavex)"
+            }).then(() => {
+                resetearFormularioAsignacion();
+                cargarCatalogosAsignacion();
+            });
+        } catch (err) {
+            Swal.close();
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo establecer comunicación con el servidor.",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+        }
+    });
+
+    actualizarVistaPreviaAsignacion();
+}
+
+// ─── Carga de catálogos ───────────────────────────────────────────────────────
+async function cargarCatalogosAsignacion() {
+    try {
+        // Cargar vehículos, empleados y asignaciones activas en paralelo
+        const [vehRes, empRes, asigRes] = await Promise.all([
+            fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
+            fetch("/Empleado/GetEmpleados").then(r => r.json()),
+            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+        ]);
+
+        // Vehículos
+        const selectVeh = document.getElementById("asignacion-idVehDatosGenerales");
+        if (selectVeh && vehRes.success && vehRes.data) {
+            listaVehiculosAsignacion = vehRes.data;
+            selectVeh.innerHTML = '<option value="">Seleccionar...</option>';
+            vehRes.data.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = String(v.id);
+                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
+                selectVeh.appendChild(opt);
+            });
+        }
+
+        // Empleados
+        const selectEmp = document.getElementById("asignacion-idEmpEmpleado");
+        if (selectEmp && empRes.success && empRes.data) {
+            listaEmpleadosAsignacion = empRes.data;
+            selectEmp.innerHTML = '<option value="">Seleccionar...</option>';
+            empRes.data.forEach(e => {
+                const opt = document.createElement("option");
+                opt.value = String(e.id);
+                const nombre = e.strNombre + " " + e.strApellidoPaterno + (e.strApellidoMaterno ? " " + e.strApellidoMaterno : "");
+                opt.textContent = nombre;
+                selectEmp.appendChild(opt);
+            });
+        }
+
+        // Asignaciones activas para vinculación vehículo-chofer
+        if (asigRes.success && asigRes.data) {
+            asignacionesActivas = asigRes.data;
+            renderAsignacionesTable();
+        }
+
+        // Eventos de vinculación bidireccional
+        selectVeh?.addEventListener("change", () => {
+            mostrarInfoVehiculo();
+            vincularChoferDesdeVehiculo("asignacion-idVehDatosGenerales", "asignacion-idEmpEmpleado");
+            actualizarVistaPreviaAsignacion();
+        });
+
+        selectEmp?.addEventListener("change", () => {
+            mostrarInfoEmpleado();
+            vincularVehiculoDesdeChofer("asignacion-idEmpEmpleado", "asignacion-idVehDatosGenerales");
+            actualizarVistaPreviaAsignacion();
+        });
+    } catch (err) {
+        console.error("Error al cargar catálogos de asignación:", err);
+    }
+}
+
+// ─── Fecha automática ─────────────────────────────────────────────────────────
+function inicializarFechaAsignacion() {
+    const fechaInput = document.getElementById("asignacion-dteFechaAsigncion");
+    const fechaVisual = document.getElementById("asignacionFechaVisual");
+    if (!fechaInput) return;
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoy.getDate()).padStart(2, "0");
+    fechaInput.value = `${yyyy}-${mm}-${dd}`;
+
+    if (fechaVisual) {
+        fechaVisual.textContent = hoy.toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+    }
+}
+
+// ─── Formato comas kilometraje ────────────────────────────────────────────────
+function formatoConComas(valor) {
+    const clean = String(valor).replace(/[^0-9]/g, "");
+    if (!clean) return "";
+    return Number(clean).toLocaleString("es-MX");
+}
+
+function inicializarFormatoKilometraje() {
+    const kmInicial = document.getElementById("asignacion-decKilometrajeInicial");
+    const kmFinal = document.getElementById("asignacion-decKilometrajeFinal");
+
+    [kmInicial, kmFinal].forEach(input => {
+        if (!input) return;
+        input.addEventListener("input", () => {
+            const cursorPos = input.selectionStart;
+            const originalLen = input.value.length;
+            input.value = formatoConComas(input.value);
+            const newLen = input.value.length;
+            const diff = newLen - originalLen;
+            input.setSelectionRange(cursorPos + diff, cursorPos + diff);
+            calcularKilometrajeTotal();
+            actualizarVistaPreviaAsignacion();
+        });
+    });
+}
+
+function calcularKilometrajeTotal() {
+    const rawInicial = (document.getElementById("asignacion-decKilometrajeInicial")?.value || "0").replace(/,/g, "");
+    const rawFinal = (document.getElementById("asignacion-decKilometrajeFinal")?.value || "0").replace(/,/g, "");
+    const inicial = parseFloat(rawInicial) || 0;
+    const final = parseFloat(rawFinal) || 0;
+    const totalInput = document.getElementById("asignacion-decKilometrajeTotal");
+
+    if (final > 0 && final >= inicial) {
+        const total = final - inicial;
+        if (totalInput) totalInput.value = formatoConComas(String(total));
+    } else {
+        if (totalInput) totalInput.value = "";
+    }
+}
+
+// Controla la bandera de vinculación activa para prevenir loops infinitos
+let isVinculandoAsignacion = false;
+
+function vincularChoferDesdeVehiculo(vehSelectId, empSelectId) {
+    if (isVinculandoAsignacion) return;
+    isVinculandoAsignacion = true;
+    try {
+        const vehSelect = document.getElementById(vehSelectId);
+        const empSelect = document.getElementById(empSelectId);
+        if (!vehSelect || !empSelect || !asignacionesActivas || !asignacionesActivas.length) return;
+
+        const vehId = parseInt(vehSelect.value, 10);
+        if (!vehId) return;
+
+        const asignacion = asignacionesActivas.find(a => a.idVehDatosGenerales === vehId);
+        if (asignacion && empSelect.value !== String(asignacion.idEmpEmpleado)) {
+            empSelect.value = String(asignacion.idEmpEmpleado);
+            empSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    } finally {
+        isVinculandoAsignacion = false;
+    }
+}
+
+function vincularVehiculoDesdeChofer(empSelectId, vehSelectId) {
+    if (isVinculandoAsignacion) return;
+    isVinculandoAsignacion = true;
+    try {
+        const empSelect = document.getElementById(empSelectId);
+        const vehSelect = document.getElementById(vehSelectId);
+        if (!empSelect || !vehSelect || !asignacionesActivas || !asignacionesActivas.length) return;
+
+        const empId = parseInt(empSelect.value, 10);
+        if (!empId) return;
+
+        const asignacion = asignacionesActivas.find(a => a.idEmpEmpleado === empId);
+        if (asignacion && vehSelect.value !== String(asignacion.idVehDatosGenerales)) {
+            vehSelect.value = String(asignacion.idVehDatosGenerales);
+            vehSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    } finally {
+        isVinculandoAsignacion = false;
+    }
+}
+
+// ─── Info Cards ───────────────────────────────────────────────────────────────
+function mostrarInfoVehiculo() {
+    // No longer displaying vehicle mini-card details
+}
+
+function mostrarInfoEmpleado() {
+    // No longer displaying employee mini-card details
+}
+
+// ─── Vista previa lateral ─────────────────────────────────────────────────────
+function actualizarVistaPreviaAsignacion() {
+    const vehId = parseInt(document.getElementById("asignacion-idVehDatosGenerales")?.value, 10);
+    const empId = parseInt(document.getElementById("asignacion-idEmpEmpleado")?.value, 10);
+
+    const v = listaVehiculosAsignacion.find(v => v.id === vehId);
+    const e = listaEmpleadosAsignacion.find(e => e.id === empId);
+
+    setText("previewAsignacionVehiculo", v ? `${v.strModelo} (${v.intAnio})` : "Sin seleccionar");
+    setText("previewAsignacionPlaca", v ? v.strPlaca : "—");
+
+    if (e) {
+        const nombre = e.strNombre + " " + e.strApellidoPaterno + (e.strApellidoMaterno ? " " + e.strApellidoMaterno : "");
+        setText("previewAsignacionEmpleado", nombre);
+        setText("previewAsignacionArea", e.strAreaLaboral || e.empAreaLaboral?.strNombre || "—");
+    } else {
+        setText("previewAsignacionEmpleado", "Sin seleccionar");
+        setText("previewAsignacionArea", "—");
+    }
+
+    const fecha = document.getElementById("asignacion-dteFechaAsigncion")?.value;
+    setText("previewAsignacionFecha", fecha ? new Date(fecha + "T00:00:00").toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" }) : "—");
+
+    const kmInicial = (document.getElementById("asignacion-decKilometrajeInicial")?.value || "0").replace(/,/g, "");
+    const kmFinal = (document.getElementById("asignacion-decKilometrajeFinal")?.value || "").replace(/,/g, "");
+    const kmTotal = (document.getElementById("asignacion-decKilometrajeTotal")?.value || "0").replace(/,/g, "");
+
+    setText("previewAsignacionKmInicial", (parseFloat(kmInicial) || 0).toLocaleString("es-MX") + " km");
+    setText("previewAsignacionKmFinal", kmFinal ? parseFloat(kmFinal).toLocaleString("es-MX") + " km" : "Sin capturar");
+    setText("previewAsignacionKmTotal", (parseFloat(kmTotal) || 0).toLocaleString("es-MX") + " km");
+}
+
+// ─── Validación ───────────────────────────────────────────────────────────────
+function validarFormularioAsignacion(form) {
+    const ids = ["asignacion-idVehDatosGenerales", "asignacion-idEmpEmpleado", "asignacion-decKilometrajeInicial"];
+    let valido = true;
+    ids.forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo && !validarCampoAsignacion(campo)) valido = false;
+    });
+
+    const primerError = form.querySelector(".is-invalid");
+    if (primerError) {
+        primerError.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    return valido;
+}
+
+function validarCampoAsignacion(campo) {
+    const valor = String(campo.value || "").trim();
+    let mensaje = "";
+
+    if (campo.required && !valor) {
+        mensaje = campo.tagName === "SELECT" ? "Selecciona una opción." : "Este campo es obligatorio.";
+    }
+
+    if (!mensaje && valor && campo.id.includes("Kilometraje") && !campo.readOnly) {
+        const num = parseFloat(valor.replace(/,/g, ""));
+        if (isNaN(num) || num < 0) mensaje = "Captura un kilometraje válido.";
+    }
+
+    if (mensaje) {
+        campo.classList.remove("is-valid");
+        campo.classList.add("is-invalid");
+        const error = document.getElementById(`${campo.id}Error`);
+        if (error) {
+            error.textContent = mensaje;
+            error.classList.remove("d-none");
+            error.classList.add("d-block");
+        }
+        return false;
+    }
+
+    limpiarErrorCampo(campo);
+    if (valor && !campo.readOnly) campo.classList.add("is-valid");
+    return true;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function limpiarErrorCampo(campo) {
+    campo.classList.remove("is-invalid", "is-valid");
+    campo.removeAttribute("aria-invalid");
+    const error = document.getElementById(`${campo.id}Error`);
+    if (error) {
+        error.textContent = "";
+        error.classList.remove("d-block");
+        error.classList.add("d-none");
+    }
+}
+
+// Dibuja la tabla de asignaciones de vehículos en pantalla
+function renderAsignacionesTable() {
+    const tbody = document.getElementById("asignacionesTableBody");
+    if (!tbody) return;
+
+    // Si la lista está vacía, mostramos un renglón informativo con colspan 6
+    if (!asignacionesActivas || asignacionesActivas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No se encontraron asignaciones registradas.</td></tr>';
+        return;
+    }
+
+    // Mapeamos cada asignación a un renglón (tr) de la tabla
+    tbody.innerHTML = asignacionesActivas.map(a => {
+        // Buscamos los datos completos del vehículo vinculado
+        const v = listaVehiculosAsignacion.find(veh => veh.id === a.idVehDatosGenerales);
+        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
+        const modelo = v ? v.strModelo : "Desconocido";
+        const anio = v ? String(v.intAnio || "—") : "—";
+        const placa = v ? v.strPlaca : "—";
+        
+        // Buscamos los datos completos del empleado vinculado
+        const emp = listaEmpleadosAsignacion.find(e => e.id === a.idEmpEmpleado);
+        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (a.strEmpEmpleado || "Desconocido");
+
+        // Construimos el HTML del renglón con las 6 columnas solicitadas
+        return `
+            <tr>
+                <td>${escapeHtml(marca)}</td>
+                <td>${escapeHtml(modelo)}</td>
+                <td>${escapeHtml(anio)}</td>
+                <td><span class="badge bg-light text-dark border">${escapeHtml(placa)}</span></td>
+                <td>${escapeHtml(empleadoName)}</td>
+                <td class="text-end">
+                    <!-- Botón de Acciones dropdown estándar -->
+                    <div class="dropdown actions-dropdown d-inline-block">
+                        <button class="btn-action-trigger btn-sm" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                            <span>Acciones</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="verDetalleAsignacion(${a.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-info"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Ver detalles
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editarAsignacion(${a.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Editar
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="eliminarAsignacion(${a.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                    Eliminar
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    // Inicializamos dinámicamente cada trigger de dropdown mediante Bootstrap Popper
+    tbody.querySelectorAll('.btn-action-trigger').forEach(el => {
+        new bootstrap.Dropdown(el, {
+            popperConfig: (defaultConfig) => {
+                return {
+                    ...defaultConfig,
+                    strategy: 'fixed'
+                };
+            }
+        });
+    });
+}
+
+function verDetalleAsignacion(id) {
+    const a = asignacionesActivas.find(item => item.id === id);
+    if (!a) return;
+
+    const v = listaVehiculosAsignacion.find(veh => veh.id === a.idVehDatosGenerales);
+    const emp = listaEmpleadosAsignacion.find(e => e.id === a.idEmpEmpleado);
+    const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (a.strEmpEmpleado || "Desconocido");
+
+    Swal.fire({
+        title: "Detalle de Asignación",
+        html: `
+            <div class="text-start fs-6" style="line-height: 1.6;">
+                <p><strong>Vehículo:</strong> ${v ? `${v.strModelo} (${v.intAnio})` : "Desconocido"}</p>
+                <p><strong>Placa:</strong> ${v ? v.strPlaca : "—"}</p>
+                <p><strong>Empleado Responsable:</strong> ${empleadoName}</p>
+                <p><strong>Fecha de Asignación:</strong> ${a.dteFechaAsigncion ? new Date(a.dteFechaAsigncion).toLocaleDateString("es-MX") : "—"}</p>
+                <p><strong>Kilometraje Inicial:</strong> ${Number(a.decKilometrajeInicial).toLocaleString("es-MX")} km</p>
+                <p><strong>Kilometraje Final:</strong> ${a.decKilometrajeFinal ? Number(a.decKilometrajeFinal).toLocaleString("es-MX") + " km" : "Sin cerrar"}</p>
+                <p><strong>Kilometraje Total Recorrido:</strong> ${a.decKilometrajeTotal ? Number(a.decKilometrajeTotal).toLocaleString("es-MX") + " km" : "En curso"}</p>
+            </div>
+        `,
+        confirmButtonColor: "var(--teal-cavex)"
+    });
+}
+
+function editarAsignacion(id) {
+    const a = asignacionesActivas.find(item => item.id === id);
+    if (!a) return;
+
+    editModeId = id;
+
+    const selectVeh = document.getElementById("asignacion-idVehDatosGenerales");
+    const selectEmp = document.getElementById("asignacion-idEmpEmpleado");
+    if (selectVeh) {
+        selectVeh.value = String(a.idVehDatosGenerales);
+        selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    if (selectEmp) {
+        selectEmp.value = String(a.idEmpEmpleado);
+        selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    
+    if (a.dteFechaAsigncion) {
+        document.getElementById("asignacion-dteFechaAsigncion").value = a.dteFechaAsigncion.split("T")[0];
+    }
+    
+    document.getElementById("asignacion-decKilometrajeInicial").value = formatoConComas(a.decKilometrajeInicial);
+    document.getElementById("asignacion-decKilometrajeFinal").value = a.decKilometrajeFinal ? formatoConComas(a.decKilometrajeFinal) : "";
+    document.getElementById("asignacion-decKilometrajeTotal").value = a.decKilometrajeTotal ? formatoConComas(a.decKilometrajeTotal) : "";
+
+    actualizarVistaPreviaAsignacion();
+
+    // Desplazar al formulario
+    document.getElementById("asignacionVehiculoForm").scrollIntoView({ behavior: "smooth" });
+}
+
+function eliminarAsignacion(id) {
+    Swal.fire({
+        title: "¿Estás seguro?",
+        text: "Esta asignación de vehículo será eliminada permanentemente.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: "Eliminando...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            try {
+                const response = await fetch(`/Vehiculos/DeleteAsignacion/${id}`, { method: "POST" });
+                const res = await response.json();
+                Swal.close();
+                if (res.success) {
+                    Swal.fire("Eliminado", "La asignación ha sido eliminada.", "success");
+                    cargarCatalogosAsignacion();
+                } else {
+                    Swal.fire("Error", res.message || "No se pudo eliminar la asignación.", "error");
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire("Error", "Error de red al intentar eliminar.", "error");
+            }
+        }
+    });
+}
+
+function resetearFormularioAsignacion() {
+    editModeId = null;
+    const form = document.getElementById("asignacionVehiculoForm");
+    if (form) {
+        form.reset();
+        form.querySelectorAll(".is-valid, .is-invalid").forEach(el => el.classList.remove("is-valid", "is-invalid"));
+    }
+    inicializarFechaAsignacion();
+    actualizarVistaPreviaAsignacion();
+}
+
+function escapeHtml(text) {
+    return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
