@@ -17,13 +17,13 @@ namespace Cavex.Principal.Models.VehPlacas
         [Display(Name = "Entidad federativa")]
         public int IdEmpCatEntidadFederativa { get; set; }
 
-        [Required(ErrorMessage = "La fecha de asignacion es obligatoria.")]
-        [Display(Name = "Fecha de asignacion")]
-        public DateTime DteFechaAsignacion { get; set; }
+        [Required(ErrorMessage = "La fecha de registro es obligatoria.")]
+        [Display(Name = "Fecha de registro")]
+        public DateOnly DteFechaRegistro { get; set; }
 
         [Required(ErrorMessage = "La fecha de vencimiento es obligatoria.")]
         [Display(Name = "Fecha de vencimiento")]
-        public DateTime DteFechaVencimiento { get; set; }
+        public DateOnly DteFechaVencimiento { get; set; }
 
         [Required(ErrorMessage = "El monto pagado es obligatorio.")]
         [Display(Name = "Monto pagado")]

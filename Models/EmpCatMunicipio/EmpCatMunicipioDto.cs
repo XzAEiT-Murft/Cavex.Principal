@@ -7,9 +7,9 @@ namespace Cavex.Principal.Models.EmpCatMunicipio
         public int Id { get; set; }
 
         [Display(Name = "Municipio")]
-        public string StrValor { get; set; }
+        public required string StrValor { get; set; }
         
         [Display(Name = "Descripcion")]
-        public string StrDescripcion { get; set; }
+        public string? StrDescripcion { get; set; }
     }
 }

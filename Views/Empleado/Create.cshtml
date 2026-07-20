@@ -4,7 +4,6 @@
     ViewData["Title"] = "Agregar nuevo empleado";
     ViewData["HeaderEyebrow"] = "Gestión de personal";
     ViewData["HeaderSubtitle"] = "Captura los datos del trabajador y completa cada sección para registrarlo en el sistema.";
-    ViewData["HeaderBadgeText"] = "Registro operativo";
     Layout = "~/Views/Shared/UI/_Layout.cshtml";
 }
 
@@ -27,7 +26,7 @@
         <span class="step">7 Documentos laborales</span>
     </div>
 
-     <form id="form-empleado" action="/Empleado/Create" method="post" enctype="multipart/form-data" autocomplete="off">
+     <form id="form-empleado" action="/Empleado/Create" method="post" enctype="multipart/form-data" novalidate autocomplete="off">
         <div class="cards-col">
             <div class="empleado-card">
                 <div class="card-title">
@@ -471,7 +470,7 @@
                         <div class="file-preview-container" style="display:none;">
                             <div class="file-info">
                                 <span class="file-name-text" id="name-fotoEmpleado"></span>
-                                <span class="file-size-text" id="size-fotoEmpelado"></span>
+                                <span class="file-size-text" id="size-fotoEmpleado"></span>
                             </div>
                             <button type="button" class="btn-editar-doc" onclick="removeFile('fotoEmpleado')">Editar</button>
                         </div>
@@ -491,6 +490,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/empleado.js" asp-append-version="true"></script>
+    <script src="~/js/empleados/empleado.js" asp-append-version="true"></script>
 }
 

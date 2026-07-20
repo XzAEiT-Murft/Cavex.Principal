@@ -24,12 +24,13 @@ namespace Cavex.Principal.Services.Implementations
         public Task<ResponseWrapper<VehControlGasolinaDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehControlGasolinaApi.GetByIdAsync(id, cancellationToken), "No fue posible obtener el registro de VehControlGasolina.");
 
+        // Se envuelve el 'dto' en RequestWrapper dentro de la llamada a la API
         public Task<ResponseWrapper<VehControlGasolinaDto>> CrearAsync(VehControlGasolinaSaveDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehControlGasolinaApi.CreateAsync(dto, cancellationToken), "No fue posible crear el registro de VehControlGasolina.");
+            ExecuteAsync(() => _vehControlGasolinaApi.CreateAsync(new RequestWrapper<VehControlGasolinaSaveDto> { Body = dto }, cancellationToken), "No fue posible crear el registro de VehControlGasolina.");
 
+        // Se envuelve el 'dto' en RequestWrapper dentro de la llamada a la API
         public Task<ResponseWrapper<VehControlGasolinaDto>> EditarAsync(VehControlGasolinaEditDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehControlGasolinaApi.UpdateAsync(dto, cancellationToken), "No fue posible editar el registro de VehControlGasolina.");
-
+            ExecuteAsync(() => _vehControlGasolinaApi.UpdateAsync(dto.Id, new RequestWrapper<VehControlGasolinaEditDto> { Body = dto }, cancellationToken), "No fue posible editar el registro de VehControlGasolina.");
         public Task<ResponseWrapper<bool>> EliminarAsync(int id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehControlGasolinaApi.DeleteAsync(id, cancellationToken), "No fue posible eliminar el registro de VehControlGasolina.");
 

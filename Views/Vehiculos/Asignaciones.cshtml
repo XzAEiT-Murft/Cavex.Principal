@@ -1,7 +1,6 @@
 @{
     ViewData["Title"] = "Asignación de vehículos";
     ViewData["HeaderEyebrow"] = "Control operativo";
-    ViewData["HeaderTitle"] = "Asignación de vehículos";
     ViewData["HeaderSubtitle"] = "Asigna unidades a empleados y controla kilometraje inicial, final y recorrido total.";
 }
 
@@ -55,36 +54,36 @@
 
             <!-- Fecha de asignación: conserva el nombre dteFechaAsigncion de la tabla real. -->
             <section class="cavex-card form-section-card vehiculo-section-card asignacion-fecha-card">
-                <h3 class="form-section-title"><span class="form-section-number">3</span>Fecha de Registro</h3>
+                <h3 class="form-section-title"><span class="form-section-number">3</span>Fecha de Asignación</h3>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label" for="asignacion-dteFechaAsigncion">Fecha</label>
-                        <input id="asignacion-dteFechaAsigncion" name="dteFechaAsigncion" type="date" class="form-control" required />
+                        <input id="asignacion-dteFechaAsigncion" name="dteFechaAsigncion" type="date" class="form-control" readonly tabindex="-1" style="background-color: #e9ecef; pointer-events: none;" required />
                     </div>
                 </div>
             </section>
 
-            <section class="cavex-card form-section-card vehiculo-section-card asignacion-kilometraje-card">
+             <section class="cavex-card form-section-card vehiculo-section-card asignacion-kilometraje-card">
                 <h3 class="form-section-title"><span class="form-section-number">4</span>Kilometraje</h3>
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label" for="asignacion-decKilometrajeInicial">Kilometraje inicial</label>
                         <div class="input-group">
-                            <input id="asignacion-decKilometrajeInicial" name="decKilometrajeInicial" type="number" min="0" max="999999" step="1" class="form-control" placeholder="0" required />
+                            <input id="asignacion-decKilometrajeInicial" name="decKilometrajeInicial" type="text" maxlength="15" class="form-control" placeholder="0" required />
                             <span class="input-group-text">km</span>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="asignacion-decKilometrajeFinal">Kilometraje final</label>
                         <div class="input-group">
-                            <input id="asignacion-decKilometrajeFinal" name="decKilometrajeFinal" type="number" min="0" max="999999" step="1" class="form-control" placeholder="Sin cerrar" />
+                            <input id="asignacion-decKilometrajeFinal" name="decKilometrajeFinal" type="text" maxlength="15" class="form-control" placeholder="Sin cerrar" />
                             <span class="input-group-text">km</span>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="asignacion-decKilometrajeTotal">Kilometraje total <span class="vehiculo-optional-label">Calculado</span></label>
                         <div class="input-group asignacion-total-group">
-                            <input id="asignacion-decKilometrajeTotal" name="decKilometrajeTotal" type="number" min="0" step="1" class="form-control" placeholder="0" readonly />
+                            <input id="asignacion-decKilometrajeTotal" name="decKilometrajeTotal" type="text" class="form-control" placeholder="0" readonly />
                             <span class="input-group-text">km</span>
                         </div>
                     </div>
@@ -143,5 +142,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-asignaciones.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/operaciones-vehiculos/vista-asignaciones.js" asp-append-version="true"></script>
 }

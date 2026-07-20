@@ -93,7 +93,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
         public string StrCurp { get; set; } = string.Empty;
         public int IntEdad { get; set; }
         public string StrCorreoElectronico { get; set; } = string.Empty;
-        public long IntNss { get; set; }
+        public long BigNss { get; set; }
         public int IdEmpCatGenero { get; set; }
         public int IdEmpCatEstadoCivil { get; set; }
         public int IdEmpCatNacionalidad { get; set; }
@@ -132,7 +132,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
     {
         public string StrNombreCompleto { get; set; } = string.Empty;
         public string StrParentezco { get; set; } = string.Empty;
-        public long IntTelefono { get; set; }
+        public long BigTelefono { get; set; }
         public int IdEmpEmpleado { get; set; } // FK al empleado ya creado
     }
 

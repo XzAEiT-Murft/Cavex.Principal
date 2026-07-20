@@ -1,33 +1,29 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
-using Cavex.Principal.Common;
 using Cavex.Principal.Enums;
+using Cavex.Principal.Models.VehSeguro;
+using Cavex.Principal.Models.VehAsignacionVehiculos;
+using Cavex.Principal.Models.VehCatAseguradora;
 using Cavex.Principal.Models.VehCatCapacidad;
 using Cavex.Principal.Models.VehCatColor;
+using Cavex.Principal.Models.VehCatFormaPago;
+using Cavex.Principal.Models.VehCatGasolineras;
+using Cavex.Principal.Models.VehCatMarcaLlanta;
 using Cavex.Principal.Models.VehCatMarcaVehiculo;
+using Cavex.Principal.Models.VehCatResponsableServicio;
+using Cavex.Principal.Models.VehCatStatus;
 using Cavex.Principal.Models.VehCatTaller;
 using Cavex.Principal.Models.VehCatTipoCombustible;
+using Cavex.Principal.Models.VehCatTipoServicio;
 using Cavex.Principal.Models.VehCatTipoVehiculo;
+using Cavex.Principal.Models.VehCatTransmision;
+using Cavex.Principal.Models.VehControlGasolina;
+using Cavex.Principal.Models.VehControlLlanta;
+using Cavex.Principal.Models.VehControlServicio;
+using Cavex.Principal.Models.VehDaniosAccidentes;
 using Cavex.Principal.Models.VehDatosGenerales;
 using Cavex.Principal.Models.Vehiculo;
-using Cavex.Principal.Models.VehControlLlanta;
-using Cavex.Principal.Models.VehControlGasolina;
 using Cavex.Principal.Models.VehInfracciones;
-using Cavex.Principal.Models.VehDaniosAccidentes;
-using Cavex.Principal.Models.VehCatGasolineras;
-using Cavex.Principal.Models.VehCatAseguradora;
-using Cavex.Principal.Models.VehCatResponsableServicio;
-using Cavex.Principal.Models.VehAsignacionVehiculos;
-using Cavex.Principal.Models.VehCatTransmision;
-using Cavex.Principal.Models.VehCatStatus;
-using Cavex.Principal.Models.VehCatFormaPago;
 using Cavex.Principal.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 namespace Cavex.Principal.Controllers
 {
     public class VehiculosController : Controller
@@ -49,6 +45,12 @@ namespace Cavex.Principal.Controllers
         private readonly IVehCatAseguradoraService _vehCatAseguradora;
         private readonly IVehCatFormaPagoService _vehCatFormaPago;
         private readonly IVehCatResponsableServicioService _vehCatResponsableServicio;
+        private readonly IVehControlServicioService _vehControlServicio;
+        private readonly IVehCatTallerService _vehCatTaller;
+        private readonly IVehCatTipoServicioService _vehCatTipoServicio;
+        private readonly IVehCatMarcaLlantaService _vehCatMarcaLlanta;
+        private readonly IVehCatPosicionLlantaService _vehCatPosicionLlanta;
+        private readonly IVehSeguroService _vehSeguro;
         private readonly IWebHostEnvironment _webHostEnvironment;
 
         public VehiculosController(
@@ -69,6 +71,12 @@ namespace Cavex.Principal.Controllers
             IVehCatAseguradoraService vehCatAseguradora,
             IVehCatFormaPagoService vehCatFormaPago,
             IVehCatResponsableServicioService vehCatResponsableServicio,
+            IVehControlServicioService vehControlServicio,
+            IVehCatTallerService vehCatTaller,
+            IVehCatTipoServicioService vehCatTipoServicio,
+            IVehCatMarcaLlantaService vehCatMarcaLlanta,
+            IVehCatPosicionLlantaService vehCatPosicionLlanta,
+            IVehSeguroService vehSeguro,
             IWebHostEnvironment webHostEnvironment)
         {
             _vehCatMarcaVehiculo = vehCatMarcaVehiculo;
@@ -88,6 +96,12 @@ namespace Cavex.Principal.Controllers
             _vehCatAseguradora = vehCatAseguradora;
             _vehCatFormaPago = vehCatFormaPago;
             _vehCatResponsableServicio = vehCatResponsableServicio;
+            _vehControlServicio = vehControlServicio;
+            _vehCatTaller = vehCatTaller;
+            _vehCatTipoServicio = vehCatTipoServicio;
+            _vehCatMarcaLlanta = vehCatMarcaLlanta;
+            _vehCatPosicionLlanta = vehCatPosicionLlanta;
+            _vehSeguro = vehSeguro;
             _webHostEnvironment = webHostEnvironment;
         }
 
@@ -152,6 +166,13 @@ namespace Cavex.Principal.Controllers
         // Pantalla de Agregar responsables de servicio
         [HttpGet("/Vehiculos/ResponsableServicio")]
         public IActionResult ResponsableServicio()
+        {
+            return View();
+        }
+
+        // Pantalla de Mantenimiento vehicular
+        [HttpGet("/Vehiculos/Mantenimiento")]
+        public IActionResult Mantenimiento()
         {
             return View();
         }
@@ -223,7 +244,7 @@ namespace Cavex.Principal.Controllers
                 DecKilometrajeActual = v.DecKilometrajeActual,
                 IdVehCatStatus = idStatus,
                 StrUrlFoto = v.StrUrlFoto,
-                DteFechaRegistro = v.DteFechaRegistro,
+                DteFechaAsignacion = v.DteFechaAsignacion,
                 StrObservaciones = v.StrObservaciones,
                 StrMotor = v.StrMotor,
                 IdVehCatTransmision = v.IdVehCatTransmision
@@ -236,6 +257,13 @@ namespace Cavex.Principal.Controllers
             return Json(new { success = false, message = apiResult.Message ?? "No se pudo actualizar el estatus." });
         }
 
+        /// <summary>
+        /// Obtiene y consolida todos los catálogos satélite vehiculares (marcas, colores, tipos, capacidades, 
+        /// combustibles, transmisiones, aseguradoras, gasolineras, formas de pago y llantas) en un solo
+        /// endpoint consolidado para optimizar las peticiones de inicialización del frontend.
+        /// </summary>
+        /// <param name="cancellationToken">Token de cancelación de la operación.</param>
+        /// <returns>Resultado JSON consolidado de todos los catálogos vehiculares.</returns>
         [HttpGet("/Vehiculos/GetVehiculoCatalogos")]
         public async Task<IActionResult> GetVehiculoCatalogos(CancellationToken cancellationToken)
         {
@@ -245,11 +273,13 @@ namespace Cavex.Principal.Controllers
             var capacidades = await _vehCatCapacidad.ObtenerTodosAsync(1, 100, null, cancellationToken);
             var combustibles = await _vehCatTipoCombustible.ObtenerTodosAsync(1, 100, null, cancellationToken);
             var transmisiones = await _vehCatTransmisionService.ObtenerTodosAsync(1, 100, null, cancellationToken);
-            var statusList = await _vehCatStatusService.ObtenerTodosAsync(cancellationToken);
             var aseguradoras = await _vehCatAseguradora.ObtenerTodosAsync(cancellationToken);
             var gasolineras = await _vehCatGasolineras.ObtenerTodosAsync(cancellationToken);
             var formasPago = await _vehCatFormaPago.ObtenerTodosAsync(cancellationToken);
-
+            var marcasLlanta = await _vehCatMarcaLlanta.ObtenerTodosAsync(cancellationToken);
+            var posicionesLlanta = await _vehCatPosicionLlanta.ObtenerTodosAsync(cancellationToken);
+            var statusList = await _vehCatStatusService.ObtenerTodosAsync(cancellationToken);
+ 
             return Json(new
             {
                 success = true,
@@ -264,7 +294,8 @@ namespace Cavex.Principal.Controllers
                     idVehCatStatus = statusList.Data?.Items ?? Enumerable.Empty<VehCatStatusDto>(),
                     idVehCatAseguradora = aseguradoras.Data?.Items ?? Enumerable.Empty<VehCatAseguradoraDto>(),
                     idVehCatGasolineras = gasolineras.Data?.Items ?? Enumerable.Empty<VehCatGasolinerasDto>(),
-                    idVehCatFormaPago = formasPago.Data?.Items ?? Enumerable.Empty<VehCatFormaPagoDto>()
+                    idVehCatFormaPago = formasPago.Data?.Items ?? Enumerable.Empty<VehCatFormaPagoDto>(),
+                    idVehCatMarcaLlanta = marcasLlanta.Data?.Items ?? Enumerable.Empty<VehCatMarcaLlantaDto>(),
                 }
             });
         }
@@ -326,6 +357,14 @@ namespace Cavex.Principal.Controllers
             return Json(new { success = true, data = response.Data?.Items ?? Enumerable.Empty<VehDaniosAccidentesDto>() });
         }
 
+        [HttpGet("/Vehiculos/GetSeguros")]
+        public async Task<IActionResult> GetVehiculoSeguros(CancellationToken cancellationToken)
+        {
+            var response = await _vehSeguro.ObtenerTodosAsync(cancellationToken);
+            if (!response.Success) return Json(new { success = false, message = response.Message });
+            return Json(new { success = true, data = response.Data?.Items ?? Enumerable.Empty<VehSeguroDto>() });
+        }
+
         [HttpPost("/Vehiculos/DeleteDanio/{id}")]
         public async Task<IActionResult> DeleteDanio(int id, CancellationToken cancellationToken)
         {
@@ -368,6 +407,11 @@ namespace Cavex.Principal.Controllers
         [HttpPost("/Vehiculos/SaveDanio")]
         public async Task<IActionResult> SaveDanio([FromForm] VehDaniosAccidentesEditDto model, List<IFormFile>? EvidenciaArchivos, CancellationToken cancellationToken)
         {
+            if (!model.BitCubiertoPorSeguro || model.IdVehSeguro <= 0)
+            {
+                model.IdVehSeguro = null;
+            }
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
@@ -637,7 +681,7 @@ namespace Cavex.Principal.Controllers
                         modelName = vehResponse.Data.StrModelo;
                         plateName = vehResponse.Data.StrPlaca;
 
-                        var marcaResponse = await _vehCatMarcaVehiculo.ObtenerPorIdAsync(vehResponse.Data.IdVehCatMarcaVehiculo);
+                        var marcaResponse = await _vehCatMarcaVehiculo.ObtenerPorIdAsync(vehResponse.Data.IdVehCatMarcaVehiculo, cancellationToken);
                         if (marcaResponse.Success && marcaResponse.Data != null)
                         {
                             brandName = marcaResponse.Data.StrValor;
@@ -663,7 +707,7 @@ namespace Cavex.Principal.Controllers
 
                     using (var stream = new FileStream(physicalFilePath, FileMode.Create))
                     {
-                        await ComprobanteArchivo.CopyToAsync(stream);
+                        await ComprobanteArchivo.CopyToAsync(stream, cancellationToken);
                     }
 
                     model.StrUrlComprobantePago = $"{relativePath}/{uniqueFileName}";
@@ -681,7 +725,7 @@ namespace Cavex.Principal.Controllers
             }
             else
             {
-                var saveDto = new VehControlGasolinaSaveDto
+                        var saveDto = new VehControlGasolinaSaveDto
                 {
                     IdVehDatosGenerales = model.IdVehDatosGenerales,
                     DteFechaCarga = model.DteFechaCarga,
@@ -946,7 +990,7 @@ namespace Cavex.Principal.Controllers
                         DecKilometrajeActual = managerSaveDto.DecKilometrajeActual,
                         IdVehCatStatus = existingVehiculo.IdVehCatStatus, // Conserva el estatus actual
                         StrUrlFoto = urlFoto,
-                        DteFechaRegistro = existingVehiculo.DteFechaRegistro, // Conserva la fecha de registro original
+                        DteFechaAsignacion = existingVehiculo.DteFechaAsignacion, // Conserva la fecha de registro original
                         StrObservaciones = managerSaveDto.StrDescripcion,
                         StrMotor = managerSaveDto.StrNumMotor,
                         IdVehCatTransmision = managerSaveDto.VehCatTransmisionDto?.Id ?? 0
@@ -980,7 +1024,7 @@ namespace Cavex.Principal.Controllers
                         DecKilometrajeActual = managerSaveDto.DecKilometrajeActual,
                         IdVehCatStatus = (int)EnumStatus.Activo,
                         StrUrlFoto = urlFoto,
-                        DteFechaRegistro = DateOnly.FromDateTime(DateTime.Now),
+                        DteFechaAsignacion = DateOnly.FromDateTime(DateTime.Now),
                         StrObservaciones = managerSaveDto.StrDescripcion,
                         StrMotor = managerSaveDto.StrNumMotor,
                         IdVehCatTransmision = managerSaveDto.VehCatTransmisionDto?.Id ?? 0
@@ -1004,6 +1048,81 @@ namespace Cavex.Principal.Controllers
             }
 
             return BadRequest(new { success = false, message = "No se pudieron guardar los datos de forma correcta." });
+        }
+
+        #endregion
+
+        #region Mantenimiento vehicular
+
+        [HttpGet("/Vehiculos/GetMantenimientos")]
+        public async Task<IActionResult> GetMantenimientos(CancellationToken cancellationToken)
+        {
+            var response = await _vehControlServicio.ObtenerTodosAsync(cancellationToken);
+            if (!response.Success)
+                return Json(new { success = false, message = response.Message });
+
+            return Json(new { success = true, data = response.Data?.Items ?? Enumerable.Empty<VehControlServicioDto>() });
+        }
+
+        [HttpGet("/Vehiculos/GetMantenimientoCatalogos")]
+        public async Task<IActionResult> GetMantenimientoCatalogos(CancellationToken cancellationToken)
+        {
+            var talleres      = await _vehCatTaller.ObtenerTodosAsync(1, 100, null, cancellationToken);
+            var tiposServicio = await _vehCatTipoServicio.ObtenerTodosAsync(cancellationToken);
+            var formasPago    = await _vehCatFormaPago.ObtenerTodosAsync(cancellationToken);
+
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    talleres      = talleres.Data?.Items      ?? Enumerable.Empty<VehCatTallerDto>(),
+                    tiposServicio = tiposServicio.Data?.Items ?? Enumerable.Empty<VehCatTipoServicioDto>(),
+                    formasPago    = formasPago.Data?.Items    ?? Enumerable.Empty<VehCatFormaPagoDto>()
+                }
+            });
+        }
+
+        [HttpPost("/Vehiculos/SaveMantenimiento")]
+        public async Task<IActionResult> SaveMantenimiento(
+            [FromForm] VehControlServicioSaveDto model,
+            IFormFile? ComprobanteArchivo,
+            CancellationToken cancellationToken)
+        {
+            if (model == null)
+                return BadRequest(new { success = false, message = "Datos del mantenimiento no recibidos." });
+
+            // Guardar comprobante si se adjuntó
+            if (ComprobanteArchivo != null && ComprobanteArchivo.Length > 0)
+            {
+                string folder   = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "mantenimientos");
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+                string ext      = Path.GetExtension(ComprobanteArchivo.FileName);
+                string fileName = $"comprobante_{Guid.NewGuid()}{ext}";
+                string filePath = Path.Combine(folder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                    await ComprobanteArchivo.CopyToAsync(stream);
+
+                model.StrUrlComprobantePago = $"/uploads/mantenimientos/{fileName}";
+            }
+
+            var result = await _vehControlServicio.CrearAsync(model, cancellationToken);
+            if (result.Success || result.StatusCode == System.Net.HttpStatusCode.Created)
+                return Ok(new { success = true, message = "Mantenimiento registrado correctamente." });
+
+            return BadRequest(new { success = false, message = result.Message ?? "No se pudo guardar el mantenimiento." });
+        }
+
+        [HttpPost("/Vehiculos/DeleteMantenimiento")]
+        public async Task<IActionResult> DeleteMantenimiento(int id, CancellationToken cancellationToken)
+        {
+            var result = await _vehControlServicio.EliminarAsync(id, cancellationToken);
+            if (!result.Success)
+                return Json(new { success = false, message = result.Message });
+
+            return Json(new { success = true });
         }
 
         #endregion

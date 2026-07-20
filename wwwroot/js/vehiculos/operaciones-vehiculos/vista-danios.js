@@ -2,6 +2,7 @@
 
 let listaDanios = [];
 let editModeDanioId = null;
+let listaSegurosDanios = [];
 // Archivos y evidencias seleccionadas globalmente para daños (declaradas en ámbito global)
 let archivosEvidenciaSeleccionados = [];
 let evidenciasExistentes = [];
@@ -20,6 +21,11 @@ function inicializarVistaDanios() {
     inicializarSwitchSeguro();
     inicializarCargaEvidencia();
     inicializarContadorObservaciones();
+
+    const montoRep = document.getElementById("danio-mnyMontoReparacion");
+    if (montoRep) {
+        montoRep.addEventListener("input", () => formatCurrencyInput(montoRep));
+    }
 
     // Eventos de validación en tiempo real para todos los inputs
     form.querySelectorAll("input:not([type='file']):not([type='hidden']), select, textarea").forEach(campo => {
@@ -64,6 +70,9 @@ function inicializarVistaDanios() {
         const statusVal = parseInt(document.getElementById("danio-idVehCatStatus").value, 10);
         const montoInput = document.getElementById("danio-mnyMontoReparacion").value;
         const seguroInput = document.getElementById("danio-idVehSeguro").value;
+        const ubicacionVal = document.getElementById("danio-strUbicacion") ? document.getElementById("danio-strUbicacion").value.trim() : "";
+        const tieneEvidencias = (typeof evidenciasExistentes !== "undefined" && evidenciasExistentes.length > 0) ||
+            (typeof archivosEvidenciaSeleccionados !== "undefined" && archivosEvidenciaSeleccionados.length > 0);
 
         // Construir FormData igual que en la creación de vehículos
         const formData = new FormData();
@@ -75,7 +84,7 @@ function inicializarVistaDanios() {
         formData.append("StrUbicacion", document.getElementById("danio-strUbicacion").value || "");
         
         if (montoInput) {
-            formData.append("MnyMontoReparacion", parseFloat(montoInput));
+            formData.append("MnyMontoReparacion", parseFloat(montoInput.replace(/,/g, "")));
         }
         
         formData.append("BitCubiertoPorSeguro", document.getElementById("danio-bitCubiertoPorSeguro").value === "true");
@@ -140,45 +149,70 @@ let listaVehiculosDanios = [];
 let listaEmpleadosDanios = [];
 let asignacionesActivasDanios = [];
 
-// Carga asíncronamente los catálogos de vehículos, empleados y aseguradoras en los campos <select> correspondientes
+// Carga asíncronamente los catálogos de vehículos, empleados y pólizas de seguro
 async function cargarCatalogosDanios() {
     try {
-        const [vehRes, empRes, asigRes] = await Promise.all([
+        const [vehRes, empRes, asigRes, segRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
-            fetch("/Empleado/GetEmpleados").then(r => r.json()),
-            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+            fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
+            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false })),
+            fetch("/Vehiculos/GetSeguros").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
-        // 1. Cargar vehículos
+        if (asigRes.success && asigRes.data) {
+            asignacionesActivasDanios = asigRes.data;
+        }
+
+        if (segRes.success && segRes.data) {
+            listaSegurosDanios = segRes.data;
+        }
+
+        const vehIdAsignados = new Set(
+            (asignacionesActivasDanios || [])
+                .map(a => Number(a.idVehDatosGenerales ?? a.IdVehDatosGenerales))
+                .filter(id => !isNaN(id) && id > 0)
+        );
+
+        const empIdAsignados = new Set(
+            (asignacionesActivasDanios || [])
+                .map(a => Number(a.idEmpEmpleado ?? a.IdEmpEmpleado))
+                .filter(id => !isNaN(id) && id > 0)
+        );
+
+        // 1. Cargar solo vehículos asignados
         const selectVeh = document.getElementById("danio-idVehDatosGenerales");
         if (selectVeh && vehRes.success && vehRes.data) {
             listaVehiculosDanios = vehRes.data;
-            selectVeh.innerHTML = '<option value="">Seleccionar...</option>';
+            selectVeh.innerHTML = '<option value="">Seleccionar vehículo asignado...</option>';
             vehRes.data.forEach(v => {
-                const opt = document.createElement("option");
-                opt.value = String(v.id);
-                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                selectVeh.appendChild(opt);
+                const vId = Number(v.id ?? v.Id);
+                if (vehIdAsignados.has(vId)) {
+                    const opt = document.createElement("option");
+                    opt.value = String(vId);
+                    opt.textContent = `${v.strPlaca || v.StrPlaca} - ${v.strModelo || v.StrModelo} (${v.intAnio || v.IntAnio})`;
+                    selectVeh.appendChild(opt);
+                }
             });
         }
 
-        // 2. Cargar empleados
+        // 2. Cargar solo empleados asignados
         const selectEmp = document.getElementById("danio-idEmpEmpleado");
         if (selectEmp && empRes.success && empRes.data) {
             listaEmpleadosDanios = empRes.data;
-            selectEmp.innerHTML = '<option value="">Seleccionar...</option>';
+            selectEmp.innerHTML = '<option value="">Seleccionar chofer asignado...</option>';
             empRes.data.forEach(e => {
-                const opt = document.createElement("option");
-                opt.value = String(e.id);
-                const nombreCompleto = e.strNombre + ' ' + e.strApellidoPaterno + (e.strApellidoMaterno ? ' ' + e.strApellidoMaterno : '');
-                opt.textContent = nombreCompleto;
-                selectEmp.appendChild(opt);
+                const eId = Number(e.id ?? e.Id);
+                if (empIdAsignados.has(eId)) {
+                    const opt = document.createElement("option");
+                    opt.value = String(eId);
+                    const nom = e.strNombre || e.StrNombre || '';
+                    const pat = e.strApellidoPaterno || e.StrApellidoPaterno || '';
+                    const mat = e.strApellidoMaterno || e.StrApellidoMaterno || '';
+                    const nombreCompleto = `${nom} ${pat} ${mat}`.trim();
+                    opt.textContent = nombreCompleto;
+                    selectEmp.appendChild(opt);
+                }
             });
-        }
-
-        // Asignaciones activas para vinculación
-        if (asigRes.success && asigRes.data) {
-            asignacionesActivasDanios = asigRes.data;
         }
 
         // Vinculación bidireccional segura
@@ -189,6 +223,10 @@ async function cargarCatalogosDanios() {
             isVinculandoDanio = true;
             try {
                 const vehId = parseInt(selectVeh.value, 10);
+                if (document.getElementById("danioSeguroSwitch")?.checked) {
+                    poblarDropdownSeguros(vehId);
+                }
+
                 if (editModeDanioId === null) {
                     if (vehId) {
                         const asig = asignacionesActivasDanios.find(a => a.idVehDatosGenerales === vehId);
@@ -263,25 +301,10 @@ async function cargarCatalogosDanios() {
         console.error("Error al cargar catálogos de daños:", err);
     }
 
-    // 3. Cargar aseguradoras y estatus
+    // 3. Cargar estatus de la vista
     fetch("/Vehiculos/GetVehiculoCatalogos")
         .then(res => res.json())
         .then(result => {
-            // Cargar aseguradoras
-            const select = document.getElementById("danio-idVehSeguro");
-            if (select) {
-                select.innerHTML = '<option value="">No aplica</option>';
-                if (result.success && result.data && result.data.idVehCatAseguradora) {
-                    result.data.idVehCatAseguradora.forEach(aseg => {
-                        const opt = document.createElement("option");
-                        opt.value = String(aseg.id);
-                        opt.textContent = aseg.strValor || aseg.strDescripcion;
-                        select.appendChild(opt);
-                    });
-                }
-            }
-
-            // Cargar estatus
             const selectStatus = document.getElementById("danio-idVehCatStatus");
             if (selectStatus && result.success && result.data && result.data.idVehCatStatus) {
                 selectStatus.innerHTML = '<option value="">Seleccionar...</option>';
@@ -292,13 +315,39 @@ async function cargarCatalogosDanios() {
                     selectStatus.appendChild(opt);
                 });
             }
-            // Cargar la lista de daños al finalizar la carga de catálogos
             cargarDaniosList();
         })
         .catch(err => console.error("Error al cargar catálogos:", err));
 }
 
-// Configura el switch para habilitar/deshabilitar de forma condicional el catálogo de aseguradoras
+// Pobla el selector de pólizas a partir de la lista de VehSeguro
+function poblarDropdownSeguros(vehId = null) {
+    const select = document.getElementById("danio-idVehSeguro");
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Seleccionar póliza...</option>';
+
+    let segurosFiltrados = listaSegurosDanios || [];
+    if (vehId) {
+        segurosFiltrados = segurosFiltrados.filter(s => Number(s.idVehDatosGenerales ?? s.IdVehDatosGenerales) === Number(vehId));
+    }
+
+    if (segurosFiltrados.length === 0) {
+        select.innerHTML = '<option value="">Sin pólizas registradas</option>';
+        return;
+    }
+
+    segurosFiltrados.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = String(s.id ?? s.Id);
+        const asegNombre = s.strVehCatAseguradora || s.StrVehCatAseguradora || "Aseguradora";
+        const numPoliza = s.strNumeroPoliza || s.StrNumeroPoliza || "S/N";
+        opt.textContent = `${asegNombre} - Póliza: ${numPoliza}`;
+        select.appendChild(opt);
+    });
+}
+
+// Configura el switch para habilitar/deshabilitar de forma condicional el selector de pólizas
 function inicializarSwitchSeguro() {
     const sw = document.getElementById("danioSeguroSwitch");
     const label = document.getElementById("danioSeguroSwitchLabel");
@@ -315,20 +364,8 @@ function inicializarSwitchSeguro() {
         if (cubierto) {
             select.disabled = false;
             select.required = true;
-            select.innerHTML = '<option value="">Seleccionar...</option>';
-            // Recargar catálogo de aseguradoras
-            fetch("/Vehiculos/GetVehiculoCatalogos")
-                .then(res => res.json())
-                .then(result => {
-                    if (result.success && result.data && result.data.idVehCatAseguradora) {
-                        result.data.idVehCatAseguradora.forEach(aseg => {
-                            const opt = document.createElement("option");
-                            opt.value = String(aseg.id);
-                            opt.textContent = aseg.strValor || aseg.strDescripcion;
-                            select.appendChild(opt);
-                        });
-                    }
-                });
+            const vehId = document.getElementById("danio-idVehDatosGenerales")?.value;
+            poblarDropdownSeguros(vehId);
         } else {
             select.disabled = true;
             select.required = false;
@@ -345,12 +382,11 @@ function inicializarCargaEvidencia() {
     const input = document.getElementById("danioEvidenciaArchivo");
     if (!area || !input) return;
 
+    input.addEventListener("click", event => {
+        event.stopPropagation();
+    });
     area.addEventListener("click", event => {
-        // Evitar activar el input si se hace clic en la previsualización o sus botones de quitar
-        if (event.target.closest("#danioFilePreviewList")) {
-            return;
-        }
-        input.click();
+        if (!event.target.closest(".vehiculo-file-actions button")) input.click();
     });
 
     area.addEventListener("keydown", event => {
@@ -361,6 +397,12 @@ function inicializarCargaEvidencia() {
     });
 
     // Cambia la clase visual al arrastrar archivos
+    area.addEventListener("dragenter", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.add("is-drag-over");
+    });
+
     area.addEventListener("dragover", event => {
         event.preventDefault();
         event.stopPropagation();
@@ -579,7 +621,8 @@ function validarCampoDanio(campo) {
                 if (valor.length > 300) mensaje = "La ubicación no debe superar 300 caracteres.";
                 break;
             case "danio-mnyMontoReparacion": {
-                const num = Number(valor);
+                const rawVal = valor.replace(/,/g, "");
+                const num = Number(rawVal);
                 if (isNaN(num) || num < 0 || num > 999999) {
                     mensaje = "Monto de reparación no válido.";
                 }
@@ -595,6 +638,11 @@ function validarCampoDanio(campo) {
         campo.classList.remove("is-valid");
         campo.classList.add("is-invalid");
         campo.setAttribute("aria-invalid", "true");
+        const wrapper = campo.closest(".custom-select-wrapper");
+        if (wrapper) {
+            wrapper.classList.add("is-invalid");
+            wrapper.querySelector(".custom-select-trigger")?.classList.add("is-invalid");
+        }
         const error = document.getElementById(`${campo.id}Error`);
         if (error) error.textContent = mensaje;
         return false;
@@ -608,6 +656,11 @@ function validarCampoDanio(campo) {
 function limpiarErrorCampo(campo) {
     campo.classList.remove("is-invalid", "is-valid");
     campo.removeAttribute("aria-invalid");
+    const wrapper = campo.closest(".custom-select-wrapper");
+    if (wrapper) {
+        wrapper.classList.remove("is-invalid", "is-valid");
+        wrapper.querySelector(".custom-select-trigger")?.classList.remove("is-invalid", "is-valid");
+    }
     const error = document.getElementById(`${campo.id}Error`);
     if (error) {
         error.textContent = "";
@@ -638,7 +691,6 @@ function renderDaniosTable() {
     const tbody = document.getElementById("daniosTableBody");
     if (!tbody) return;
 
-    // Si la lista está vacía, mostramos un renglón informativo con colspan 5
     if (!listaDanios || listaDanios.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No se encontraron daños o accidentes registrados.</td></tr>';
         return;
@@ -647,15 +699,17 @@ function renderDaniosTable() {
     // Mapeamos cada daño/accidente a un renglón (tr) de la tabla
     tbody.innerHTML = listaDanios.map(d => {
         // Buscamos los datos del vehículo asignado
-        const v = listaVehiculosDanios.find(veh => veh.id === d.idVehDatosGenerales);
-        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
-        const modelo = v ? v.strModelo : "Desconocido";
-        const placa = v ? v.strPlaca : "—";
+        const vehIdTarget = Number(d.idVehDatosGenerales ?? d.IdVehDatosGenerales);
+        const v = listaVehiculosDanios.find(veh => Number(veh.id ?? veh.Id) === vehIdTarget);
+        const marca = (window.obtenerNombreMarcaVehiculo && v) ? window.obtenerNombreMarcaVehiculo(v) : (v ? (v.strVehCatMarcaVehiculo || v.StrVehCatMarcaVehiculo || v.strMarca || "Desconocida") : "Desconocida");
+        const modelo = v ? (v.strModelo || v.StrModelo || "Desconocido") : "Desconocido";
+        const placa = v ? (v.strPlaca || v.StrPlaca || "—") : "—";
         const brandModel = `${marca} ${modelo}`;
 
         // Buscamos los datos del empleado responsable
-        const emp = listaEmpleadosDanios.find(e => e.id === d.idEmpEmpleado);
-        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (d.strEmpEmpleado || "Desconocido");
+        const empIdTarget = Number(d.idEmpEmpleado ?? d.IdEmpEmpleado);
+        const emp = listaEmpleadosDanios.find(e => Number(e.id ?? e.Id) === empIdTarget);
+        const empleadoName = emp ? ((emp.strNombre || emp.StrNombre || "") + " " + (emp.strApellidoPaterno || emp.StrApellidoPaterno || "") + ((emp.strApellidoMaterno || emp.StrApellidoMaterno) ? " " + (emp.strApellidoMaterno || emp.StrApellidoMaterno) : "")).trim() : (d.strEmpEmpleado || "Desconocido");
 
         // Obtenemos una versión corta de la descripción para no deformar la tabla
         const desc = d.strDescripcion || "";
@@ -794,7 +848,11 @@ function editarDanio(id) {
     document.getElementById("danio-idVehCatStatus").value = d.idVehCatStatus;
     document.getElementById("danio-strDescripcion").value = d.strDescripcion || "";
     document.getElementById("danio-strUbicacion").value = d.strUbicacion || "";
-    document.getElementById("danio-mnyMontoReparacion").value = d.mnyMontoReparacion || "";
+    const montoEl = document.getElementById("danio-mnyMontoReparacion");
+    if (montoEl) {
+        montoEl.value = d.mnyMontoReparacion || "";
+        if (montoEl.value) formatCurrencyInput(montoEl);
+    }
 
     const sw = document.getElementById("danioSeguroSwitch");
     if (sw) {
@@ -877,5 +935,27 @@ function resetearFormularioDanio() {
 
 function escapeHtml(text) {
     return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+/**
+ * Formatea en tiempo real un input de tipo moneda, permitiendo solo un punto decimal
+ * e insertando comas para separar los miles mientras el usuario escribe.
+ * @param {HTMLInputElement} input - El elemento input a formatear.
+ */
+function formatCurrencyInput(input) {
+    let value = input.value.replace(/[^0-9.]/g, "");
+    const parts = value.split(".");
+    if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+    }
+    let integerPart = parts[0];
+    let decimalPart = parts[1];
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (decimalPart !== undefined) {
+        decimalPart = decimalPart.substring(0, 2);
+        input.value = integerPart + "." + decimalPart;
+    } else {
+        input.value = integerPart;
+    }
 }
 

@@ -152,7 +152,7 @@
                     <span class="badge-status-active" id="det-estatus">—</span>
                 </div>
                 <div class="vehicle-actions">
-                    <a href="#" class="btn-action-outline">
+                    <a href="/Vehiculos/Create?id=@ViewBag.VehiculoId" class="btn-action-outline">
                         <img src="/svg/vista-detalles-vehiculos/edit.svg" width="14" height="14" class="btn-icon" alt="Editar" />
                         Editar
                     </a>
@@ -160,9 +160,9 @@
                         <img src="/svg/vista-detalles-vehiculos/history.svg" width="14" height="14" class="btn-icon" alt="Historial" />
                         Historial
                     </a>
-                    <a href="#" class="btn-action-primary">
+                    <a href="/Vehiculos/Mantenimiento" class="btn-action-primary">
                         <img src="/svg/vista-detalles-vehiculos/plus.svg" width="14" height="14" class="btn-icon" style="filter: brightness(0) invert(1);" alt="Nuevo" />
-                        Nuevo Servicio
+                        Nuevo Ingreso a Taller
                     </a>
                 </div>
             </div>
@@ -706,5 +706,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <!-- Script de lógica de negocio y transición separado del HTML -->
-    <script src="~/js/vista-detalles-vehiculo.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/operaciones-vehiculos/vista-detalles-vehiculo.js" asp-append-version="true"></script>
 }

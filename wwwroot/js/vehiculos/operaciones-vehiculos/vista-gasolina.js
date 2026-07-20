@@ -21,6 +21,21 @@ function inicializarVistaGasolina() {
     inicializarCalculoLitros();
     inicializarCargaComprobante();
 
+    const montoG = document.getElementById("gasolina-mnyMontoPagado");
+    if (montoG) {
+        montoG.addEventListener("input", () => formatCurrencyInput(montoG));
+    }
+    const precioG = document.getElementById("gasolina-mnyPrecioLitro");
+    if (precioG) {
+        precioG.addEventListener("input", () => formatCurrencyInput(precioG));
+    }
+    const kmG = document.getElementById("gasolina-decKilometrajeActual");
+    if (kmG) {
+        kmG.addEventListener("input", () => {
+            kmG.value = kmG.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        });
+    }
+
     // Eventos de validación en tiempo real para todos los inputs/selects obligatorios
     form.querySelectorAll("input:not([type='file']):not([type='hidden']), select").forEach(campo => {
         ["input", "change"].forEach(evento => campo.addEventListener(evento, () => {
@@ -67,9 +82,9 @@ function inicializarVistaGasolina() {
         formData.append("Id", editModeGasolinaId || 0);
         formData.append("IdVehDatosGenerales", parseInt(document.getElementById("gasolina-idVehDatosGenerales").value, 10));
         formData.append("DteFechaCarga", document.getElementById("gasolina-dteFechaCarga").value);
-        formData.append("MnyMontoPagado", parseFloat(document.getElementById("gasolina-mnyMontoPagado").value));
-        formData.append("MnyPrecioLitro", parseFloat(document.getElementById("gasolina-mnyPrecioLitro").value));
-        formData.append("DecKilometrajeActual", parseFloat(document.getElementById("gasolina-decKilometrajeActual").value));
+        formData.append("MnyMontoPagado", parseFloat(document.getElementById("gasolina-mnyMontoPagado").value.replace(/,/g, "")));
+        formData.append("MnyPrecioLitro", parseFloat(document.getElementById("gasolina-mnyPrecioLitro").value.replace(/,/g, "")));
+        formData.append("DecKilometrajeActual", parseFloat(document.getElementById("gasolina-decKilometrajeActual").value.replace(/,/g, "")));
         formData.append("IdVehFormaPago", parseInt(document.getElementById("gasolina-idVehFormaPago").value, 10));
         formData.append("StrUrlComprobantePago", document.getElementById("gasolina-strUrlComprobantePago").value || "");
         formData.append("IdVehCatGasolineras", parseInt(document.getElementById("gasolina-idVehCatGasolineras").value, 10));
@@ -125,40 +140,61 @@ async function cargarCatalogosGasolina() {
     try {
         const [vehRes, empRes, asigRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
-            fetch("/Empleado/GetEmpleados").then(r => r.json()),
+            fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
             fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
-        // 1. Cargar vehículos
+        // Asignaciones activas para vinculación y filtrado
+        if (asigRes.success && asigRes.data) {
+            asignacionesActivasGasolina = asigRes.data;
+        }
+
+        const vehIdAsignados = new Set(
+            (asignacionesActivasGasolina || [])
+                .map(a => Number(a.idVehDatosGenerales ?? a.IdVehDatosGenerales))
+                .filter(id => !isNaN(id) && id > 0)
+        );
+
+        const empIdAsignados = new Set(
+            (asignacionesActivasGasolina || [])
+                .map(a => Number(a.idEmpEmpleado ?? a.IdEmpEmpleado))
+                .filter(id => !isNaN(id) && id > 0)
+        );
+
+        // 1. Cargar solo vehículos asignados
         const selectVeh = document.getElementById("gasolina-idVehDatosGenerales");
         if (selectVeh && vehRes.success && vehRes.data) {
             listaVehiculosGasolina = vehRes.data;
-            selectVeh.innerHTML = '<option value="">Seleccionar...</option>';
+            selectVeh.innerHTML = '<option value="">Seleccionar vehículo asignado...</option>';
             vehRes.data.forEach(v => {
-                const opt = document.createElement("option");
-                opt.value = String(v.id);
-                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                selectVeh.appendChild(opt);
+                const vId = Number(v.id ?? v.Id);
+                if (vehIdAsignados.has(vId)) {
+                    const opt = document.createElement("option");
+                    opt.value = String(vId);
+                    opt.textContent = `${v.strPlaca || v.StrPlaca} - ${v.strModelo || v.StrModelo} (${v.intAnio || v.IntAnio})`;
+                    selectVeh.appendChild(opt);
+                }
             });
         }
 
-        // 2. Cargar empleados
+        // 2. Cargar solo empleados asignados
         const selectEmp = document.getElementById("gasolina-idEmpEmpleado");
         if (selectEmp && empRes.success && empRes.data) {
             listaEmpleadosGasolina = empRes.data;
-            selectEmp.innerHTML = '<option value="">Seleccionar...</option>';
+            selectEmp.innerHTML = '<option value="">Seleccionar chofer asignado...</option>';
             empRes.data.forEach(e => {
-                const opt = document.createElement("option");
-                opt.value = String(e.id);
-                const nombreCompleto = e.strNombre + ' ' + e.strApellidoPaterno + (e.strApellidoMaterno ? ' ' + e.strApellidoMaterno : '');
-                opt.textContent = nombreCompleto;
-                selectEmp.appendChild(opt);
+                const eId = Number(e.id ?? e.Id);
+                if (empIdAsignados.has(eId)) {
+                    const opt = document.createElement("option");
+                    opt.value = String(eId);
+                    const nom = e.strNombre || e.StrNombre || '';
+                    const pat = e.strApellidoPaterno || e.StrApellidoPaterno || '';
+                    const mat = e.strApellidoMaterno || e.StrApellidoMaterno || '';
+                    const nombreCompleto = `${nom} ${pat} ${mat}`.trim();
+                    opt.textContent = nombreCompleto;
+                    selectEmp.appendChild(opt);
+                }
             });
-        }
-
-        // Asignaciones activas para vinculación
-        if (asigRes.success && asigRes.data) {
-            asignacionesActivasGasolina = asigRes.data;
         }
 
         // Vinculación bidireccional segura
@@ -287,8 +323,8 @@ function inicializarCalculoLitros() {
     if (!monto || !precio || !litros) return;
 
     const calcular = () => {
-        const valMonto = parseFloat(monto.value) || 0;
-        const valPrecio = parseFloat(precio.value) || 0;
+        const valMonto = parseFloat(monto.value.replace(/,/g, "")) || 0;
+        const valPrecio = parseFloat(precio.value.replace(/,/g, "")) || 0;
         if (valMonto > 0 && valPrecio > 0) {
             litros.textContent = (valMonto / valPrecio).toFixed(2) + " L";
         } else {
@@ -305,6 +341,10 @@ function inicializarCargaComprobante() {
     const area = document.getElementById("gasolinaComprobanteArea");
     const input = document.getElementById("gasolinaComprobanteArchivo");
     if (!area || !input) return;
+
+    input.addEventListener("click", event => {
+        event.stopPropagation();
+    });
 
     // Al hacer clic en el área, abre el selector de archivos nativo (evitando el botón Quitar)
     area.addEventListener("click", event => {
@@ -328,6 +368,11 @@ function inicializarCargaComprobante() {
     });
 
     // Cambia la clase visual del área al arrastrar un archivo sobre ella
+    area.addEventListener("dragenter", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.add("is-drag-over");
+    });
     area.addEventListener("dragover", event => {
         event.preventDefault();
         event.stopPropagation();
@@ -489,21 +534,24 @@ function validarCampoGasolina(campo) {
     if (!mensaje) {
         switch (campo.id) {
             case "gasolina-decKilometrajeActual": {
-                const num = Number(valor);
+                const rawVal = valor.replace(/,/g, "");
+                const num = Number(rawVal);
                 if (isNaN(num) || num < 0 || num > 999999) {
                     mensaje = "Kilometraje no válido.";
                 }
                 break;
             }
             case "gasolina-mnyMontoPagado": {
-                const num = Number(valor);
+                const rawVal = valor.replace(/,/g, "");
+                const num = Number(rawVal);
                 if (isNaN(num) || num <= 0 || num > 999999) {
                     mensaje = "Monto pagado no válido (debe ser mayor a 0).";
                 }
                 break;
             }
             case "gasolina-mnyPrecioLitro": {
-                const num = Number(valor);
+                const rawVal = valor.replace(/,/g, "");
+                const num = Number(rawVal);
                 if (isNaN(num) || num <= 0 || num > 999) {
                     mensaje = "Precio por litro no válido (debe ser mayor a 0).";
                 }
@@ -568,14 +616,16 @@ function renderGasolinaTable() {
     }
 
     tbody.innerHTML = listaGasolinas.map(g => {
-        const v = listaVehiculosGasolina.find(veh => veh.id === g.idVehDatosGenerales);
-        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
-        const modelo = v ? v.strModelo : "Desconocido";
-        const placa = v ? v.strPlaca : "—";
+        const vehIdTarget = Number(g.idVehDatosGenerales ?? g.IdVehDatosGenerales);
+        const v = listaVehiculosGasolina.find(veh => Number(veh.id ?? veh.Id) === vehIdTarget);
+        const marca = (window.obtenerNombreMarcaVehiculo && v) ? window.obtenerNombreMarcaVehiculo(v) : (v ? (v.strVehCatMarcaVehiculo || v.StrVehCatMarcaVehiculo || v.strMarca || "Desconocida") : "Desconocida");
+        const modelo = v ? (v.strModelo || v.StrModelo || "Desconocido") : "Desconocido";
+        const placa = v ? (v.strPlaca || v.StrPlaca || "—") : "—";
         const brandModel = `${marca} ${modelo}`;
 
-        const emp = listaEmpleadosGasolina.find(e => e.id === g.idEmpEmpleado);
-        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (g.strEmpEmpleado || "Desconocido");
+        const empIdTarget = Number(g.idEmpEmpleado ?? g.IdEmpEmpleado);
+        const emp = listaEmpleadosGasolina.find(e => Number(e.id ?? e.Id) === empIdTarget);
+        const empleadoName = emp ? ((emp.strNombre || emp.StrNombre || "") + " " + (emp.strApellidoPaterno || emp.StrApellidoPaterno || "") + ((emp.strApellidoMaterno || emp.StrApellidoMaterno) ? " " + (emp.strApellidoMaterno || emp.StrApellidoMaterno) : "")).trim() : (g.strEmpEmpleado || "Desconocido");
 
         return `
             <tr>
@@ -689,7 +739,11 @@ function editarGasolina(id) {
         selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    document.getElementById("gasolina-decKilometrajeActual").value = g.decKilometrajeActual;
+    const kmEl = document.getElementById("gasolina-decKilometrajeActual");
+    if (kmEl) {
+        kmEl.value = g.decKilometrajeActual;
+        if (kmEl.value) kmEl.value = kmEl.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
     
     if (g.dteFechaCarga) {
         document.getElementById("gasolina-dteFechaCarga").value = g.dteFechaCarga.split("T")[0];
@@ -700,8 +754,16 @@ function editarGasolina(id) {
         selectEmp.value = String(g.idEmpEmpleado);
         selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
     }
-    document.getElementById("gasolina-mnyMontoPagado").value = g.mnyMontoPagado;
-    document.getElementById("gasolina-mnyPrecioLitro").value = g.mnyPrecioLitro;
+    const montoEl = document.getElementById("gasolina-mnyMontoPagado");
+    if (montoEl) {
+        montoEl.value = g.mnyMontoPagado;
+        if (montoEl.value) formatCurrencyInput(montoEl);
+    }
+    const precioEl = document.getElementById("gasolina-mnyPrecioLitro");
+    if (precioEl) {
+        precioEl.value = g.mnyPrecioLitro;
+        if (precioEl.value) formatCurrencyInput(precioEl);
+    }
     document.getElementById("gasolina-idVehFormaPago").value = g.idVehFormaPago;
 
     if (g.strUrlComprobantePago) {
@@ -768,4 +830,26 @@ function resetearFormularioGasolina() {
 
 function escapeHtml(text) {
     return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+/**
+ * Formatea en tiempo real un input de tipo moneda, permitiendo solo un punto decimal
+ * e insertando comas para separar los miles mientras el usuario escribe.
+ * @param {HTMLInputElement} input - El elemento input a formatear.
+ */
+function formatCurrencyInput(input) {
+    let value = input.value.replace(/[^0-9.]/g, "");
+    const parts = value.split(".");
+    if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+    }
+    let integerPart = parts[0];
+    let decimalPart = parts[1];
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (decimalPart !== undefined) {
+        decimalPart = decimalPart.substring(0, 2);
+        input.value = integerPart + "." + decimalPart;
+    } else {
+        input.value = integerPart;
+    }
 }

@@ -1,4 +1,4 @@
-﻿using Cavex.Principal.ApiClients.VehDaniosAccidentes;
+using Cavex.Principal.ApiClients.VehDaniosAccidentes;
 using Cavex.Principal.Common;
 using Cavex.Principal.Models.VehDaniosAccidentes;
 using Cavex.Principal.Services.Interfaces;
@@ -25,10 +25,10 @@ namespace Cavex.Principal.Services.Implementations
             ExecuteAsync(() => _vehDaniosAccidentesApi.GetByIdAsync(id, cancellationToken), "No fue posible obtener el registro de VehDaniosAccidentes.");
 
         public Task<ResponseWrapper<VehDaniosAccidentesDto>> CrearAsync(VehDaniosAccidentesSaveDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehDaniosAccidentesApi.CreateAsync(dto, cancellationToken), "No fue posible crear el registro de VehDaniosAccidentes.");
+            ExecuteAsync(() => _vehDaniosAccidentesApi.CreateAsync(RequestWrapper<VehDaniosAccidentesSaveDto>.Create(dto), cancellationToken), "No fue posible crear el registro de VehDaniosAccidentes.");
 
         public Task<ResponseWrapper<VehDaniosAccidentesDto>> EditarAsync(VehDaniosAccidentesEditDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehDaniosAccidentesApi.UpdateAsync(dto, cancellationToken), "No fue posible editar el registro de VehDaniosAccidentes.");
+            ExecuteAsync(() => _vehDaniosAccidentesApi.UpdateAsync(dto.Id, RequestWrapper<VehDaniosAccidentesEditDto>.Create(dto), cancellationToken), "No fue posible editar el registro de VehDaniosAccidentes.");
 
         public Task<ResponseWrapper<bool>> EliminarAsync(int id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehDaniosAccidentesApi.DeleteAsync(id, cancellationToken), "No fue posible eliminar el registro de VehDaniosAccidentes.");

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehVerificacion
 {
@@ -29,10 +29,10 @@ namespace Cavex.Principal.Models.VehVerificacion
         public string StrSemestre { get; set; } = string.Empty;
 
         [Display(Name = "Fecha de verificacion")]
-        public DateTime DteFechaVerificacion { get; set; }
+        public DateOnly DteFechaVerificacion { get; set; }
 
         [Display(Name = "Fecha de vencimiento")]
-        public DateTime DteFechaVencimiento { get; set; }
+        public DateOnly DteFechaVencimiento { get; set; }
 
         public int IdVehCatStatus { get; set; }
 

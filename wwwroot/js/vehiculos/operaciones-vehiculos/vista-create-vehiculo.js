@@ -212,7 +212,7 @@ function configurarSanitizadores() {
 
     serie?.addEventListener("input", () => { serie.value = serie.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
     placa?.addEventListener("input", () => { placa.value = placa.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""); });
-    motor?.addEventListener("input", () => { motor.value = motor.value.replace(/[^0-9]/g, ""); });
+    motor?.addEventListener("input", () => { motor.value = motor.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
 }
 
 function inicializarContadorObservaciones() {
@@ -232,6 +232,9 @@ function inicializarCargaImagen() {
     const input = document.getElementById("vehiculoFotoArchivo");
     if (!area || !input) return;
 
+    input.addEventListener("click", event => {
+        event.stopPropagation();
+    });
     area.addEventListener("click", event => {
         if (!event.target.closest(".vehiculo-file-actions button")) input.click();
     });
@@ -240,6 +243,11 @@ function inicializarCargaImagen() {
             event.preventDefault();
             input.click();
         }
+    });
+    area.addEventListener("dragenter", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.add("is-drag-over");
     });
     area.addEventListener("dragover", event => { event.preventDefault(); area.classList.add("is-drag-over"); });
     area.addEventListener("dragleave", () => area.classList.remove("is-drag-over"));
@@ -394,8 +402,8 @@ function validarCampoVehiculo(campo) {
                 break;
             case "strNumMotor":
                 if (original !== valor) mensaje = "El número de motor no debe iniciar ni terminar con espacios.";
-                else if (!/^[0-9]+$/.test(valor)) mensaje = "El número de motor solo permite números.";
-                else if (Number(valor) > 2147483647) mensaje = "El número de motor supera el límite máximo permitido.";
+                else if (!/^[A-Z0-9]+$/.test(valor)) mensaje = "El número de motor solo permite letras y números.";
+                else if (valor.length > 50) mensaje = "El número de motor no debe superar 50 caracteres.";
                 break;
             case "decKilometrajeActual": {
                 const rawVal = valor.replace(/,/g, "");
@@ -472,7 +480,7 @@ function validarCampoVehiculoEnTyping(campo) {
                 if (original !== valor || valor.length > 20 || !/^[A-Z0-9-]+$/.test(valor)) mensaje = "Invalido";
                 break;
             case "strNumMotor":
-                if (original !== valor || !/^[0-9]+$/.test(valor) || Number(valor) > 2147483647) mensaje = "Invalido";
+                if (original !== valor || !/^[A-Z0-9]+$/.test(valor) || valor.length > 50) mensaje = "Invalido";
                 break;
             case "decKilometrajeActual": {
                 const rawVal = valor.replace(/,/g, "");
@@ -569,21 +577,30 @@ async function cargarDatosVehiculoParaEditar(id) {
             }
             idInput.value = id;
 
-            document.getElementById("strNumSerie").value = v.strNumSerie || "";
-            document.getElementById("strModelo").value = v.strModelo || "";
-            document.getElementById("intAnio").value = v.intAnio || "";
-            document.getElementById("strVersion").value = v.strVersion || "";
-            document.getElementById("strPlaca").value = v.strPlaca || "";
-            document.getElementById("strNumMotor").value = v.strNumMotor || v.strMotor || "";
-            document.getElementById("decKilometrajeActual").value = formatNumberWithCommas(v.decKilometrajeActual || 0);
-            document.getElementById("strObservaciones").value = v.strObservaciones || "";
-
-            document.getElementById("idVehCatMarcaVehiculo").value = String(v.idVehCatMarcaVehiculo || "");
-            document.getElementById("idVehCatColor").value = String(v.idVehCatColor || "");
-            document.getElementById("idVehCatTipoVehiculo").value = String(v.idVehCatTipoVehiculo || "");
-            document.getElementById("idVehCatCapacidad").value = String(v.idVehCatCapacidad || "");
-            document.getElementById("idVehCatTipoCombustible").value = String(v.idVehCatTipoCombustible || "");
-            document.getElementById("idVehCatTransmision").value = String(v.idVehCatTransmision || "");
+            // Función helper para obtener valores de propiedades tolerando variaciones entre camelCase y PascalCase
+            const getVal = (propCamel, propPascal) => {
+                if (v[propCamel] !== undefined && v[propCamel] !== null) return String(v[propCamel]);
+                if (v[propPascal] !== undefined && v[propPascal] !== null) return String(v[propPascal]);
+                return "";
+            };
+ 
+            // Asigna los datos a los inputs de texto y texto enriquecido
+            document.getElementById("strNumSerie").value = getVal("strNumSerie", "StrNumSerie");
+            document.getElementById("strModelo").value = getVal("strModelo", "StrModelo");
+            document.getElementById("intAnio").value = getVal("intAnio", "IntAnio");
+            document.getElementById("strVersion").value = getVal("strVersion", "StrVersion");
+            document.getElementById("strPlaca").value = getVal("strPlaca", "StrPlaca");
+            document.getElementById("strNumMotor").value = getVal("strNumMotor", "StrNumMotor") || getVal("strMotor", "StrMotor");
+            document.getElementById("decKilometrajeActual").value = formatNumberWithCommas(getVal("decKilometrajeActual", "DecKilometrajeActual") || 0);
+            document.getElementById("strObservaciones").value = getVal("strObservaciones", "StrObservaciones");
+ 
+            // Restaura y selecciona correctamente las opciones de los dropdowns usando fallbacks de propiedades
+            document.getElementById("idVehCatMarcaVehiculo").value = getVal("idVehCatMarcaVehiculo", "IdVehCatMarcaVehiculo");
+            document.getElementById("idVehCatColor").value = getVal("idVehCatColor", "IdVehCatColor");
+            document.getElementById("idVehCatTipoVehiculo").value = getVal("idVehCatTipoVehiculo", "IdVehCatTipoVehiculo");
+            document.getElementById("idVehCatCapacidad").value = getVal("idVehCatCapacidad", "IdVehCatCapacidad");
+            document.getElementById("idVehCatTipoCombustible").value = getVal("idVehCatTipoCombustible", "IdVehCatTipoCombustible");
+            document.getElementById("idVehCatTransmision").value = getVal("idVehCatTransmision", "IdVehCatTransmision");
 
             if (v.dteFechaRegistro) {
                 const fechaInput = document.getElementById("dteFechaRegistro");

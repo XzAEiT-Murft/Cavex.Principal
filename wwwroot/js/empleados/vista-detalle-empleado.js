@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('valCurp').textContent = emp.strCurp || '—';
             document.getElementById('valRfc').textContent = emp.strRfc || '—';
-            document.getElementById('valNss').textContent = emp.intNss || '—';
+            document.getElementById('valNss').textContent = emp.bigNss || emp.intNss || '—';
             document.getElementById('valEdad').textContent = emp.intEdad || '—';
             
             if (emp.dteFechaNacimiento) {
@@ -117,8 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const nacOpt = nacsRes.success && nacsRes.data ? nacsRes.data.find(x => x.id === emp.idEmpCatNacionalidad) : null;
             document.getElementById('valNacionalidad').textContent = nacOpt ? toTitleCase(nacOpt.strValor) : '—';
             
-            document.getElementById('valTelCelular').textContent = (emp.empTelefonos && emp.empTelefonos[0]) ? emp.empTelefonos[0].strNumeroCelular || '—' : '—';
-            document.getElementById('valTelFijo').textContent = (emp.empTelefonos && emp.empTelefonos[0]) ? emp.empTelefonos[0].strNumeroFijo || '—' : '—';
+            document.getElementById('valTelCelular').textContent = (emp.empTelefonos && emp.empTelefonos[0]) ? (emp.empTelefonos[0].bigNumeroCelular || emp.empTelefonos[0].strNumeroCelular || '—') : '—';
+            document.getElementById('valTelFijo').textContent = (emp.empTelefonos && emp.empTelefonos[0]) ? (emp.empTelefonos[0].bigNumeroFijo || emp.empTelefonos[0].strNumeroFijo || '—') : '—';
             document.getElementById('valCorreo').textContent = emp.strCorreoElectronico || '—';
 
             if (emp.empDireccion) {
@@ -296,7 +296,7 @@ function createReferenceHtmlItem(ref) {
     const fullName = toTitleCase(ref.strNombreCompleto);
     const firstLetter = fullName && fullName !== '—' ? fullName.charAt(0).toUpperCase() : 'R';
     const relationship = toTitleCase(ref.strParentezco || ref.strParentesco || 'Referencia');
-    const phone = ref.intTelefono || ref.intTelefonoCellular || ref.intTelefonoCelular || '—';
+    const phone = ref.bigTelefono || ref.intTelefono || ref.intTelefonoCellular || ref.intTelefonoCelular || '—';
     
     card.innerHTML = `
         <div class="reference-avatar">${firstLetter}</div>

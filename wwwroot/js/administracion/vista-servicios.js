@@ -586,6 +586,9 @@ function resetForm() {
     const form = document.getElementById("formServicio");
     if (form) form.reset();
 
+    const statusField = document.getElementById("intIdStatus");
+    if (statusField) statusField.value = "1";
+
     setText("formTitle", "Registrar servicio");
     setText("formSubtitle", "Ingresa el nombre y la descripcion para registrar el servicio.");
     setText("btnSubmit", "Guardar servicio");
@@ -616,8 +619,8 @@ function getStatusName(service) {
 function getStatusBadgeClass(statusName) {
     const normalized = (statusName || "").toLowerCase();
     return normalized.includes("baja") || normalized.includes("inactivo") || normalized.includes("cancel")
-        ? "badge-danger"
-        : "badge-active";
+        ? "badge badge-danger px-2.5 py-1.5 rounded-pill"
+        : "badge badge-active px-2.5 py-1.5 rounded-pill";
 }
 
 function setText(id, value) {

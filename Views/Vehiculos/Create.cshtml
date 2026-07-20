@@ -1,7 +1,6 @@
 @{
     ViewData["Title"] = "Registro de vehículo";
     ViewData["HeaderEyebrow"] = "Inventario vehicular";
-    ViewData["HeaderTitle"] = "Registro de vehículo";
     ViewData["HeaderSubtitle"] = "Captura los datos de la unidad ha registrar.";
 }
 
@@ -53,10 +52,10 @@
                         <input id="strPlaca" name="strPlaca" maxlength="20" pattern="[A-Za-z0-9-]+" class="form-control" placeholder="ABC-123-D" autocomplete="off" required />
                         <div class="invalid-feedback" id="strPlacaError">La placa es obligatoria.</div>
                     </div>
-                    <div class="col-md-6 col-xl-4">
-                        <label class="form-label" for="intNumMotor">Número de motor</label>
-                        <input id="intNumMotor" name="intNumMotor" type="number" min="0" max="2147483647" step="1" class="form-control" placeholder="123456" autocomplete="off" />
-                        <div class="invalid-feedback" id="intNumMotorError">Captura un número de motor entero no negativo.</div>
+                     <div class="col-md-6 col-xl-4">
+                        <label class="form-label" for="strNumMotor">Número de motor</label>
+                        <input id="strNumMotor" name="strNumMotor" type="text" maxlength="50" class="form-control" placeholder="Ej. 123456ABC" autocomplete="off" />
+                        <div class="invalid-feedback" id="strNumMotorError">Captura un número de motor válido.</div>
                     </div>
                 </div>
             </div>
@@ -95,8 +94,15 @@
                         <div class="invalid-feedback" id="idVehCatTipoCombustibleError">Selecciona un tipo de combustible.</div>
                     </div>
                     <div class="col-md-6 col-xl-4">
+                        <label class="form-label" for="idVehCatTransmision">Transmisión</label>
+                        <select id="idVehCatTransmision" name="idVehCatTransmision" class="form-select" required>
+                            <option value="">Seleccionar...</option>
+                        </select>
+                        <div class="invalid-feedback" id="idVehCatTransmisionError">Selecciona una transmisión.</div>
+                    </div>
+                    <div class="col-md-6 col-xl-4">
                         <label class="form-label" for="decKilometrajeActual">Kilometraje actual</label>
-                        <input id="decKilometrajeActual" name="decKilometrajeActual" type="number" min="0" max="999999" step="1" value="0" class="form-control" required />
+                        <input id="decKilometrajeActual" name="decKilometrajeActual" type="text" maxlength="15" class="form-control" placeholder="Ej. 10,000" required />
                         <div class="invalid-feedback" id="decKilometrajeActualError">El kilometraje es obligatorio.</div>
                         <input type="hidden" id="idVehCatStatus" name="idVehCatStatus" value="1" />
                     </div>
@@ -189,6 +195,5 @@
 </form>
 
 @section Scripts {
-    <!--<script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>-->
-    <script src="~/js/vista-create-vehiculo.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/operaciones-vehiculos/vista-create-vehiculo.js" asp-append-version="true"></script>
 }

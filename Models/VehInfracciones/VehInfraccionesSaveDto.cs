@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehInfracciones
 {
@@ -14,7 +14,7 @@ namespace Cavex.Principal.Models.VehInfracciones
 
         [Required(ErrorMessage = "La fecha de infraccion es obligatoria.")]
         [Display(Name = "Fecha de infraccion")]
-        public DateTime DteFechaInfraccion { get; set; }
+        public DateOnly DteFechaInfraccion { get; set; }
 
         [Required(ErrorMessage = "El motivo es obligatorio.")]
         [StringLength(500, ErrorMessage = "El valor no puede superar los 500 caracteres.")]
@@ -29,7 +29,7 @@ namespace Cavex.Principal.Models.VehInfracciones
         public int IdVehCatStatus { get; set; }
 
         [Display(Name = "Fecha de pago")]
-        public DateTime? DteFechaPago { get; set; }
+        public DateOnly? DteFechaPago { get; set; }
 
         [Display(Name = "Forma de pago")]
         public int? IdVehFormaPago { get; set; }

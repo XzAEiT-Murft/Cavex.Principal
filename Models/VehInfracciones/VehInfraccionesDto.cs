@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehInfracciones
 {
@@ -17,7 +17,7 @@ namespace Cavex.Principal.Models.VehInfracciones
         public string StrEmpEmpleado { get; set; } = string.Empty;
 
         [Display(Name = "Fecha de infraccion")]
-        public DateTime DteFechaInfraccion { get; set; }
+        public DateOnly DteFechaInfraccion { get; set; }
 
         [Display(Name = "Motivo")]
         public string StrMotivo { get; set; } = string.Empty;
@@ -31,7 +31,7 @@ namespace Cavex.Principal.Models.VehInfracciones
         public string StrVehCatStatus { get; set; } = string.Empty;
 
         [Display(Name = "Fecha de pago")]
-        public DateTime? DteFechaPago { get; set; }
+        public DateOnly? DteFechaPago { get; set; }
 
         public int? IdVehFormaPago { get; set; }
 

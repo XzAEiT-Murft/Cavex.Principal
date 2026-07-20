@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehDaniosAccidentes
 {
@@ -17,7 +17,7 @@ namespace Cavex.Principal.Models.VehDaniosAccidentes
         public string StrEmpEmpleado { get; set; } = string.Empty;
 
         [Display(Name = "Fecha del evento")]
-        public DateTime DteFechaEvento { get; set; }
+        public DateOnly DteFechaEvento { get; set; }
 
         [Display(Name = "Descripcion")]
         public string StrDescripcion { get; set; } = string.Empty;

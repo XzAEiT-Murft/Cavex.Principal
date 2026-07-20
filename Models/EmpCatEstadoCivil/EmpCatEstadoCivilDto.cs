@@ -7,9 +7,9 @@ namespace Cavex.Principal.Models.EmpCatEstadoCivil
         public int Id { get; set; }
 
         [Display(Name = "Estado Civil")]
-        public string StrValor { get; set; }
+        public required string StrValor { get; set; }
 
         [Display(Name = "Descripcion")]
-        public string StrDescripcion { get; set; }
+        public string? StrDescripcion { get; set; }
     }
 }

@@ -39,8 +39,8 @@ namespace Cavex.Principal.Models.VehManager
         [Display(Name = "Kilometraje actual")]
         public decimal DecKilometrajeActual { get; set; }
 
-        [Display(Name = "Fecha de registro")]
-        public DateOnly DteFechaRegistro { get; set; }
+        [Display(Name = "Fecha de Asignación")]
+        public DateOnly DteFechaAsignacion { get; set; }
 
         [Display(Name = "Estatus")]
         public string StrVehCatStatus { get; set; } = string.Empty;

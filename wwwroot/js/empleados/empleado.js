@@ -909,7 +909,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     referencias.push({
                         strNombreCompleto: nom,
                         strParentezco: par,
-                        intTelefono: parseInt(tel)
+                        bigTelefono: parseInt(tel) || 0,
+                        intTelefono: parseInt(tel) || 0
                     });
                 });
 
@@ -947,7 +948,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     strCurp: document.getElementById('txtCURP').value,
                     intEdad: parseInt(document.getElementById('txtEdad').value),
                     strCorreoElectronico: document.getElementById('txtCorreo').value,
-                    intNss: parseInt(document.getElementById('txtNSS').value),
+                    bigNss: parseInt(document.getElementById('txtNSS').value) || 0,
+                    intNss: parseInt(document.getElementById('txtNSS').value) || 0,
                     idEmpCatGenero: parseInt(document.getElementById('idGenero').value),
                     idEmpCatEstadoCivil: parseInt(document.getElementById('ddlEstadoCivil').value),
                     idEmpCatNacionalidad: parseInt(document.getElementById('ddlNacionalidad').value),
@@ -999,6 +1001,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     experienciaLaboral: experienciaLaboral,
                     telefonos: [
                         {
+                            bigNumeroFijo: parseInt(document.getElementById('txtTelefonoFijo').value) || 0,
+                            bigNumeroCelular: parseInt(document.getElementById('txtTelefonoCelular').value) || null,
                             strNumeroFijo: document.getElementById('txtTelefonoFijo').value || "",
                             strNumeroCelular: document.getElementById('txtTelefonoCelular').value
                         }
@@ -1204,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('txtRFC').value = emp.strRfc;
                     document.getElementById('txtCURP').value = emp.strCurp;
                     document.getElementById('txtCorreo').value = emp.strCorreoElectronico;
-                    document.getElementById('txtNSS').value = emp.intNss;
+                    document.getElementById('txtNSS').value = emp.bigNss || emp.intNss || '';
 
                     document.getElementById('idGenero').value = emp.idEmpCatGenero;
                     document.getElementById('idGenero').dispatchEvent(new Event('change'));
@@ -1274,8 +1278,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Mapear Teléfonos
                     if (emp.empTelefonos && emp.empTelefonos.length > 0) {
                         const telefono = emp.empTelefonos[0];
-                        document.getElementById('txtTelefonoFijo').value = telefono.strNumeroFijo || '';
-                        document.getElementById('txtTelefonoCelular').value = telefono.strNumeroCelular || '';
+                        document.getElementById('txtTelefonoFijo').value = telefono.bigNumeroFijo || telefono.strNumeroFijo || '';
+                        document.getElementById('txtTelefonoCelular').value = telefono.bigNumeroCelular || telefono.strNumeroCelular || '';
                     }
 
                     // Mapear Área Laboral
@@ -1319,7 +1323,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (item) {
                                     item.querySelector('.txtRefNombre').value = ref.strNombreCompleto;
                                     item.querySelector('.txtRefParentesco').value = ref.strParentezco;
-                                    item.querySelector('.txtRefTelefono').value = ref.intTelefono;
+                                    item.querySelector('.txtRefTelefono').value = ref.bigTelefono || ref.intTelefono || '';
                                 }
                             });
                             actualizarNombresDinamicos();
@@ -1793,3 +1797,63 @@ function actualizarNombresDinamicos() {
         if (telefono) telefono.name = `Referencias[${idx}].TelefonoCelular`;
     });
 }
+
+// ─── Lógica de Carga para Edición de Empleado ───
+let editModeEmpleadoId = null;
+
+async function verificarEdicionEmpleado() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const idParam = urlParams.get('id');
+    if (!idParam) return;
+
+    editModeEmpleadoId = parseInt(idParam, 10);
+    if (isNaN(editModeEmpleadoId) || editModeEmpleadoId <= 0) return;
+
+    try {
+        const response = await fetch('/Empleado/GetEmpleado?id=' + editModeEmpleadoId);
+        const result = await response.json();
+        if (result && result.success && result.data) {
+            const emp = result.data;
+            
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val != null) el.value = val;
+            };
+
+            setVal('txtNombre', emp.strNombre || emp.StrNombre);
+            setVal('txtApellidoPaterno', emp.strApellidoPaterno || emp.StrApellidoPaterno);
+            setVal('txtApellidoMaterno', emp.strApellidoMaterno || emp.StrApellidoMaterno);
+            setVal('txtCurp', emp.strCurp || emp.StrCurp);
+            setVal('txtRfc', emp.strRfc || emp.StrRfc);
+            setVal('txtNss', emp.bigNss || emp.BigNss);
+            setVal('txtCorreo', emp.strCorreoElectronico || emp.StrCorreoElectronico);
+            if (emp.dteFechaNacimiento || emp.DteFechaNacimiento) {
+                setVal('txtFechaNacimiento', emp.dteFechaNacimiento || emp.DteFechaNacimiento);
+            }
+            if (emp.idEmpCatGenero || emp.IdEmpCatGenero) {
+                setVal('ddlGenero', emp.idEmpCatGenero || emp.IdEmpCatGenero);
+            }
+            if (emp.idEmpCatEstadoCivil || emp.IdEmpCatEstadoCivil) {
+                setVal('ddlEstadoCivil', emp.idEmpCatEstadoCivil || emp.IdEmpCatEstadoCivil);
+            }
+            if (emp.empTelefonos && emp.empTelefonos.length > 0) {
+                setVal('txtTelefono', emp.empTelefonos[0].strTelefono || emp.empTelefonos[0].StrTelefono);
+            }
+
+            // Actualizar header visual
+            const headerTitle = document.querySelector('.header-title');
+            if (headerTitle) headerTitle.textContent = `Editar empleado: ${emp.strNombre || ''} ${emp.strApellidoPaterno || ''}`;
+
+            const form = document.getElementById('form-empleado');
+            if (form) {
+                form.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+    } catch (err) {
+        console.error("Error al cargar datos del empleado para edicion:", err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    verificarEdicionEmpleado();
+});

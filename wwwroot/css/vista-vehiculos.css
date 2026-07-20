@@ -155,7 +155,7 @@
 }
 
 .vehiculo-file-preview {
-    align-items: center;
+    align-items: stretch;
     display: grid;
     gap: 12px;
     grid-template-columns: 122px minmax(0, 1fr);
@@ -1069,4 +1069,415 @@
     border-color: #dc2626;
 }
 
+
+
+/* -----------------------------------------------------------
+   MANTENIMIENTO VEHICULAR � estilos espec�ficos
+----------------------------------------------------------- */
+
+/* -- Switch banner ---------------------------------------- */
+.mant-switch-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #1abc9c;
+    background: #f0fdf9;
+}
+
+.mant-switch-banner__text {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    color: #0d233a;
+    font-size: .95rem;
+    font-weight: 500;
+}
+
+.mant-switch-banner__text svg {
+    flex-shrink: 0;
+    color: #1abc9c;
+}
+
+/* -- Toggle switch custom --------------------------------- */
+.mant-toggle {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.mant-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.mant-toggle__track {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: #cbd5e1;
+    border-radius: 28px;
+    transition: background .3s;
+    display: block;
+    flex-shrink: 0;
+}
+
+.mant-toggle input:checked ~ .mant-toggle__track {
+    background: #1abc9c;
+}
+
+.mant-toggle__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .3s, box-shadow .3s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+
+.mant-toggle input:checked ~ .mant-toggle__track .mant-toggle__thumb {
+    transform: translateX(24px);
+}
+
+.mant-toggle__label {
+    font-size: .85rem;
+    font-weight: 700;
+    color: #0d233a;
+    min-width: 24px;
+}
+
+/* -- Tarjeta con estado bloqueado -------------------------- */
+.mant-card {
+    position: relative;
+    transition: opacity .3s;
+}
+
+.mant-card--locked {
+    opacity: .55;
+    pointer-events: none;
+}
+
+.mant-card-locked-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    background: rgba(241,245,249,.85);
+    border-radius: inherit;
+    z-index: 5;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #64748b;
+    backdrop-filter: blur(1px);
+    pointer-events: auto;
+}
+
+.mant-card-locked-overlay svg {
+    flex-shrink: 0;
+    color: #94a3b8;
+}
+
+/* -- Campo total ------------------------------------------- */
+.mant-total-input {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #0d233a;
+    background: #f0fdf9 !important;
+    border-color: #1abc9c !important;
+}
+
+/* -- Avatar chofer ----------------------------------------- */
+.mant-chofer-avatar {
+    background: #e8f4fd;
+    color: #0d233a;
+    border-color: #cbd5e1;
+}
+
+/* -- Upload area deshabilitada ----------------------------- */
+.mant-upload-area {
+    cursor: pointer;
+    border: 2px dashed #94a3b8;
+    border-radius: 10px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: border-color .2s, background .2s;
+}
+
+.mant-upload-area:not(.mant-upload-area--disabled):hover {
+    border-color: #1abc9c;
+    background: #f0fdf9;
+}
+
+.mant-upload-area--disabled {
+    opacity: .4;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.mant-upload-area.dragover {
+    border-color: #1abc9c;
+    background: #f0fdf9;
+}
+
+/* -- Barra de acci�n con info contextual -------------------- */
+.mant-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.mant-action-info {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .85rem;
+    color: #64748b;
+    flex: 1;
+    min-width: 200px;
+}
+
+.mant-action-info svg {
+    flex-shrink: 0;
+    color: #1abc9c;
+}
+
+/* -- Timeline ----------------------------------------------- */
+.mant-timeline-card {
+    padding: 1.5rem 2rem;
+}
+
+.mant-timeline-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0d233a;
+    margin-bottom: 1.5rem;
+}
+
+.mant-timeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+}
+
+.mant-timeline-connector {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, #1abc9c, #cbd5e1);
+    min-width: 30px;
+}
+
+.mant-timeline-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+}
+
+.mant-timeline-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    border: 2px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    transition: background .3s, border-color .3s;
+}
+
+.mant-timeline-step--active .mant-timeline-dot {
+    background: #1abc9c;
+    border-color: #1abc9c;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(26,188,156,.15);
+}
+
+.mant-timeline-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .15rem;
+    text-align: center;
+    max-width: 110px;
+}
+
+.mant-timeline-label strong {
+    font-size: .75rem;
+    color: #0d233a;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+.mant-timeline-label span {
+    font-size: .7rem;
+    color: #94a3b8;
+}
+
+@media (max-width: 640px) {
+    .mant-timeline {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .75rem;
+    }
+    .mant-timeline-connector {
+        width: 2px;
+        height: 24px;
+        min-width: unset;
+        background: linear-gradient(180deg, #1abc9c, #cbd5e1);
+    }
+}
+
+/* Custom CAVEX Searchable Select Component */
+.cavex-select-container {
+    position: relative;
+    width: 100%;
+}
+
+.cavex-select-hidden,
+select.cavex-select-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.cavex-select-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 46px;
+    padding: 11px 16px;
+    background-color: #ffffff;
+    border: 1.5px solid #b4d8db;
+    border-radius: 11px;
+    font-weight: 650;
+    font-size: 0.92rem;
+    color: #061b3a;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(6, 27, 58, 0.03);
+}
+
+.cavex-select-control:hover {
+    border-color: #008c95;
+    box-shadow: 0 4px 12px rgba(0, 140, 149, 0.08);
+}
+
+.cavex-select-control.is-open {
+    border-color: #008c95;
+    box-shadow: 0 0 0 3px rgba(0, 140, 149, 0.15);
+}
+
+.cavex-select-control.is-open .cavex-select-arrow {
+    transform: rotate(180deg);
+    transition: transform 0.2s ease;
+}
+
+.cavex-select-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    z-index: 1060;
+    background: #ffffff;
+    border: 1px solid rgba(0, 140, 149, 0.25);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(6, 27, 58, 0.16);
+    padding: 10px;
+    display: none;
+    animation: cavexDropdownFadeIn 0.15s ease;
+}
+
+@keyframes cavexDropdownFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.cavex-select-dropdown.is-open {
+    display: block;
+}
+
+.cavex-select-search-box {
+    display: flex;
+    align-items: center;
+    background: #f4f8fa;
+    border: 1.5px solid #b4d8db;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.cavex-select-search-box:focus-within {
+    border-color: #008c95;
+    background: #ffffff;
+}
+
+.cavex-select-search-box input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #061b3a;
+    margin-left: 8px;
+}
+
+.cavex-select-options-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.cavex-select-options-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.cavex-select-options-list::-webkit-scrollbar-thumb {
+    background: #b4d8db;
+    border-radius: 4px;
+}
+
+.cavex-select-option {
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #061b3a;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    margin-bottom: 2px;
+}
+
+.cavex-select-option:hover {
+    background: #f0f8f8;
+    color: #008c95;
+}
+
+.cavex-select-option.is-selected {
+    background: #eaf6f6;
+    font-weight: 700;
+    color: #008c95;
+}
 
