@@ -80,5 +80,23 @@ namespace Cavex.Principal.Controllers
             ViewData["GasolineraId"] = id ?? 1;
             return View();
         }
+
+        //Pantalla para agregar Responsable de Servicio
+        [HttpGet("Vehiculos/ResponsableServicio/{id:int?}")]
+
+        public IActionResult ResponsableServicio(int? id)
+        {
+            ViewData["Responsable"] = id ?? 1;
+            return View();
+        }
+
+        //Pantalla para agregar Marca de Llantas
+        [HttpGet("Vehiculos/MarcaLlanta/{id:int?}")]
+
+        public IActionResult MarcaLlanta(int? id)
+        {
+            ViewData["Responsable"] = id ?? 1;
+            return View();
+        }
     }
 }
