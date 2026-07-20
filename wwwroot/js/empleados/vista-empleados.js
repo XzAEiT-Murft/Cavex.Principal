@@ -33,23 +33,21 @@ function loadEmpleadosFromServer() {
                 if (result.data && Array.isArray(result.data)) {
                     // Mapea la lista de registros de base de datos a un formato estandarizado para la vista
                     empleados = result.data.map(item => {
-                        // Concatena el nombre y apellidos (el materno es opcional y se evalúa si existe)
-                        const rawFullName = item.strNombre + ' ' + item.strApellidoPaterno + (item.strApellidoMaterno ? ' ' + item.strApellidoMaterno : '');
+                        const nom = item.strNombre || item.StrNombre || '';
+                        const pat = item.strApellidoPaterno || item.StrApellidoPaterno || '';
+                        const mat = item.strApellidoMaterno || item.StrApellidoMaterno || '';
+                        const rawFullName = (nom + ' ' + pat + (mat ? ' ' + mat : '')).trim();
+                        const stId = item.idCatStatus ?? item.IdCatStatus ?? 1;
                         return {
-                            id: item.id,
-                            // Aplica formato Title Case al nombre completo usando el helper global
-                            nombre: toTitleCase(rawFullName),
-                            curp: item.strCurp,
-                            rfc: item.strRfc,
-                            // Si no tiene condiciones laborales registradas, se indica explícitamente
-                            area: toTitleCase(item.strEmpCondicionesLaborales || 'Sin Condiciones Laborales'),
-                            // Si no tiene tipo de contratación definido, se indica explícitamente
-                            puesto: toTitleCase(item.strEmpCatTipoContratacion || 'Sin Tipo de Contratación'),
-                            correo: item.strCorreoElectronico,
-                            // Extrae el número de celular del arreglo de teléfonos si existe un registro, en caso contrario asigna '—'
-                            telefono: (item.empTelefonos && item.empTelefonos.length > 0) ? (item.empTelefonos[0].strNumeroCelular || '—') : '—',
-                            // Define el estado activo mapeando el idCatStatus o cadena de texto
-                            activo: item.idCatStatus === 1 || item.strCatStatus === "Activo" || item.strCatStatus === "1"
+                            id: item.id ?? item.Id,
+                            nombre: typeof toTitleCase === 'function' ? toTitleCase(rawFullName || 'Sin nombre') : (rawFullName || 'Sin nombre'),
+                            curp: item.strCurp || item.StrCurp || '—',
+                            rfc: item.strRfc || item.StrRfc || '—',
+                            area: typeof toTitleCase === 'function' ? toTitleCase(item.strEmpCondicionesLaborales || item.StrEmpCondicionesLaborales || 'Sin Condiciones Laborales') : (item.strEmpCondicionesLaborales || 'Sin Condiciones Laborales'),
+                            puesto: typeof toTitleCase === 'function' ? toTitleCase(item.strEmpCatTipoContratacion || item.StrEmpCatTipoContratacion || 'Sin Tipo de Contratación') : (item.strEmpCatTipoContratacion || 'Sin Tipo de Contratación'),
+                            correo: item.strCorreoElectronico || item.StrCorreoElectronico || '—',
+                            telefono: (item.empTelefonos && item.empTelefonos.length > 0) ? (item.empTelefonos[0].bigNumeroCelular || item.empTelefonos[0].bigNumeroFijo || item.empTelefonos[0].strNumeroCelular || item.empTelefonos[0].strNumeroFijo || '—') : '—',
+                            activo: stId !== 2
                         };
                     });
                 } else {
@@ -307,21 +305,8 @@ function handleSearch(query) {
 
 // Acción: Editar empleado
 function editEmpleado(id) {
-    Swal.fire({
-        title: 'Redireccionando...',
-        text: 'Se abrirá el formulario para editar los datos de este empleado.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--teal-cavex)',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, ir a editar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Redirige al formulario de creación/edición pasándole el ID
-            window.location.href = '/Empleado/Create?id=' + id;
-        }
-    });
+    if (!id) return;
+    window.location.href = '/Empleado/Create?id=' + id;
 }
 
 // Cambia de forma lógica el estado activo/inactivo (alta/baja) de un empleado enviando una petición POST

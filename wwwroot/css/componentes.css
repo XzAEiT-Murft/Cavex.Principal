@@ -910,7 +910,6 @@
     outline: none;
     border-color: var(--cyan-cavex);
 }
-}
 
 /* --- CONCENTRADO VEHICULAR INTEGRADOR (CA1-CA5) --- */
 
@@ -1201,4 +1200,96 @@
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
     margin-bottom: 16px;
+}
+
+/* Contenedor de Pestañas Segmentadas (Status Filters) */
+.custom-tabs-container {
+    display: inline-flex;
+    background: rgba(6, 27, 58, 0.02);
+    padding: 3px;
+    border-radius: 10px;
+    gap: 2px;
+    border: 1px solid rgba(6, 27, 58, 0.06);
+}
+
+.tab-item {
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--gris);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tab-item:hover {
+    color: var(--azul-cavex);
+    background: rgba(6, 27, 58, 0.04);
+}
+
+.tab-item:focus,
+.tab-item:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.tab-item:active {
+    transform: scale(0.97) !important;
+}
+
+.tab-item.active {
+    background: var(--blanco);
+    color: var(--azul-cavex);
+    box-shadow: 0 2px 6px rgba(6, 27, 58, 0.06);
+}
+
+/* Conteos en Pestañas */
+.tab-count {
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.tab-item.active .tab-count {
+    background: var(--azul-cavex);
+    color: var(--blanco);
+}
+
+.tab-item:not(.active) .tab-count {
+    background: rgba(6, 27, 58, 0.08);
+    color: var(--gris);
+}
+
+.tab-item.active .tab-count.count-active {
+    background: var(--exito);
+    color: white;
+}
+
+.tab-item.active .tab-count.count-inactive {
+    background: var(--error);
+    color: white;
+}
+
+/* Badges de Estado Generales */
+.badge-active {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: var(--exito) !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.badge-danger {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: var(--error) !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    font-size: 0.78rem;
+    font-weight: 800;
 }

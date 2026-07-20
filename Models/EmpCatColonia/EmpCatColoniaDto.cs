@@ -16,7 +16,7 @@ namespace Cavex.Principal.Models.EmpCatColonia
         public int IntCodigoPostal { get; set; }
 
         [Display(Name = "Tipo de Asentamiento")]
-        public string StrTipoAsentamiento { get; set; }
+        public string? StrTipoAsentamiento { get; set; }
 
         [Display(Name = "Municipio")]
         public string StrEmpCatMunicipio { get; set; } = string.Empty;

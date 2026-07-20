@@ -17,8 +17,8 @@ namespace Cavex.Principal.Models
 
         public string StrEstatus { get; set; } = string.Empty;
 
-        public DateTime DteFechaInicio { get; set; }
+        public DateOnly DteFechaInicio { get; set; }
 
-        public DateTime DteFechaFin { get; set; }
+        public DateOnly DteFechaFin { get; set; }
     }
 }

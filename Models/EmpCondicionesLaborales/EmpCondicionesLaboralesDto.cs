@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.EmpCondicionesLaborales
 {
@@ -22,6 +22,6 @@ namespace Cavex.Principal.Models.EmpCondicionesLaborales
         public bool BitDisponibilidadCambioResidencia { get; set; }
 
         [Display(Name = "Fecha de ingreso")]
-        public DateTime DteFechaIngreso { get; set; }
+        public DateOnly DteFechaIngreso { get; set; }
     }
 }

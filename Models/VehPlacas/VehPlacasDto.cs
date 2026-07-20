@@ -19,8 +19,8 @@ namespace Cavex.Principal.Models.VehPlacas
         [Display(Name = "Entidad federativa")]
         public string StrEmpCatEntidadFederativa { get; set; } = string.Empty;
 
-        [Display(Name = "Fecha de asignacion")]
-        public DateTime DteFechaAsignacion { get; set; }
+        [Display(Name = "Fecha de registro")]
+        public DateTime DteFechaRegistro { get; set; }
 
         [Display(Name = "Fecha de vencimiento")]
         public DateTime DteFechaVencimiento { get; set; }

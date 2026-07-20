@@ -45,7 +45,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "El NSS es obligatorio.")]
         [Display(Name = "NSS")]
-        public long IntNss { get; set; }
+        public long BigNss { get; set; }
 
         [Required(ErrorMessage = "El genero es obligatorio.")]
         [Display(Name = "Genero")]
@@ -211,7 +211,7 @@ namespace Cavex.Principal.Models.EmpEmpleado
 
         [Required(ErrorMessage = "El telefono es obligatorio.")]
         [Display(Name = "Telefono")]
-        public long IntTelefono { get; set; }
+        public long BigTelefono { get; set; }
     }
 
     public class EmpExperienciaLaboralSaveDto

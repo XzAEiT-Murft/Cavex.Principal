@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehDaniosAccidentes
 {
@@ -14,7 +14,7 @@ namespace Cavex.Principal.Models.VehDaniosAccidentes
 
         [Required(ErrorMessage = "La fecha del evento es obligatoria.")]
         [Display(Name = "Fecha del evento")]
-        public DateTime DteFechaEvento { get; set; }
+        public DateOnly DteFechaEvento { get; set; }
 
         [Required(ErrorMessage = "La descripcion es obligatoria.")]
         [StringLength(500, ErrorMessage = "El valor no puede superar los 500 caracteres.")]

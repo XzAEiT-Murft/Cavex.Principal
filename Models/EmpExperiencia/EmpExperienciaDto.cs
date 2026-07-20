@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.EmpExperiencia
 {
@@ -16,10 +16,10 @@ namespace Cavex.Principal.Models.EmpExperiencia
         public string StrArea { get; set; } = string.Empty;
 
         [Display(Name = "Fecha de inicio")]
-        public DateTime DteFechaIncio { get; set; }
+        public DateOnly DteFechaIncio { get; set; }
 
         [Display(Name = "Fecha de fin")]
-        public DateTime DteFechaFin { get; set; }
+        public DateOnly DteFechaFin { get; set; }
 
         [Display(Name = "Sueldo")]
         public decimal MnySueldo { get; set; }

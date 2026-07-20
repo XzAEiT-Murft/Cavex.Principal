@@ -2,14 +2,12 @@
 @{
     ViewBag.Title = "Nuevo Servicio";
     ViewBag.HeaderEyebrow = "Configuracion";
-    ViewBag.HeaderTitle = "Nuevo Servicio";
     ViewBag.HeaderSubtitle = "Administra el catalogo de servicios de la plataforma.";
 
     ViewBag.TableTitle = "Listado de servicios";
     ViewBag.TableSubtitle = "Catalogo de tipos de servicios de traslado y sus descripciones.";
     ViewBag.TableCount = 0;
     ViewBag.TableCountLabel = "servicios";
-    ViewBag.TableExtraPill = "Catalogo Activo";
 }
 
 @section Head {
@@ -39,7 +37,7 @@
                 <textarea id="strDescripcion" name="StrDescripcion" class="form-control no-uppercase" rows="3" placeholder="Ej. Traslado estandar sin escalas ni asistencia especial" style="resize: none;"></textarea>
                 <div class="invalid-feedback" id="descripcionFeedback">La descripcion contiene caracteres no validos.</div>
             </div>
-            <div class="col-md-12" id="statusContainer">
+            <div class="col-md-12" id="statusContainer" style="display: none;">
                 <label class="form-label" for="intIdStatus">Estado del servicio</label>
                 <select id="intIdStatus" name="IdCatStatus" class="form-select" required>
                     <option value="">-- Seleccionar Estado --</option>
@@ -94,5 +92,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-servicios.js" asp-append-version="true"></script>
+    <script src="~/js/administracion/vista-servicios.js" asp-append-version="true"></script>
 }

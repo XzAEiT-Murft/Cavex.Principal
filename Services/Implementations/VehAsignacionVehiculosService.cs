@@ -1,4 +1,4 @@
-﻿using Cavex.Principal.ApiClients.CatStatus;
+using Cavex.Principal.ApiClients.CatStatus;
 using Cavex.Principal.Models.CatStatus;
 using Cavex.Principal.Models.CatServicio;
 using Cavex.Principal.ApiClients.VehAsignacionVehiculos;
@@ -28,10 +28,10 @@ namespace Cavex.Principal.Services.Implementations
             ExecuteAsync(() => _vehAsignacionVehiculosApi.GetByIdAsync(id, cancellationToken), "No fue posible obtener el registro de VehAsignacionVehiculos.");
 
         public Task<ResponseWrapper<VehAsignacionVehiculosDto>> CrearAsync(VehAsignacionVehiculosSaveDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehAsignacionVehiculosApi.CreateAsync(dto, cancellationToken), "No fue posible crear el registro de VehAsignacionVehiculos.");
+            ExecuteAsync(() => _vehAsignacionVehiculosApi.CreateAsync(RequestWrapper<VehAsignacionVehiculosSaveDto>.Create(dto), cancellationToken), "No fue posible crear el registro de VehAsignacionVehiculos.");
 
         public Task<ResponseWrapper<VehAsignacionVehiculosDto>> EditarAsync(VehAsignacionVehiculosEditDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehAsignacionVehiculosApi.UpdateAsync(dto, cancellationToken), "No fue posible editar el registro de VehAsignacionVehiculos.");
+            ExecuteAsync(() => _vehAsignacionVehiculosApi.UpdateAsync(dto.Id, RequestWrapper<VehAsignacionVehiculosEditDto>.Create(dto), cancellationToken), "No fue posible editar el registro de VehAsignacionVehiculos.");
 
         public Task<ResponseWrapper<bool>> EliminarAsync(int id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehAsignacionVehiculosApi.DeleteAsync(id, cancellationToken), "No fue posible eliminar el registro de VehAsignacionVehiculos.");

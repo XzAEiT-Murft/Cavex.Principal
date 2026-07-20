@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.EmpCatAreaLaboral
 {
@@ -14,9 +14,8 @@ namespace Cavex.Principal.Models.EmpCatAreaLaboral
         [Display(Name = "Descripcionn")]
         public string? StrDescripcion { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El estatus es obligatorio.")]
         [Display(Name = "Estatus")]
-        public int? IdCatStatus { get; set; }
+        public int IdCatStatus { get; set; } = 1;
 
 
     }

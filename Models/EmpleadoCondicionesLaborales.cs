@@ -19,6 +19,6 @@ namespace Cavex.Principal.Models
 
         public bool BitDisponibilidadCambioResidencia { get; set; }
 
-        public DateTime DteFechaIngreso { get; set; }
+        public DateOnly DteFechaIngreso { get; set; }
     }
 }

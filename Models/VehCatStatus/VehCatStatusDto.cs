@@ -7,7 +7,7 @@ namespace Cavex.Principal.Models.VehCatStatus
         public int Id { get; set; }
 
         [Display(Name = "Status")]
-        public string StrValor { get; set; }
+        public required string StrValor { get; set; }
 
         [Display(Name = "Descripcion")]
         public string? StrDescripcion { get; set; }

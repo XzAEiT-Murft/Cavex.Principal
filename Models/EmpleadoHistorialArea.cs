@@ -15,7 +15,7 @@ namespace Cavex.Principal.Models
         [ForeignKey("EmpEmpleado")]
         public int IdEmpEmpleado { get; set; }
 
-        public DateTime DteFechaInicio { get; set; }
+        public DateOnly DteFechaInicio { get; set; }
 
         public DateTime DteFechaFin { get; set; }
     }

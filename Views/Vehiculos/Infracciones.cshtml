@@ -1,7 +1,6 @@
 @{
     ViewData["Title"] = "Infracciones del vehículo";
     ViewData["HeaderEyebrow"] = "Control vehicular";
-    ViewData["HeaderTitle"] = "Infracciones del vehículo";
     ViewData["HeaderSubtitle"] = "Registra multas, pagos, comprobantes y observaciones relacionadas con cada unidad.";
 }
 
@@ -67,7 +66,7 @@
                         <label class="form-label" for="infraccion-mnyMontoPagado">Monto pagado</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input id="infraccion-mnyMontoPagado" name="mnyMontoPagado" type="number" min="0" max="999999" step="0.01" class="form-control" placeholder="0.00" />
+                            <input id="infraccion-mnyMontoPagado" name="mnyMontoPagado" type="text" class="form-control" placeholder="0.00" />
                         </div>
                         <div class="invalid-feedback" id="infraccion-mnyMontoPagadoError">Captura un monto válido.</div>
                     </div>
@@ -179,5 +178,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-infracciones.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/operaciones-vehiculos/vista-infracciones.js" asp-append-version="true"></script>
 }

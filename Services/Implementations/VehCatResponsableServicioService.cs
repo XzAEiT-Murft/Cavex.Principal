@@ -1,4 +1,4 @@
-﻿using Cavex.Principal.ApiClients.VehCatResponsableServicio;
+using Cavex.Principal.ApiClients.VehCatResponsableServicio;
 using Cavex.Principal.Common;
 using Cavex.Principal.Models.VehCatResponsableServicio;
 using Cavex.Principal.Services.Interfaces;
@@ -25,10 +25,10 @@ namespace Cavex.Principal.Services.Implementations
             ExecuteAsync(() => _vehCatResponsableServicioApi.GetByIdAsync(id, cancellationToken), "No fue posible obtener el registro de VehCatResponsableServicio.");
 
         public Task<ResponseWrapper<VehCatResponsableServicioDto>> CrearAsync(VehCatResponsableServicioSaveDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehCatResponsableServicioApi.CreateAsync(dto, cancellationToken), "No fue posible crear el registro de VehCatResponsableServicio.");
+            ExecuteAsync(() => _vehCatResponsableServicioApi.CreateAsync(new RequestWrapper<VehCatResponsableServicioSaveDto> { Body = dto }, cancellationToken), "No fue posible crear el registro de VehCatResponsableServicio.");
 
         public Task<ResponseWrapper<VehCatResponsableServicioDto>> EditarAsync(VehCatResponsableServicioEditDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehCatResponsableServicioApi.UpdateAsync(dto, cancellationToken), "No fue posible editar el registro de VehCatResponsableServicio.");
+            ExecuteAsync(() => _vehCatResponsableServicioApi.UpdateAsync(dto.Id, new RequestWrapper<VehCatResponsableServicioEditDto> { Body = dto }, cancellationToken), "No fue posible editar el registro de VehCatResponsableServicio.");
 
         public Task<ResponseWrapper<bool>> EliminarAsync(int id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehCatResponsableServicioApi.DeleteAsync(id, cancellationToken), "No fue posible eliminar el registro de VehCatResponsableServicio.");

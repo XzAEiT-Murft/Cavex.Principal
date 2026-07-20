@@ -35,9 +35,16 @@
                 <div class="invalid-feedback" id="nombreFeedback">El nombre del área es obligatorio.</div>
             </div>
             <div class="col-md-12">
-                <label class="form-label" for="strDescripcion">Descripción (Opcional)</label>
+                <label class="form-label" for="strDescripcion">Descripción</label>
                 <textarea id="strDescripcion" name="StrDescripcion" class="form-control no-uppercase" rows="3" placeholder="Ej. Personal encargado del soporte operativo en campo" style="resize: none;"></textarea>
                 <div class="invalid-feedback" id="descripcionFeedback">La descripción contiene caracteres no válidos.</div>
+            </div>
+                <div class="col-md-12" id="statusContainer" style="display: none;">
+                    <label class="form-label" for="intIdStatus">Estado del área laboral</label>
+                    <select id="intIdStatus" name="IdCatStatus" class="form-select" required>
+                        <option value="">-- Seleccionar Estado --</option>
+                    </select>
+                <div class="invalid-feedback" id="statusFeedback">Selecciona un estatus.</div>
             </div>
         </div>
 
@@ -53,7 +60,17 @@
     <partial name="_TableCardHeader" />
 
     <div class="table-filter-bar d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div></div>
+        <div class="custom-tabs-container" id="statusTabs">
+            <button type="button" class="tab-item active" data-status-filter="todos">
+                Todos <span class="tab-count count-all" id="countTodos">0</span>
+            </button>
+            <button type="button" class="tab-item" data-status-filter="activos">
+                Activos <span class="tab-count count-active" id="countActivos">0</span>
+            </button>
+            <button type="button" class="tab-item" data-status-filter="inactivos">
+                Inactivos <span class="tab-count count-inactive" id="countInactivos">0</span>
+            </button>
+        </div>
         <div class="table-search-box position-relative" style="max-width: 260px;">
             <input type="text" id="tableSearch" class="form-control" placeholder="Buscar área..." oninput="handleSearch(this.value)" />
             <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -69,6 +86,7 @@
                 <tr>
                     <th>Nombre del área laboral</th>
                     <th>Descripción</th>
+                    <th style="width: 120px;">Estado</th>
                     <th class="text-end" style="width: 160px;">Acciones</th>
                 </tr>
             </thead>
@@ -92,5 +110,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-arealaboral.js" asp-append-version="true"></script>
+    <script src="~/js/administracion/vista-arealaboral.js" asp-append-version="true"></script>
 }

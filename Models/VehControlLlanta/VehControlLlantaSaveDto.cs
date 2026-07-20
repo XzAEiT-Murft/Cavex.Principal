@@ -53,6 +53,6 @@ namespace Cavex.Principal.Models.VehControlLlanta
 
         [Required(ErrorMessage = "El estatus es obligatorio.")]
         [Display(Name = "Estatus")]
-        public int IdVehCatStatus { get; set; }
+        public int IdVehCatStatus { get; set; } = 1;
     }
 }

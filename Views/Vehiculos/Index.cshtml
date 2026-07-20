@@ -1,17 +1,14 @@
 @{
     ViewBag.Title = "Vehículos";
     ViewBag.HeaderEyebrow = "Administración";
-    ViewBag.HeaderTitle = "Vehículos";
-    ViewBag.HeaderSubtitle = "Consulta al listado de vehículos .";
+    ViewBag.HeaderSubtitle = "Consulta al listado de vehículos activos e inactivos.";
     ViewBag.HeaderButtonText = "Nuevo vehículo";
     ViewBag.HeaderButtonController = "Vehiculos";
     ViewBag.HeaderButtonAction = "Create";
 
     ViewBag.TableTitle = "Listado de vehículos";
-    ViewBag.TableSubtitle = "Registros de ejemplo alineados con los catálogos vehiculares.";
     ViewBag.TableCount = 0;
     ViewBag.TableCountLabel = "vehículos";
-    ViewBag.TableExtraPill = "Datos simulados";
 }
 
 @section Head {
@@ -24,30 +21,24 @@
 <partial name="_PageHeader" />
 
 <!-- Acceso secundario al control de servicios sin alterar la acción principal de alta de vehículos. -->
-<div class="vehiculos-index-actions">
+<div class="vehiculos-index-actions d-flex flex-wrap align-items-center gap-2">
     <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Asignaciones">
-        Asignaciones
+        Asignación de vehículos
     </a>
-    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="DaniosAccidentes">
-        Daños / Accidentes
-    </a>
-    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Llantas">
-        Llantas
+    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Mantenimiento">
+        Ingreso a Taller
     </a>
     <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Gasolina">
-        Gasolina
+        Carga de Gasolina
     </a>
     <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Infracciones">
-        Infracciones
+        Infracciones del vehículo
     </a>
-    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Gasolineras">
-        Gasolineras
+    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="DaniosAccidentes">
+        Daños y accidentes
     </a>
-    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Seguros">
-        Seguros
-    </a>
-    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="ResponsableServicio">
-        Responsable Servicio
+    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Llantas">
+        Control de Llantas
     </a>
 </div>
 
@@ -107,5 +98,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/servicios-vehiculos/vista-vehiculos.js" asp-append-version="true"></script>
 }

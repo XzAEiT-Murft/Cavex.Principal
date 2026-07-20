@@ -63,9 +63,9 @@ namespace Cavex.Principal.Models.VehDatosGenerales
         [Display(Name = "Foto")]
         public string? StrUrlFoto { get; set; }
 
-        [Required(ErrorMessage = "La fecha de registro es obligatoria.")]
-        [Display(Name = "Fecha de registro")]
-        public DateOnly DteFechaRegistro { get; set; } 
+        [Required(ErrorMessage = "La fecha de asignación es obligatoria.")]
+        [Display(Name = "Fecha de asignación")]
+        public DateOnly DteFechaAsignacion { get; set; } 
 
         [StringLength(500, ErrorMessage = "El valor no puede superar los 500 caracteres.")]
         [Display(Name = "Observaciones")]

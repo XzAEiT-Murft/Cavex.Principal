@@ -19,6 +19,17 @@ function inicializarVistaLlantas() {
     cargarCatalogosLlantas();
     inicializarCargaEvidencia();
 
+    const montoLlanta = document.getElementById("llanta-mnyCosto");
+    if (montoLlanta) {
+        montoLlanta.addEventListener("input", () => formatCurrencyInput(montoLlanta));
+    }
+    const kmLlanta = document.getElementById("llanta-decKilometrajeActual");
+    if (kmLlanta) {
+        kmLlanta.addEventListener("input", () => {
+            kmLlanta.value = kmLlanta.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        });
+    }
+
     // Eventos de validación en tiempo real para todos los inputs/selects obligatorios
     form.querySelectorAll("input:not([type='file']):not([type='hidden']), select").forEach(campo => {
         ["input", "change"].forEach(evento => campo.addEventListener(evento, () => {
@@ -71,9 +82,9 @@ function inicializarVistaLlantas() {
         formData.append("StrModelo", document.getElementById("llanta-strModelo").value);
         formData.append("StrMedida", document.getElementById("llanta-strMedida").value);
         formData.append("DteFechaCompra", document.getElementById("llanta-dteFechaCompra").value);
-        formData.append("MnyCosto", parseFloat(document.getElementById("llanta-mnyCosto").value));
+        formData.append("MnyCosto", parseFloat(document.getElementById("llanta-mnyCosto").value.replace(/,/g, "")));
         formData.append("IdVehCatPosicionLlanta", parseInt(document.getElementById("llanta-idVehCatPosicionLlanta").value, 10));
-        formData.append("DecKilometrajeActual", parseFloat(document.getElementById("llanta-decKilometrajeActual").value));
+        formData.append("DecKilometrajeActual", parseFloat(document.getElementById("llanta-decKilometrajeActual").value.replace(/,/g, "")));
         
         if (finVidaInput) formData.append("DteFechaFinVidaEstimada", finVidaInput);
         if (rotacionInput) formData.append("DteFechaRotacion", rotacionInput);
@@ -132,22 +143,9 @@ async function cargarCatalogosLlantas() {
     try {
         const [vehRes, empRes, asigRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
-            fetch("/Empleado/GetEmpleados").then(r => r.json()),
+            fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
             fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
         ]);
-
-        // 1. Cargar vehículos
-        const select = document.getElementById("llanta-idVehDatosGenerales");
-        if (select && vehRes.success && vehRes.data) {
-            listaVehiculosLlantas = vehRes.data;
-            select.innerHTML = '<option value="">Seleccionar...</option>';
-            vehRes.data.forEach(v => {
-                const opt = document.createElement("option");
-                opt.value = String(v.id);
-                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                select.appendChild(opt);
-            });
-        }
 
         // Empleados y asignaciones
         if (empRes.success && empRes.data) {
@@ -155,6 +153,49 @@ async function cargarCatalogosLlantas() {
         }
         if (asigRes.success && asigRes.data) {
             asignacionesActivasLlantas = asigRes.data;
+        }
+
+        const vehIdAsignados = new Set(
+            (asignacionesActivasLlantas || [])
+                .filter(a => (a.decKilometrajeFinal == null && a.DecKilometrajeFinal == null) || Number(a.decKilometrajeFinal ?? a.DecKilometrajeFinal) === 0)
+                .map(a => Number(a.idVehDatosGenerales ?? a.IdVehDatosGenerales))
+                .filter(id => !isNaN(id) && id > 0)
+        );
+
+        // 1. Cargar solo vehículos asignados
+        const select = document.getElementById("llanta-idVehDatosGenerales");
+        if (select && vehRes.success && vehRes.data) {
+            listaVehiculosLlantas = vehRes.data;
+            select.innerHTML = '<option value="">Seleccionar vehículo asignado...</option>';
+            vehRes.data.forEach(v => {
+                const vId = Number(v.id ?? v.Id);
+                if (vehIdAsignados.has(vId)) {
+                    const opt = document.createElement("option");
+                    opt.value = String(vId);
+                    const marcaNombre = v.strVehCatMarcaVehiculo || v.StrVehCatMarcaVehiculo || v.strMarca || "";
+                    const marcaDisplay = marcaNombre ? marcaNombre + " " : "";
+                    opt.textContent = `${v.strPlaca || v.StrPlaca} - ${marcaDisplay}${v.strModelo || v.StrModelo} (${v.intAnio || v.IntAnio})`;
+                    select.appendChild(opt);
+                }
+            });
+
+            select.addEventListener("change", () => {
+                const vId = Number(select.value);
+                const v = listaVehiculosLlantas.find(veh => Number(veh.id ?? veh.Id) === vId);
+                const kmInput = document.getElementById("llanta-decKilometrajeActual");
+                if (kmInput) {
+                    if (v && (v.decKilometrajeActual != null || v.DecKilometrajeActual != null)) {
+                        const km = v.decKilometrajeActual ?? v.DecKilometrajeActual;
+                        kmInput.value = Number(km).toLocaleString("es-MX");
+                        kmInput.readOnly = true;
+                        kmInput.style.backgroundColor = "#e9ecef";
+                    } else {
+                        kmInput.value = "";
+                        kmInput.readOnly = false;
+                        kmInput.style.backgroundColor = "";
+                    }
+                }
+            });
         }
 
     } catch (err) {
@@ -215,6 +256,9 @@ function inicializarCargaEvidencia() {
     const input = document.getElementById("llantaEvidenciaArchivo");
     if (!area || !input) return;
 
+    input.addEventListener("click", event => {
+        event.stopPropagation();
+    });
     area.addEventListener("click", event => {
         if (!event.target.closest(".llanta-file-actions button")) input.click();
     });
@@ -227,6 +271,11 @@ function inicializarCargaEvidencia() {
             event.preventDefault();
             input.click();
         }
+    });
+    area.addEventListener("dragenter", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.add("is-drag-over");
     });
     area.addEventListener("dragover", event => {
         event.preventDefault();
@@ -382,14 +431,16 @@ function validarCampoLlanta(campo) {
                 if (valor.length > 50) mensaje = "La medida no debe superar 50 caracteres.";
                 break;
             case "llanta-mnyCosto": {
-                const num = Number(valor);
+                const rawVal = valor.replace(/,/g, "");
+                const num = Number(rawVal);
                 if (isNaN(num) || num < 0 || num > 999999) {
                     mensaje = "Monto del costo no válido.";
                 }
                 break;
             }
             case "llanta-decKilometrajeActual": {
-                const num = Number(valor);
+                const rawVal = valor.replace(/,/g, "");
+                const num = Number(rawVal);
                 if (isNaN(num) || num < 0 || num > 999999) {
                     mensaje = "Kilometraje no válido.";
                 }
@@ -452,19 +503,23 @@ function renderLlantasTable() {
     // Mapeamos cada llanta a un renglón (tr) de la tabla
     tbody.innerHTML = listaLlantas.map(ll => {
         // Buscamos los datos completos del vehículo vinculado
-        const v = listaVehiculosLlantas.find(veh => veh.id === ll.idVehDatosGenerales);
-        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
-        const modelo = v ? v.strModelo : "Desconocido";
-        const placa = v ? v.strPlaca : "—";
-        const brandModel = `${marca} ${modelo}`;
+        const vehIdTarget = Number(ll.idVehDatosGenerales ?? ll.IdVehDatosGenerales);
+        const v = listaVehiculosLlantas.find(veh => Number(veh.id ?? veh.Id) === vehIdTarget);
+        const marcaNombre = (window.obtenerNombreMarcaVehiculo && v) ? window.obtenerNombreMarcaVehiculo(v) : (v ? (v.strVehCatMarcaVehiculo || v.StrVehCatMarcaVehiculo || v.strMarca || "Desconocida") : "Desconocida");
+        const modelo = v ? (v.strModelo || v.StrModelo || "Desconocido") : "Desconocido";
+        const placa = v ? (v.strPlaca || v.StrPlaca || "—") : "—";
+        const brandModel = `${marcaNombre} ${modelo}`;
 
         // Buscamos el chofer asignado actualmente a este vehículo
-        const asig = asignacionesActivasLlantas.find(a => a.idVehDatosGenerales === ll.idVehDatosGenerales);
+        const asig = asignacionesActivasLlantas.find(a => Number(a.idVehDatosGenerales ?? a.IdVehDatosGenerales) === vehIdTarget);
         let responsableName = "Sin chofer asignado";
         if (asig) {
-            const emp = listaEmpleadosLlantas.find(e => e.id === asig.idEmpEmpleado);
-            responsableName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : "Chofer asignado";
+            const empIdTarget = Number(asig.idEmpEmpleado ?? asig.IdEmpEmpleado);
+            const emp = listaEmpleadosLlantas.find(e => Number(e.id ?? e.Id) === empIdTarget);
+            responsableName = emp ? ((emp.strNombre || emp.StrNombre || "") + " " + (emp.strApellidoPaterno || emp.StrApellidoPaterno || "") + ((emp.strApellidoMaterno || emp.StrApellidoMaterno) ? " " + (emp.strApellidoMaterno || emp.StrApellidoMaterno) : "")).trim() : "Chofer asignado";
         }
+
+        const statusNombre = ll.strVehCatStatus || ll.StrVehCatStatus || "Activa";
 
         // Retornamos el HTML del renglón con las 5 columnas correspondientes
         return `
@@ -472,7 +527,7 @@ function renderLlantasTable() {
                 <td>${escapeHtml(brandModel)}</td>
                 <td><span class="badge bg-light text-dark border">${escapeHtml(placa)}</span></td>
                 <td>${escapeHtml(responsableName)}</td>
-                <td><span class="badge bg-secondary">${escapeHtml(ll.strVehCatStatus)}</span></td>
+                <td><span class="badge bg-secondary">${escapeHtml(statusNombre)}</span></td>
                 <td class="text-end">
                     <!-- Botón de Acciones dropdown estándar -->
                     <div class="dropdown actions-dropdown d-inline-block">
@@ -564,12 +619,20 @@ function editarLlanta(id) {
     editModeLlantaId = id;
 
     document.getElementById("llanta-idVehDatosGenerales").value = ll.idVehDatosGenerales;
-    document.getElementById("llanta-decKilometrajeActual").value = ll.decKilometrajeActual;
+    const kmEl = document.getElementById("llanta-decKilometrajeActual");
+    if (kmEl) {
+        kmEl.value = ll.decKilometrajeActual;
+        if (kmEl.value) kmEl.value = kmEl.value.replace(/[^0-9]/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
     document.getElementById("llanta-idVehCatMarcaLlanta").value = ll.idVehCatMarcaLlanta;
     document.getElementById("llanta-strModelo").value = ll.strModelo;
     document.getElementById("llanta-strMedida").value = ll.strMedida;
     document.getElementById("llanta-dteFechaCompra").value = ll.dteFechaCompra ? ll.dteFechaCompra.split("T")[0] : "";
-    document.getElementById("llanta-mnyCosto").value = ll.mnyCosto;
+    const costEl = document.getElementById("llanta-mnyCosto");
+    if (costEl) {
+        costEl.value = ll.mnyCosto;
+        if (costEl.value) formatCurrencyInput(costEl);
+    }
     document.getElementById("llanta-idVehCatPosicionLlanta").value = ll.idVehCatPosicionLlanta;
     document.getElementById("llanta-idVehCatStatus").value = ll.idVehCatStatus;
 
@@ -641,6 +704,28 @@ function resetearFormularioLlanta() {
         if (statusSelect) statusSelect.value = "1";
     }
     limpiarEvidencia();
+}
+
+/**
+ * Formatea en tiempo real un input de tipo moneda, permitiendo solo un punto decimal
+ * e insertando comas para separar los miles mientras el usuario escribe.
+ * @param {HTMLInputElement} input - El elemento input a formatear.
+ */
+function formatCurrencyInput(input) {
+    let value = input.value.replace(/[^0-9.]/g, "");
+    const parts = value.split(".");
+    if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+    }
+    let integerPart = parts[0];
+    let decimalPart = parts[1];
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (decimalPart !== undefined) {
+        decimalPart = decimalPart.substring(0, 2);
+        input.value = integerPart + "." + decimalPart;
+    } else {
+        input.value = integerPart;
+    }
 }
 
 function escapeHtml(text) {

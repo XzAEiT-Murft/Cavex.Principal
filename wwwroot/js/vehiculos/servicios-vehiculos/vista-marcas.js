@@ -1,7 +1,7 @@
 let marcas = [];
 let editingId = null;
 
-// Variables de paginación y filtros
+// Variables de paginación y búsqueda
 let currentPage = 1;
 let pageSize = 10;
 let searchQuery = '';
@@ -27,10 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
             descInput.classList.remove('is-invalid', 'is-valid');
         });
     }
+
+    resetForm();
 });
 
 function loadMarcasFromServer() {
-    const url = `/Marcas/GetMarcas?pagina=${currentPage}&search=${encodeURIComponent(searchQuery)}`;
+    const url = `/Marcas/GetMarcas?pagina=1&search=${encodeURIComponent(searchQuery)}`;
     fetch(url)
         .then(response => {
             if (!response.ok) {
@@ -39,7 +41,6 @@ function loadMarcasFromServer() {
             return response.json();
         })
         .then(result => {
-            console.log("Respuesta de GetMarcas:", result);
             if (result.success) {
                 if (result.data && Array.isArray(result.data)) {
                     marcas = result.data.map(item => ({
@@ -50,62 +51,58 @@ function loadMarcasFromServer() {
                 } else {
                     marcas = [];
                 }
-                const totalCount = result.totalCount ?? 0;
-                renderMarcas(totalCount);
+                renderMarcas();
             } else {
                 console.error("Error al cargar marcas desde base de datos:", result.message);
-                Swal.fire({
-                    icon: 'error',
-                    title: '¡Ups!',
-                    text: 'No se pudieron obtener los datos de las marcas. ¡Intenta de nuevo!',
-                    confirmButtonColor: 'var(--teal-cavex)'
-                });
                 marcas = [];
-                renderMarcas(0);
+                renderMarcas();
             }
         })
         .catch(err => {
             console.error("Error en petición:", err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error de conexión',
-                text: 'No se pudieron obtener los datos. ¡Intenta de nuevo!',
-                confirmButtonColor: 'var(--teal-cavex)'
-            });
             marcas = [];
-            renderMarcas(0);
+            renderMarcas();
         });
 }
 
 // Función para renderizar las marcas
-function renderMarcas(totalCount) {
+function renderMarcas() {
     const tbody = document.getElementById('marcasTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const totalPages = Math.ceil(totalCount / pageSize) || 1;
-    
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
-    }
-    if (currentPage < 1) {
-        currentPage = 1;
-    }
+    const filtered = marcas.filter(m => {
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            return m.nombre.toLowerCase().includes(q) || (m.descripcion || '').toLowerCase().includes(q);
+        }
+        return true;
+    });
 
-    if (marcas.length === 0) {
+    const totalRecords = filtered.length;
+    const totalPages = Math.ceil(totalRecords / pageSize) || 1;
+    
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalRecords);
+    const pagedList = filtered.slice(startIndex, endIndex);
+
+    if (pagedList.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="3" class="text-center py-5">
                     <div class="text-muted">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 opacity-50"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                         <p class="m-0 font-weight-700">No se encontraron marcas</p>
-                        <small>Prueba ajustando los filtros o la búsqueda</small>
+                        <small>Prueba ajustando la búsqueda</small>
                     </div>
                 </td>
             </tr>
         `;
     } else {
-        marcas.forEach(m => {
+        pagedList.forEach(m => {
             const tr = document.createElement('tr');
             
             const descText = m.descripcion || 'Sin descripción';
@@ -149,37 +146,22 @@ function renderMarcas(totalCount) {
     }
 
     // Actualizar contadores e información en barra inferior
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = Math.min(startIndex + marcas.length, totalCount);
-    const infoText = totalCount > 0 
-        ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalCount} registros`
-        : `Mostrando 0-0 de 0 registros`;
-    const infoEl = document.getElementById('paginationInfo');
-    if (infoEl) infoEl.textContent = infoText;
+    const infoText = totalRecords > 0 
+        ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalRecords} registros`
+        : 'Mostrando 0-0 de 0 registros';
+    
+    const infoElement = document.getElementById('paginationInfo');
+    if (infoElement) infoElement.textContent = infoText;
 
-    // Renderizar botones de paginación
-    renderPagination(totalPages);
-
-    // Actualizar contadores en la cabecera de la tabla
     const countPill = document.querySelector('.table-module .records-pill');
-    if (countPill) {
-        countPill.textContent = `${totalCount} marcas`;
-    }
+    if (countPill) countPill.textContent = `${totalRecords} marcas`;
 
-    const extraPill = document.querySelector('.table-module .records-pill-soft');
-    if (extraPill) {
-        extraPill.textContent = `Página ${currentPage} de ${totalPages}`;
-    }
+    renderPagination(totalPages);
 
     // Inicializar dropdowns de acciones con estrategia 'fixed' para prevenir recortes
     document.querySelectorAll('#marcasTableBody .btn-action-trigger').forEach(el => {
         new bootstrap.Dropdown(el, {
-            popperConfig: (defaultConfig) => {
-                return {
-                    ...defaultConfig,
-                    strategy: 'fixed'
-                };
-            }
+            popperConfig: (defaultConfig) => ({ ...defaultConfig, strategy: 'fixed' })
         });
     });
 }
@@ -188,147 +170,56 @@ function renderMarcas(totalCount) {
 function renderPagination(totalPages) {
     const paginationList = document.getElementById('paginationList');
     if (!paginationList) return;
-    paginationList.innerHTML = '';
 
+    paginationList.innerHTML = '';
     if (totalPages <= 1) return;
 
-    paginationList.appendChild(createPageItem("Anterior", currentPage - 1, currentPage === 1));
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${currentPage - 1})">&laquo;</a>`;
+    paginationList.appendChild(prevLi);
 
-    if (totalPages <= 10) {
-        for (let i = 1; i <= totalPages; i++) {
-            paginationList.appendChild(createPageItem(String(i), i, false, currentPage === i));
-        }
-    } else {
-        // dynamic sliding window for pages 11 to N
-        let startPage = 1;
-        let endPage = 10;
-
-        if (currentPage > 10) {
-            startPage = currentPage - 5;
-            endPage = currentPage + 4;
-            if (endPage > totalPages) {
-                endPage = totalPages;
-                startPage = totalPages - 9;
-            }
-        }
-
-        if (startPage > 1) {
-            paginationList.appendChild(createPageItem("1", 1, false, currentPage === 1));
-            if (startPage > 2) {
-                const li = document.createElement("li");
-                li.className = "page-item disabled";
-                li.innerHTML = '<span class="page-link">...</span>';
-                paginationList.appendChild(li);
-            }
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            paginationList.appendChild(createPageItem(String(i), i, false, currentPage === i));
-        }
-
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                const li = document.createElement("li");
-                li.className = "page-item disabled";
-                li.innerHTML = '<span class="page-link">...</span>';
-                paginationList.appendChild(li);
-            }
-            paginationList.appendChild(createPageItem(String(totalPages), totalPages, false, currentPage === totalPages));
-        }
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${i})">${i}</a>`;
+        paginationList.appendChild(li);
     }
 
-    paginationList.appendChild(createPageItem("Siguiente", currentPage + 1, currentPage === totalPages));
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${currentPage + 1})">&raquo;</a>`;
+    paginationList.appendChild(nextLi);
 }
 
-function createPageItem(text, page, disabled, active) {
-    const li = document.createElement("li");
-    li.className = `page-item ${disabled ? "disabled" : ""} ${active ? "active" : ""}`;
-    
-    let innerContent = text;
-    let ariaLabel = "";
-    if (text === "Anterior") {
-        innerContent = `<span aria-hidden="true">&laquo;</span>`;
-        ariaLabel = `aria-label="Anterior"`;
-    } else if (text === "Siguiente") {
-        innerContent = `<span aria-hidden="true">&raquo;</span>`;
-        ariaLabel = `aria-label="Siguiente"`;
-    }
-    
-    li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${page})" ${ariaLabel}>${innerContent}</a>`;
-    return li;
-}
-
-// Cambiar página
 function changePage(event, page) {
     if (event) event.preventDefault();
     if (page < 1) return;
     currentPage = page;
-    loadMarcasFromServer();
+    renderMarcas();
 }
 
-// Manejar búsqueda de texto
 function handleSearch(query) {
-    searchQuery = query;
+    searchQuery = query || '';
     currentPage = 1;
-    loadMarcasFromServer();
+    renderMarcas();
 }
 
-// Limpiar errores de validación
-function clearValidation() {
-    const nombreInput = document.getElementById('strNombre');
-    if (nombreInput) {
-        nombreInput.classList.remove('is-invalid', 'is-valid');
-    }
-    const descInput = document.getElementById('strDescripcion');
-    if (descInput) {
-        descInput.classList.remove('is-invalid', 'is-valid');
-    }
-}
-
-// Manejar el submit del formulario (Guardar o Actualizar)
 function handleFormSubmit(e) {
     e.preventDefault();
+
     const nombreInput = document.getElementById('strNombre');
     const descInput = document.getElementById('strDescripcion');
+
+    clearValidation();
 
     const nombre = nombreInput.value.trim();
     const descripcion = descInput.value.trim();
 
     if (!nombre) {
         nombreInput.classList.add('is-invalid');
-        nombreInput.classList.remove('is-valid');
         const feedback = document.getElementById('nombreFeedback');
-        if (feedback) {
-            feedback.textContent = 'El nombre de la marca es obligatorio.';
-        }
-        Swal.fire({ icon: "warning", title: "Campo requerido", text: "El nombre de la marca es obligatorio.", confirmButtonColor: "var(--teal-cavex)" });
-        nombreInput.focus();
-        return;
-    }
-
-    if (nombre.length < 3) {
-        nombreInput.classList.add('is-invalid');
-        nombreInput.classList.remove('is-valid');
-        const feedback = document.getElementById('nombreFeedback');
-        if (feedback) {
-            feedback.textContent = 'El nombre de la marca debe tener al menos 3 caracteres.';
-        }
-        Swal.fire({ icon: "warning", title: "Longitud insuficiente", text: "El nombre de la marca debe tener al menos 3 caracteres.", confirmButtonColor: "var(--teal-cavex)" });
-        nombreInput.focus();
-        return;
-    }
-
-    // Validar expresión regular que permite letras, números y caracteres generales
-    const regexAlphanumeric = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ#.,_()\/\-\s]+$/;
-    const regexHasLetter = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/;
-    if (!regexAlphanumeric.test(nombre) || !regexHasLetter.test(nombre)) {
-        nombreInput.classList.add('is-invalid');
-        nombreInput.classList.remove('is-valid');
-        const feedback = document.getElementById('nombreFeedback');
-        if (feedback) {
-            feedback.textContent = 'El nombre contiene caracteres no válidos o no contiene letras.';
-        }
-        Swal.fire({ icon: "warning", title: "Caracteres no válidos", text: "El nombre contiene caracteres no válidos o no contiene letras.", confirmButtonColor: "var(--teal-cavex)" });
+        if (feedback) feedback.textContent = 'El nombre de la marca es obligatorio.';
         nombreInput.focus();
         return;
     }
@@ -339,35 +230,27 @@ function handleFormSubmit(e) {
     
     if (existeDuplicado) {
         nombreInput.classList.add('is-invalid');
-        nombreInput.classList.remove('is-valid');
         const feedback = document.getElementById('nombreFeedback');
-        if (feedback) {
-            feedback.textContent = 'El nombre de la marca ya existe.';
-        }
-        Swal.fire({ icon: "error", title: "Registro duplicado", text: "El nombre de la marca ya existe.", confirmButtonColor: "var(--teal-cavex)" });
+        if (feedback) feedback.textContent = 'El nombre de la marca ya existe.';
         nombreInput.focus();
         return;
     }
 
     // Si todo es válido
     nombreInput.classList.add('is-valid');
-    if (descripcion) {
-        descInput.classList.add('is-valid');
-    }
+    if (descripcion) descInput.classList.add('is-valid');
 
     const url = editingId === null ? '/Marcas/SaveMarca' : '/Marcas/UpdateMarca';
 
     const payload = {
-        Id: editingId || 0,
-        StrValor: nombre,
-        StrDescripcion: descripcion
+        id: editingId || 0,
+        strValor: nombre,
+        strDescripcion: descripcion
     };
 
     fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     })
     .then(response => response.json())
@@ -383,29 +266,13 @@ function handleFormSubmit(e) {
             loadMarcasFromServer();
         } else {
             nombreInput.classList.add('is-invalid');
-            nombreInput.classList.remove('is-valid');
             const feedback = document.getElementById('nombreFeedback');
-            if (feedback) {
-                feedback.textContent = result.message || 'Error al guardar la marca.';
-            }
-
-            let errorText = result.message || "";
-            const isTechnicalError = errorText.toLowerCase().includes("database") || 
-                                     errorText.toLowerCase().includes("db") || 
-                                     errorText.toLowerCase().includes("sql") || 
-                                     errorText.toLowerCase().includes("conexion") || 
-                                     errorText.toLowerCase().includes("connection");
-
-            if (!errorText || isTechnicalError) {
-                errorText = editingId === null 
-                    ? 'La marca no se pudo agregar exitosamente.' 
-                    : 'La marca no se pudo actualizar exitosamente.';
-            }
+            if (feedback) feedback.textContent = result.message || 'Error al guardar la marca.';
 
             Swal.fire({
                 icon: 'error',
                 title: 'No se pudo guardar',
-                text: errorText,
+                text: result.message || 'La marca no se pudo guardar.',
                 confirmButtonColor: 'var(--teal-cavex)'
             });
         }
@@ -415,9 +282,7 @@ function handleFormSubmit(e) {
         Swal.fire({
             icon: 'error',
             title: 'Error de conexión',
-            text: editingId === null 
-                ? 'La marca no se pudo agregar exitosamente. ¡Intenta de nuevo!' 
-                : 'La marca no se pudo actualizar exitosamente. ¡Intenta de nuevo!',
+            text: 'No se pudo procesar la solicitud. ¡Intenta de nuevo!',
             confirmButtonColor: 'var(--teal-cavex)'
         });
     });
@@ -433,7 +298,6 @@ function editMarca(id) {
     document.getElementById('strNombre').value = marca.nombre;
     document.getElementById('strDescripcion').value = marca.descripcion || '';
 
-    // Cambiar estados del formulario
     document.getElementById('formTitle').textContent = 'Editar marca';
     document.getElementById('formSubtitle').textContent = 'Modifica los detalles de la marca seleccionada.';
     document.getElementById('btnSubmit').textContent = 'Guardar cambios';
@@ -474,11 +338,10 @@ function deleteMarca(id) {
                     }
                     loadMarcasFromServer();
                 } else {
-                    let errorText = result.message || 'Inténtalo de nuevo más tarde.';
                     Swal.fire({
                         icon: 'error',
                         title: 'No se pudo eliminar',
-                        text: errorText,
+                        text: result.message || 'Inténtalo de nuevo más tarde.',
                         confirmButtonColor: 'var(--teal-cavex)'
                     });
                 }
@@ -502,20 +365,23 @@ function resetForm() {
     clearValidation();
     document.getElementById('formMarca').reset();
 
-    // Restaurar textos originales
     document.getElementById('formTitle').textContent = 'Registrar marca';
     document.getElementById('formSubtitle').textContent = 'Ingresa el nombre y la descripción de la marca.';
     document.getElementById('btnSubmit').textContent = 'Guardar marca';
     document.getElementById('btnCancel').style.display = 'none';
 }
 
-// Escape de caracteres HTML para seguridad
+function clearValidation() {
+    const inputs = document.querySelectorAll('#formMarca .form-control');
+    inputs.forEach(input => {
+        input.classList.remove('is-invalid', 'is-valid');
+    });
+}
+
 function escapeHtml(text) {
     if (!text) return '';
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }

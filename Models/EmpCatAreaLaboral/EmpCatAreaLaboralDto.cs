@@ -7,7 +7,7 @@ namespace Cavex.Principal.Models.EmpCatAreaLaboral
         public int Id { get; set; }
 
         [Display(Name = "Area laboral")]
-        public string StrValor { get; set; } = string.Empty;
+        public required string StrValor { get; set; }
 
         [Display(Name = "Descripcion")]
         public string? StrDescripcion { get; set; }

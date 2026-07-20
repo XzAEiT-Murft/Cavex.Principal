@@ -13,7 +13,7 @@ namespace Cavex.Principal.Models
 
         public string StrParentezco { get; set; } = string.Empty;
 
-        public long IntTelefono { get; set; }
+        public long BigTelefono { get; set; }
 
         [ForeignKey("EmpEmpleado")]
         public int IdEmpEmpleado { get; set; }

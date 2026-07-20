@@ -15,7 +15,7 @@ namespace Cavex.Principal.Models
 
         public string? StrApellidoMaterno { get; set; }
 
-        public DateTime DteFechaNacimiento { get; set; }
+        public DateOnly DteFechaNacimiento { get; set; }
 
         public string StrRfc { get; set; } = string.Empty;
 
@@ -25,7 +25,7 @@ namespace Cavex.Principal.Models
 
         public string StrCorreoElectronico { get; set; } = string.Empty;
 
-        public long IntNss { get; set; }
+        public long BigNss { get; set; }
 
         [ForeignKey("EmpCatGenero")]
         public int IdEmpCatGenero { get; set; }

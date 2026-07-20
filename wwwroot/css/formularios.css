@@ -168,13 +168,51 @@
     box-shadow: 0 10px 30px rgba(6, 27, 58, 0.1);
     padding: 6px;
     display: none;
-    max-height: 250px;
-    overflow-y: auto;
+    max-height: 280px;
+    overflow: hidden;
 }
 
 .custom-select-options.show {
     display: block;
     animation: fadeInDropdown 0.15s ease-out;
+}
+
+.custom-select-search-container {
+    padding: 4px 4px 8px 4px;
+    background: white;
+    border-bottom: 1px solid var(--borde-cavex);
+    margin-bottom: 4px;
+}
+
+.custom-select-search-box {
+    display: flex;
+    align-items: center;
+    background: #f4f8fa;
+    border: 1px solid var(--borde-cavex);
+    border-radius: 8px;
+    padding: 6px 10px;
+    transition: border-color 0.2s;
+}
+
+.custom-select-search-box:focus-within {
+    border-color: var(--teal-cavex);
+    background: #ffffff;
+}
+
+.custom-select-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-size: 0.85rem;
+    color: var(--azul-ejecutivo);
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+.custom-select-items-list {
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .custom-select-option {
@@ -208,10 +246,16 @@
     }
 }
 
-/* Sincronización de validaciones con Custom Selects */
+/* Sincronización de validaciones con Custom Selects e Inputs */
+.form-control.is-invalid,
+.form-select.is-invalid,
+textarea.form-control.is-invalid,
+input.form-control.is-invalid,
+.custom-select-trigger.is-invalid,
+.custom-select-wrapper.is-invalid .custom-select-trigger,
 .is-invalid ~ .custom-select-trigger {
-    border-color: var(--error, #ef4444) !important;
-    box-shadow: 0 0 0 .2rem rgba(239, 68, 68, .15) !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 .2rem rgba(239, 68, 68, .2) !important;
 }
 
 .is-valid ~ .custom-select-trigger {

@@ -15,9 +15,9 @@ namespace Cavex.Principal.Models
 
         public string StrArea { get; set; } = string.Empty;
 
-        public DateTime DteFechaIncio { get; set; }
+        public DateOnly DteFechaIncio { get; set; }
 
-        public DateTime DteFechaFin { get; set; }
+        public DateOnly DteFechaFin { get; set; }
 
         public decimal MnySueldo { get; set; }
 

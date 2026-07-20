@@ -3,6 +3,13 @@ using Cavex.Principal.Services.Interfaces;
 using Cavex.Principal.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Hosting;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
+using System.Linq;
+using System.IO;
+using System;
 
 namespace Cavex.Principal.Controllers
 {
@@ -13,19 +20,22 @@ namespace Cavex.Principal.Controllers
         private readonly Cavex.Principal.ApiClients.ICavexGeneralCatalogApi _catalogApi;
         private readonly ICatStatusService _statusService;
         private readonly IMemoryCache _cache;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public EmpleadoController(
             IEmpEmpleadoService service,
             Cavex.Principal.ApiClients.EmpCatColonia.IEmpCatColoniaApi coloniaApi,
             Cavex.Principal.ApiClients.ICavexGeneralCatalogApi catalogApi,
             ICatStatusService statusService,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IWebHostEnvironment webHostEnvironment)
         {
             _service = service;
             _coloniaApi = coloniaApi;
             _catalogApi = catalogApi;
             _statusService = statusService;
             _cache = cache;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         [HttpGet]
@@ -155,7 +165,7 @@ namespace Cavex.Principal.Controllers
             if (pagina < 1) pagina = 1;
             int? statusVal = null;
             if (status == "activos") statusVal = 1;
-            else if (status == "baja") statusVal = 2;
+            else if (status == "inactivos" || status == "baja") statusVal = 2;
 
             var countsCacheKey = $"empleados_counts_{search}";
             if (!_cache.TryGetValue(countsCacheKey, out Dictionary<string, int>? statusCounts))
@@ -200,6 +210,23 @@ namespace Cavex.Principal.Controllers
             });
         }
 
+        /// <summary>
+        /// Obtiene el listado general de empleados con un límite ampliado (1000 registros) 
+        /// para poblar selectores (dropdowns) en el frontend sin paginación restrictiva.
+        /// </summary>
+        /// <param name="cancellationToken">Token de cancelación de la operación.</param>
+        /// <returns>Resultado JSON con el listado de empleados obtenidos.</returns>
+        [HttpGet("/Empleado/GetEmpleadosDropdown")]
+        public async Task<IActionResult> GetEmpleadosDropdown(CancellationToken cancellationToken)
+        {
+            var response = await _service.ObtenerTodosAsync(1, 1000, null, 1, cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
+            return Json(new { success = true, data = response.Data?.Items });
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetEmpleado(int id, CancellationToken cancellationToken)
         {
@@ -211,45 +238,198 @@ namespace Cavex.Principal.Controllers
             return Json(new { success = true, data = response.Data });
         }
 
-        [HttpPost]
-        public async Task<IActionResult> SaveEmpleado([FromBody] EmpEmpleadoSaveDto model, CancellationToken cancellationToken)
+        private string CleanFolderName(string name)
         {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-                return Json(new { success = false, message = string.Join(" ", errors) });
-            }
+            if (string.IsNullOrWhiteSpace(name)) return "General";
+            return string.Concat(name.Split(Path.GetInvalidFileNameChars())).Replace(" ", "_").Trim();
+        }
 
-            var response = await _service.CrearAsync(model, cancellationToken);
-            if (!response.Success)
+        private async Task<string> SaveFileAsync(IFormFile file, string folder, string filePrefix)
+        {
+            var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, folder);
+            if (!Directory.Exists(uploadsFolder))
             {
-                return Json(new { success = false, message = response.Message });
+                Directory.CreateDirectory(uploadsFolder);
             }
-            return Json(new { success = true, data = response.Data });
+            var extension = Path.GetExtension(file.FileName);
+            var uniqueFileName = $"{filePrefix}_{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+            return $"/{folder}/{uniqueFileName}".Replace("//", "/");
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateEmpleado(int id, [FromBody] EmpEmpleadoSaveDto model, CancellationToken cancellationToken)
+        public async Task<IActionResult> SaveEmpleado(
+            [FromForm] string employeeData, 
+            IFormFile? Identificacion, 
+            IFormFile? Comprobante, 
+            IFormFile? Cv, 
+            IFormFile? Contrato, 
+            IFormFile? Licencia, 
+            IFormFile? FotoEmpleado,
+            CancellationToken cancellationToken)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-                return Json(new { success = false, message = string.Join(" ", errors) });
-            }
+                if (string.IsNullOrWhiteSpace(employeeData))
+                {
+                    return Json(new { success = false, message = "No se recibieron los datos del empleado." });
+                }
 
-            var response = await _service.ActualizarAsync(id, model, cancellationToken);
-            if (!response.Success)
-            {
-                return Json(new { success = false, message = response.Message });
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var model = JsonSerializer.Deserialize<EmpEmpleadoSaveDto>(employeeData, options);
+                if (model == null)
+                {
+                    return Json(new { success = false, message = "Datos del empleado inválidos." });
+                }
+
+                if (model.DocumentosLaborales == null)
+                {
+                    model.DocumentosLaborales = new EmpDocumentosLaboralesSaveDto();
+                }
+
+                string curp = CleanFolderName(model.StrCurp);
+                string docsFolder = $"uploads/empleados/{curp}/documentos";
+                string photoFolder = $"uploads/empleados/{curp}/foto";
+
+                // Guardar los archivos si se subieron nuevos
+                if (Identificacion != null && Identificacion.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlIdentificacionOficial = await SaveFileAsync(Identificacion, docsFolder, "identificacion");
+                }
+                if (Comprobante != null && Comprobante.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlComprobanteDomicilio = await SaveFileAsync(Comprobante, docsFolder, "comprobante");
+                }
+                if (Cv != null && Cv.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlCurriculumVitae = await SaveFileAsync(Cv, docsFolder, "cv");
+                }
+                if (Contrato != null && Contrato.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlContrato = await SaveFileAsync(Contrato, docsFolder, "contrato");
+                }
+                if (Licencia != null && Licencia.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlLicencia = await SaveFileAsync(Licencia, docsFolder, "licencia");
+                }
+                if (FotoEmpleado != null && FotoEmpleado.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlFotoEmp = await SaveFileAsync(FotoEmpleado, photoFolder, "foto");
+                }
+
+                // Limpiar ModelState anterior y forzar validación del nuevo modelo
+                ModelState.Clear();
+                if (!TryValidateModel(model))
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return Json(new { success = false, message = string.Join(" ", errors) });
+                }
+
+                var response = await _service.CrearAsync(model, cancellationToken);
+                if (!response.Success)
+                {
+                    return Json(new { success = false, message = response.Message });
+                }
+                return Json(new { success = true, data = response.Data });
             }
-            return Json(new { success = true, data = response.Data });
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error al procesar el guardado: " + ex.Message });
+            }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateEmpleado(
+            int id,
+            [FromForm] string employeeData, 
+            IFormFile? Identificacion, 
+            IFormFile? Comprobante, 
+            IFormFile? Cv, 
+            IFormFile? Contrato, 
+            IFormFile? Licencia, 
+            IFormFile? FotoEmpleado,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(employeeData))
+                {
+                    return Json(new { success = false, message = "No se recibieron los datos del empleado." });
+                }
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var model = JsonSerializer.Deserialize<EmpEmpleadoSaveDto>(employeeData, options);
+                if (model == null)
+                {
+                    return Json(new { success = false, message = "Datos del empleado inválidos." });
+                }
+
+                if (model.DocumentosLaborales == null)
+                {
+                    model.DocumentosLaborales = new EmpDocumentosLaboralesSaveDto();
+                }
+
+                string curp = CleanFolderName(model.StrCurp);
+                string docsFolder = $"uploads/empleados/{curp}/documentos";
+                string photoFolder = $"uploads/empleados/{curp}/foto";
+
+                // Guardar los archivos si se subieron nuevos
+                if (Identificacion != null && Identificacion.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlIdentificacionOficial = await SaveFileAsync(Identificacion, docsFolder, "identificacion");
+                }
+                if (Comprobante != null && Comprobante.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlComprobanteDomicilio = await SaveFileAsync(Comprobante, docsFolder, "comprobante");
+                }
+                if (Cv != null && Cv.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlCurriculumVitae = await SaveFileAsync(Cv, docsFolder, "cv");
+                }
+                if (Contrato != null && Contrato.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlContrato = await SaveFileAsync(Contrato, docsFolder, "contrato");
+                }
+                if (Licencia != null && Licencia.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlLicencia = await SaveFileAsync(Licencia, docsFolder, "licencia");
+                }
+                if (FotoEmpleado != null && FotoEmpleado.Length > 0)
+                {
+                    model.DocumentosLaborales.StrUrlFotoEmp = await SaveFileAsync(FotoEmpleado, photoFolder, "foto");
+                }
+
+                // Limpiar ModelState anterior y forzar validación del nuevo modelo
+                ModelState.Clear();
+                if (!TryValidateModel(model))
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return Json(new { success = false, message = string.Join(" ", errors) });
+                }
+
+                var response = await _service.ActualizarAsync(id, model, cancellationToken);
+                if (!response.Success)
+                {
+                    return Json(new { success = false, message = response.Message });
+                }
+                return Json(new { success = true, data = response.Data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error al procesar la actualización: " + ex.Message });
+            }
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> DeleteEmpleado(int id, CancellationToken cancellationToken)
@@ -283,7 +463,7 @@ namespace Cavex.Principal.Controllers
                 StrCurp = emp.StrCurp,
                 IntEdad = emp.IntEdad,
                 StrCorreoElectronico = emp.StrCorreoElectronico,
-                IntNss = emp.IntNss,
+                BigNss = emp.BigNss,
                 IdEmpCatGenero = emp.IdEmpCatGenero,
                 IdEmpCatEstadoCivil = emp.IdEmpCatEstadoCivil,
                 IdEmpCatNacionalidad = emp.IdEmpCatNacionalidad,
@@ -303,8 +483,8 @@ namespace Cavex.Principal.Controllers
                     StrInstitucion = string.IsNullOrEmpty(emp.EmpDatosAcademicos?.StrInstitucion) ? "N/D" : emp.EmpDatosAcademicos.StrInstitucion,
                     StrCarrera = emp.EmpDatosAcademicos?.StrCarrera,
                     StrEstatus = string.IsNullOrEmpty(emp.EmpDatosAcademicos?.StrEstatus) ? "N/D" : emp.EmpDatosAcademicos.StrEstatus,
-                    DteFechaInicio = emp.EmpDatosAcademicos != null ? emp.EmpDatosAcademicos.DteFechaInicio : DateOnly.FromDateTime(DateTime.Today),
-                    DteFechaFin = emp.EmpDatosAcademicos != null ? emp.EmpDatosAcademicos.DteFechaFin : DateOnly.FromDateTime(DateTime.Today)
+                    DteFechaInicio = emp.EmpDatosAcademicos?.DteFechaInicio ?? DateOnly.FromDateTime(DateTime.Today),
+                    DteFechaFin = emp.EmpDatosAcademicos?.DteFechaFin ?? DateOnly.FromDateTime(DateTime.Today)
                 },
 
                 DocumentosLaborales = new EmpDocumentosLaboralesSaveDto
@@ -324,14 +504,14 @@ namespace Cavex.Principal.Controllers
                     MnySueldoMensual = emp.EmpCondicionesLaborales?.MnySueldoMensual ?? 0m,
                     BitExperienciaEnArea = emp.EmpCondicionesLaborales?.BitExperienciaEnArea ?? false,
                     BitDisponibilidadCambioResidencia = emp.EmpCondicionesLaborales?.BitDisponibilidadCambioResidencia ?? false,
-                    DteFechaIngreso = emp.EmpCondicionesLaborales != null ? DateOnly.FromDateTime(emp.EmpCondicionesLaborales.DteFechaIngreso) : DateOnly.FromDateTime(DateTime.Today)
+                    DteFechaIngreso = emp.EmpCondicionesLaborales?.DteFechaIngreso ?? DateOnly.FromDateTime(DateTime.Today)
                 },
 
                 Referencias = emp.EmpReferenciasPersonales?.Select(rf => new EmpReferenciaSaveDto
                 {
                     StrNombreCompleto = rf.StrNombreCompleto,
                     StrParentezco = rf.StrParentezco,
-                    IntTelefono = rf.IntTelefono
+                    BigTelefono = rf.BigTelefono
                 }).ToList() ?? new List<EmpReferenciaSaveDto>(),
 
                 ExperienciaLaboral = emp.EmpExperiencias?.Select(exp => new EmpExperienciaLaboralSaveDto
@@ -339,8 +519,8 @@ namespace Cavex.Principal.Controllers
                     StrEmpresa = exp.StrEmpresa,
                     StrPuesto = exp.StrPuesto,
                     StrArea = exp.StrArea,
-                    DteFechaIncio = DateOnly.FromDateTime(exp.DteFechaIncio),
-                    DteFechaFin = DateOnly.FromDateTime(exp.DteFechaFin),
+                    DteFechaIncio = exp.DteFechaIncio,
+                    DteFechaFin = exp.DteFechaFin,
                     MnySueldo = exp.MnySueldo,
                     StrMotivoSalida = exp.StrMotivoSalida
                 }).ToList() ?? new List<EmpExperienciaLaboralSaveDto>(),
@@ -349,8 +529,8 @@ namespace Cavex.Principal.Controllers
 
                 Telefonos = emp.EmpTelefonos?.Select(t => new Cavex.Principal.Models.EmpTelefono.EmpTelefonoSaveDto
                 {
-                    StrNumeroFijo = t.StrNumeroFijo,
-                    StrNumeroCelular = t.StrNumeroCelular,
+                    BigNumeroFijo = t.BigNumeroFijo,
+                    BigNumeroCelular = t.BigNumeroCelular,
                     IdEmpEmpleado = id
                 }).ToList() ?? new List<Cavex.Principal.Models.EmpTelefono.EmpTelefonoSaveDto>()
             };

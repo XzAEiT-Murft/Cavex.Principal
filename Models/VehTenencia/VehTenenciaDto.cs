@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehTenencia
 {
@@ -15,10 +15,10 @@ namespace Cavex.Principal.Models.VehTenencia
         public int IntAnio { get; set; }
 
         [Display(Name = "Fecha de pago")]
-        public DateTime DteFechaPago { get; set; }
+        public DateOnly DteFechaPago { get; set; }
 
         [Display(Name = "Fecha de vencimiento")]
-        public DateTime DteFechaVencimiento { get; set; }
+        public DateOnly DteFechaVencimiento { get; set; }
 
         [Display(Name = "Monto pagado")]
         public decimal MnyMontoPagado { get; set; }

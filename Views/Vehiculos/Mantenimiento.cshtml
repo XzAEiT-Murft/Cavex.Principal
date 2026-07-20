@@ -1,0 +1,215 @@
+@{
+    ViewData["Title"] = "Registro de Ingreso a Taller";
+    ViewData["HeaderEyebrow"] = "Gestión vehicular";
+    ViewData["HeaderSubtitle"] = "Registra la entrada de una unidad al taller mecánico y gestiona su reporte de servicio.";
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/css/vista-vehiculos.css" asp-append-version="true" />
+}
+
+<partial name="_PageHeader" />
+
+<!-- ─── Tarjeta 1: Datos del Ingreso a Taller ───────────────────────────── -->
+<form id="formMantenimiento" class="vehiculo-create-form vehiculo-module-form" novalidate>
+
+    <section class="cavex-card form-section-card vehiculo-section-card mant-card" id="card1">
+        <h3 class="form-section-title">
+            <span class="form-section-number">1</span>
+            Datos del Ingreso a Taller
+        </h3>
+
+        <div class="row g-3">
+            <!-- Vehículo -->
+            <div class="col-md-6 col-xl-4">
+                <label class="form-label" for="mant-idVehDatosGenerales">Vehículo (Matrícula / Modelo)</label>
+                <select id="mant-idVehDatosGenerales" name="idVehDatosGenerales" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                </select>
+                <div class="invalid-feedback">Selecciona un vehículo.</div>
+            </div>
+
+            <!-- Empleado Responsable -->
+            <div class="col-md-6 col-xl-4">
+                <label class="form-label" for="mant-idEmpEmpleadoChofer">Empleado responsable</label>
+                <select id="mant-idEmpEmpleadoChofer" name="idEmpEmpleadoChofer" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                </select>
+                <div class="invalid-feedback">Selecciona un empleado responsable.</div>
+            </div>
+
+            <!-- Encargado Autorizador -->
+            <div class="col-md-6 col-xl-4">
+                <label class="form-label" for="mant-idVehCatResponsableServicio">Encargado Autorizador</label>
+                <select id="mant-idVehCatResponsableServicio" name="idVehCatResponsableServicio" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                </select>
+                <div class="invalid-feedback">Selecciona el encargado que autorizó el envío.</div>
+            </div>
+
+            <!-- Fecha de Generación -->
+            <div class="col-md-6 col-xl-3">
+                <label class="form-label" for="mant-dteFechaServicio">Fecha de Generación</label>
+                <input type="date" id="mant-dteFechaServicio" name="dteFechaServicio" class="form-control" required />
+                <div class="invalid-feedback">Selecciona una fecha válida.</div>
+            </div>
+
+            <!-- Tipo de Servicio / Motivo -->
+            <div class="col-md-6 col-xl-5">
+                <label class="form-label" for="mant-idVehCatTipoServicio">Tipo de Servicio / Motivo</label>
+                <select id="mant-idVehCatTipoServicio" name="idVehCatTipoServicio" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                </select>
+                <div class="invalid-feedback">Selecciona el tipo de servicio.</div>
+            </div>
+
+            <!-- Taller de Destino -->
+            <div class="col-md-6 col-xl-4">
+                <label class="form-label" for="mant-idVehCatTaller">Taller de Destino</label>
+                <select id="mant-idVehCatTaller" name="idVehCatTaller" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                </select>
+                <div class="invalid-feedback">Selecciona el taller.</div>
+            </div>
+
+            <!-- Kilometraje Actual -->
+            <div class="col-md-6 col-xl-3">
+                <label class="form-label" for="mant-decKilometrajeActual">Kilometraje Actual</label>
+                <div class="input-group">
+                    <input type="text" id="mant-decKilometrajeActual" name="decKilometrajeActual" maxlength="15" class="form-control" placeholder="0" required />
+                    <span class="input-group-text">km</span>
+                </div>
+                <div class="invalid-feedback">Captura el kilometraje actual.</div>
+            </div>
+
+            <!-- Descripción / Observaciones generales (opcional) -->
+            <div class="col-12">
+                <label class="form-label" for="mant-strDescripcion">Observaciones (Opcional)</label>
+                <textarea id="mant-strDescripcion" name="strDescripcion" class="form-control" rows="2" maxlength="500" placeholder="Describe brevemente el problema o motivo de ingreso..."></textarea>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── Switch global: ¿ya concluyó el servicio? ──────────────────────────── -->
+    <div class="mant-switch-banner cavex-card">
+        <div class="mant-switch-banner__text">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>¿El servicio ya concluyó? Activa el switch para registrar el reporte de taller de inmediato.</span>
+        </div>
+        <label class="mant-toggle" for="switchServicioConcluido">
+            <input type="checkbox" id="switchServicioConcluido" role="switch" aria-checked="false" />
+            <span class="mant-toggle__track">
+                <span class="mant-toggle__thumb"></span>
+            </span>
+            <span class="mant-toggle__label" id="switchLabel">NO</span>
+        </label>
+    </div>
+
+    <!-- ─── Tarjeta 2: Reporte de Taller (oculta hasta activar el switch) ─── -->
+    <section class="cavex-card form-section-card vehiculo-section-card mant-card" id="card2" style="display: none;">
+        <h3 class="form-section-title">
+            <span class="form-section-number">2</span>
+            Reporte de Taller
+        </h3>
+
+        <div class="row g-3">
+            <!-- Costos financieros -->
+            <div class="col-md-4">
+                <label class="form-label" for="mant-mnyCostoManoObra">Mano de Obra ($)</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="text" id="mant-mnyCostoManoObra" name="mnyCostoManoObra" class="form-control" placeholder="0.00" value="" disabled />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="mant-mnyCostoRefacciones">Refacciones ($)</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="text" id="mant-mnyCostoRefacciones" name="mnyCostoRefacciones" class="form-control" placeholder="0.00" value="" disabled />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="mant-mnyCostoTotal">TOTAL GENERAL ($)</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="text" id="mant-mnyCostoTotal" class="form-control mant-total-input" placeholder="0.00" value="" readonly disabled />
+                </div>
+            </div>
+
+            <!-- Forma de pago -->
+            <div class="col-md-6">
+                <label class="form-label" for="mant-idVehFormaPago">Forma de Pago</label>
+                <select id="mant-idVehFormaPago" name="idVehFormaPago" class="form-select" disabled>
+                    <option value="">Seleccionar...</option>
+                </select>
+            </div>
+
+            <!-- Comprobante de pago -->
+            <div class="col-md-6">
+                <label class="form-label" for="mantComprobanteArchivo">Comprobante de Pago</label>
+                <div id="mantComprobanteArea" class="vehiculo-upload-area mant-upload-area mant-upload-area--disabled">
+                    <input id="mantComprobanteArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled />
+                    <input type="hidden" id="mant-strUrlComprobantePago" name="strUrlComprobantePago" value="" />
+                    <div id="mantComprobantePrompt" class="vehiculo-upload-prompt">
+                        <span class="vehiculo-upload-icon" aria-hidden="true">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </span>
+                        <strong>Subir comprobante</strong>
+                        <small>PDF, JPG, PNG, WEBP · máx. 5 MB</small>
+                    </div>
+                    <div class="vehiculo-file-preview" id="mantFilePreview" style="display:none;">
+                        <div class="vehiculo-file-meta">
+                            <strong id="mantFileName">Archivo seleccionado</strong>
+                            <small id="mantFileSize"></small>
+                        </div>
+                        <div class="vehiculo-file-actions">
+                            <button id="btnQuitarComprobanteMant" type="button" class="btn btn-outline-cavex btn-sm">Quitar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── Barra de acción ────────────────────────────────────────────────── -->
+    <div class="form-action-bar vehiculo-action-bar">
+        <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Index">Cancelar / Volver</a>
+        <button type="submit" id="btnGuardarMantenimiento" class="btn btn-cavex">
+            <span id="btnGuardarLabel">Guardar ingreso a taller</span>
+        </button>
+    </div>
+</form>
+
+<!-- ─── Tabla de historial ─────────────────────────────────────────────────── -->
+<div class="cavex-card table-module vehiculo-module-table mt-4">
+    <h3 class="form-section-title mb-3">Historial de Ingresos a Taller</h3>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle executive-table table-cavex-compact">
+            <thead>
+                <tr>
+                    <th>Vehículo</th>
+                    <th>Taller</th>
+                    <th>Tipo de Servicio</th>
+                    <th>Encargado</th>
+                    <th>Fecha</th>
+                    <th>KM</th>
+                    <th>Total</th>
+                    <th class="text-end" style="width:130px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="mantenimientoTableBody">
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Cargando registros...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/vehiculos/servicios-vehiculos/vista-mantenimiento.js" asp-append-version="true"></script>
+}
