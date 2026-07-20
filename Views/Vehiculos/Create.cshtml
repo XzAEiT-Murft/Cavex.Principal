@@ -14,7 +14,7 @@
 
 <!-- Formulario principal de dbo.VehDatosGenerales.
      IDs, names, restricciones y reglas de validación se conservan como contrato futuro del backend. -->
-<form id="vehiculoForm" class="vehiculo-form vehiculo-create-form vehiculo-module-form" novalidate>
+<form id="vehiculoForm" class="vehiculo-form vehiculo-create-form vehiculo-module-form">
     <div class="vehiculo-form-grid">
         <div class="vehiculo-main-column">
             <!-- Datos principales: columnas de identificación de dbo.VehDatosGenerales. -->
@@ -151,7 +151,7 @@
 
                     <div class="vehiculo-observations">
                         <label class="form-label" for="strObservaciones">Observaciones</label>
-                        <textarea id="strObservaciones" name="strObservaciones" maxlength="500" rows="4" class="form-control no-uppercase" placeholder="Comentarios internos sobre la unidad, condiciones o notas de operación."></textarea>
+                        <textarea id="strObservaciones" name="strObservaciones" maxlength="500" rows="4" class="form-control no-uppercase" placeholder="Comentarios internos sobre la unidad, condiciones o notas de operación." style="resize: none;"></textarea>
                         <div class="invalid-feedback" id="strObservacionesError">Las observaciones no deben superar 500 caracteres.</div>
                         <div class="vehiculo-character-counter" aria-live="polite"><span id="observacionesCounter">0</span>/500</div>
                     </div>
@@ -189,5 +189,6 @@
 </form>
 
 @section Scripts {
-    <script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>
+    <!--<script src="~/js/vista-vehiculos.js" asp-append-version="true"></script>-->
+    <script src="~/js/vista-create-vehiculo.js" asp-append-version="true"></script>
 }

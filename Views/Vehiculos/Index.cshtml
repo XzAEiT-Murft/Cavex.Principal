@@ -1,17 +1,17 @@
 @{
-    ViewData["Title"] = "Vehículos";
-    ViewData["HeaderEyebrow"] = "Administración";
-    ViewData["HeaderTitle"] = "Vehículos";
-    ViewData["HeaderSubtitle"] = "Consulta el inventario simulado con la estructura de VehDatosGenerales.";
-    ViewData["HeaderButtonText"] = "Nuevo vehículo";
-    ViewData["HeaderButtonController"] = "Vehiculos";
-    ViewData["HeaderButtonAction"] = "Create";
+    ViewBag.Title = "Vehículos";
+    ViewBag.HeaderEyebrow = "Administración";
+    ViewBag.HeaderTitle = "Vehículos";
+    ViewBag.HeaderSubtitle = "Consulta al listado de vehículos .";
+    ViewBag.HeaderButtonText = "Nuevo vehículo";
+    ViewBag.HeaderButtonController = "Vehiculos";
+    ViewBag.HeaderButtonAction = "Create";
 
-    ViewData["TableTitle"] = "Listado de vehículos";
-    ViewData["TableSubtitle"] = "Registros de ejemplo alineados con los catálogos vehiculares.";
-    ViewData["TableCount"] = 0;
-    ViewData["TableCountLabel"] = "vehículos";
-    ViewData["TableExtraPill"] = "Datos simulados";
+    ViewBag.TableTitle = "Listado de vehículos";
+    ViewBag.TableSubtitle = "Registros de ejemplo alineados con los catálogos vehiculares.";
+    ViewBag.TableCount = 0;
+    ViewBag.TableCountLabel = "vehículos";
+    ViewBag.TableExtraPill = "Datos simulados";
 }
 
 @section Head {
@@ -40,13 +40,18 @@
     <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Infracciones">
         Infracciones
     </a>
-    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Documentos">
-        Documentos
+    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Gasolineras">
+        Gasolineras
+    </a>
+    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Seguros">
+        Seguros
+    </a>
+    <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="ResponsableServicio">
+        Responsable Servicio
     </a>
 </div>
 
-<!-- Tabla simulada con las columnas operativas de dbo.VehDatosGenerales.
-     Búsqueda, filtros, paginación y filas se renderizan desde vista-vehiculos.js. -->
+<!-- Tabla de Búsqueda, filtros, paginación y filas se renderizan desde vista-vehiculos.js. -->
 <div class="cavex-card table-module vehiculos-table-module vehiculo-module-table">
     <partial name="_TableCardHeader" />
 

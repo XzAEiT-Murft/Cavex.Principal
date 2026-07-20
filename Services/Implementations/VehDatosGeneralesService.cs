@@ -1,5 +1,6 @@
 ﻿using Cavex.Principal.ApiClients.VehDatosGenerales;
 using Cavex.Principal.Common;
+using Cavex.Principal.Models.CatSucursal;
 using Cavex.Principal.Models.VehDatosGenerales;
 using Cavex.Principal.Services.Interfaces;
 using Refit;
@@ -24,8 +25,8 @@ namespace Cavex.Principal.Services.Implementations
         public Task<ResponseWrapper<VehDatosGeneralesDto>> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehDatosGeneralesApi.GetByIdAsync(id, cancellationToken), "No fue posible obtener el registro de VehDatosGenerales.");
 
-        public Task<ResponseWrapper<VehDatosGeneralesDto>> CrearAsync(VehDatosGeneralesSaveDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehDatosGeneralesApi.CreateAsync(dto, cancellationToken), "No fue posible crear el registro de VehDatosGenerales.");
+        public Task<ResponseWrapper<VehDatosGeneralesDto>> CrearAsync(VehDatosGeneralesSaveDto request, CancellationToken cancellationToken = default) =>
+            ExecuteAsync(() => _vehDatosGeneralesApi.CreateAsync(RequestWrapper<VehDatosGeneralesSaveDto>.Create(request), cancellationToken), "No fue posible crear el registro de VehDatosGenerales.");
 
         public Task<ResponseWrapper<VehDatosGeneralesDto>> EditarAsync(VehDatosGeneralesEditDto dto, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehDatosGeneralesApi.UpdateAsync(dto, cancellationToken), "No fue posible editar el registro de VehDatosGenerales.");

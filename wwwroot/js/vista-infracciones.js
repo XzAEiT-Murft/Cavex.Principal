@@ -1,9 +1,15 @@
+"use strict";
+
 document.addEventListener("DOMContentLoaded", () => {
     inicializarVistaInfracciones();
 });
 
+// Arreglo temporal de vehículos cargado desde la BD para la vista previa lateral
 let listaVehiculosInfracciones = [];
+// Variable global para almacenar el comprobante de infracción seleccionado
+let comprobanteArchivoSeleccionado = null;
 
+// Inicializa la configuración de la pantalla de infracciones
 function inicializarVistaInfracciones() {
     const form = document.getElementById("infraccionVehiculoForm");
     if (!form) return;
@@ -33,8 +39,11 @@ function inicializarVistaInfracciones() {
         });
     });
 
-    form.addEventListener("submit", event => {
+
+    // Envío del formulario al backend para registrar la infracción
+    form.addEventListener("submit", async event => {
         event.preventDefault();
+        
         if (!validarFormularioInfraccion(form)) {
             Swal.fire({
                 icon: "warning",
@@ -46,56 +55,218 @@ function inicializarVistaInfracciones() {
         }
 
         Swal.fire({
-            icon: "success",
-            title: "Infracción registrada",
-            text: "Los datos de la infracción han sido validados correctamente (Simulado).",
-            confirmButtonColor: "var(--teal-cavex)"
-        }).then(() => {
-            window.location.href = "/Vehiculos/Index";
+            title: "Registrando infracción...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
+
+        const selectStatus = document.getElementById("infraccion-idVehCatStatus");
+        const statusVal = parseInt(selectStatus.value, 10);
+        const selectedStatusText = selectStatus.options[selectStatus.selectedIndex]?.text.toLowerCase() || "";
+        const isPaid = selectedStatusText.includes("pagada");
+        const montoInput = document.getElementById("infraccion-mnyMontoPagado").value;
+        const fechaPagoInput = document.getElementById("infraccion-dteFechaPago").value;
+        const formaPagoInput = document.getElementById("infraccion-idVehFormaPago").value;
+
+        // Construcción con FormData para soportar multipart upload del archivo comprobante
+        const formData = new FormData();
+        formData.append("Id", editModeInfraccionId || 0);
+        formData.append("IdVehDatosGenerales", parseInt(document.getElementById("infraccion-idVehDatosGenerales").value, 10));
+        formData.append("IdEmpEmpleado", parseInt(document.getElementById("infraccion-idEmpEmpleado").value, 10));
+        formData.append("DteFechaInfraccion", document.getElementById("infraccion-dteFechaInfraccion").value);
+        formData.append("StrMotivo", document.getElementById("infraccion-strMotivo").value);
+        formData.append("IdVehCatStatus", statusVal);
+        
+        if (isPaid && montoInput) {
+            formData.append("MnyMontoPagado", parseFloat(montoInput));
+        }
+        if (isPaid && fechaPagoInput) {
+            formData.append("DteFechaPago", fechaPagoInput);
+        }
+        if (isPaid && formaPagoInput) {
+            formData.append("IdVehFormaPago", parseInt(formaPagoInput, 10));
+        }
+        
+        formData.append("StrUrlComprobantePago", document.getElementById("infraccion-strUrlComprobantePago").value || "");
+        formData.append("StrObservaciones", document.getElementById("infraccion-strObservaciones").value || "");
+
+        const fileInput = document.getElementById("infraccionComprobanteArchivo");
+        if (isPaid && fileInput && fileInput.files.length > 0) {
+            formData.append("ComprobanteArchivo", fileInput.files[0]);
+        }
+
+        try {
+            const response = await fetch("/Vehiculos/SaveInfraccion", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+            Swal.close();
+
+            if (!result.success) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al registrar",
+                    text: result.message || "No fue posible registrar la infracción.",
+                    confirmButtonColor: "var(--teal-cavex)"
+                });
+                return;
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: editModeInfraccionId ? "Infracción actualizada" : "Infracción registrada",
+                text: editModeInfraccionId ? "Los datos de la infracción han sido actualizados exitosamente." : "Los datos de la infracción han sido registrados exitosamente.",
+                confirmButtonColor: "var(--teal-cavex)"
+            }).then(() => {
+                resetearFormularioInfraccion();
+                cargarInfraccionesList();
+            });
+        } catch (err) {
+            Swal.close();
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo establecer comunicación con el servidor. ¡Intenta de nuevo!",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+        }
     });
 
     actualizarVistaPreviaInfraccion();
 }
 
-function cargarCatalogosInfracciones() {
-    // 1. Cargar vehículos
-    fetch("/Vehiculos/GetVehiculos")
-        .then(res => res.json())
-        .then(result => {
-            const select = document.getElementById("infraccion-idVehDatosGenerales");
-            if (!select) return;
-            select.innerHTML = '<option value="">Seleccionar...</option>';
-            if (result.success && result.data) {
-                listaVehiculosInfracciones = result.data;
-                result.data.forEach(v => {
-                    const opt = document.createElement("option");
-                    opt.value = String(v.id);
-                    opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                    select.appendChild(opt);
-                });
-            }
-        })
-        .catch(err => console.error("Error al cargar vehículos:", err));
+// Datos globales para vinculación vehículo-chofer
+let listaEmpleadosInfracciones = [];
+let asignacionesActivasInfracciones = [];
 
-    // 2. Cargar empleados
-    fetch("/Empleado/GetEmpleados")
-        .then(res => res.json())
-        .then(result => {
-            const select = document.getElementById("infraccion-idEmpEmpleado");
-            if (!select) return;
-            select.innerHTML = '<option value="">Seleccionar...</option>';
-            if (result.success && result.data) {
-                result.data.forEach(e => {
-                    const opt = document.createElement("option");
-                    opt.value = String(e.id);
-                    const nombreCompleto = e.strNombre + ' ' + e.strApellidoPaterno + (e.strApellidoMaterno ? ' ' + e.strApellidoMaterno : '');
-                    opt.textContent = nombreCompleto;
-                    select.appendChild(opt);
-                });
+// Carga catálogos de vehículos, empleados, formas de pago y estatus del servidor
+async function cargarCatalogosInfracciones() {
+    try {
+        const [vehRes, empRes, asigRes] = await Promise.all([
+            fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
+            fetch("/Empleado/GetEmpleados").then(r => r.json()),
+            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+        ]);
+
+        // 1. Cargar vehículos
+        const selectVeh = document.getElementById("infraccion-idVehDatosGenerales");
+        if (selectVeh && vehRes.success && vehRes.data) {
+            listaVehiculosInfracciones = vehRes.data;
+            selectVeh.innerHTML = '<option value="">Seleccionar...</option>';
+            vehRes.data.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = String(v.id);
+                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
+                selectVeh.appendChild(opt);
+            });
+        }
+
+        // 2. Cargar empleados
+        const selectEmp = document.getElementById("infraccion-idEmpEmpleado");
+        if (selectEmp && empRes.success && empRes.data) {
+            listaEmpleadosInfracciones = empRes.data;
+            selectEmp.innerHTML = '<option value="">Seleccionar...</option>';
+            empRes.data.forEach(e => {
+                const opt = document.createElement("option");
+                opt.value = String(e.id);
+                const nombreCompleto = e.strNombre + ' ' + e.strApellidoPaterno + (e.strApellidoMaterno ? ' ' + e.strApellidoMaterno : '');
+                opt.textContent = nombreCompleto;
+                selectEmp.appendChild(opt);
+            });
+        }
+
+        // Asignaciones activas para vinculación
+        if (asigRes.success && asigRes.data) {
+            asignacionesActivasInfracciones = asigRes.data;
+        }
+
+        // Vinculación bidireccional segura
+        let isVinculandoInfraccion = false;
+
+        selectVeh?.addEventListener("change", () => {
+            if (isVinculandoInfraccion) return;
+            isVinculandoInfraccion = true;
+            try {
+                const vehId = parseInt(selectVeh.value, 10);
+                if (editModeInfraccionId === null) {
+                    if (vehId) {
+                        const asig = asignacionesActivasInfracciones.find(a => a.idVehDatosGenerales === vehId);
+                        if (asig && selectEmp) {
+                            if (selectEmp.value !== String(asig.idEmpEmpleado)) {
+                                selectEmp.value = String(asig.idEmpEmpleado);
+                                selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+                            }
+                            selectEmp.disabled = true;
+                        } else if (selectEmp) {
+                            selectEmp.disabled = false;
+                        }
+                    } else if (selectEmp) {
+                        if (selectEmp.value !== "") {
+                            selectEmp.value = "";
+                            selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                        selectEmp.disabled = false;
+                    }
+                } else {
+                    const asig = asignacionesActivasInfracciones.find(a => a.idVehDatosGenerales === vehId);
+                    if (asig && selectEmp) {
+                        if (selectEmp.value !== String(asig.idEmpEmpleado)) {
+                            selectEmp.value = String(asig.idEmpEmpleado);
+                            selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                    }
+                }
+            } finally {
+                isVinculandoInfraccion = false;
             }
-        })
-        .catch(err => console.error("Error al cargar empleados:", err));
+            actualizarVistaPreviaInfraccion();
+        });
+
+        selectEmp?.addEventListener("change", () => {
+            if (isVinculandoInfraccion) return;
+            isVinculandoInfraccion = true;
+            try {
+                const empId = parseInt(selectEmp.value, 10);
+                if (editModeInfraccionId === null) {
+                    if (empId) {
+                        const asig = asignacionesActivasInfracciones.find(a => a.idEmpEmpleado === empId);
+                        if (asig && selectVeh) {
+                            if (selectVeh.value !== String(asig.idVehDatosGenerales)) {
+                                selectVeh.value = String(asig.idVehDatosGenerales);
+                                selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+                            }
+                            selectVeh.disabled = true;
+                        } else if (selectVeh) {
+                            selectVeh.disabled = false;
+                        }
+                    } else if (selectVeh) {
+                        if (selectVeh.value !== "") {
+                            selectVeh.value = "";
+                            selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                        selectVeh.disabled = false;
+                    }
+                } else {
+                    const asig = asignacionesActivasInfracciones.find(a => a.idEmpEmpleado === empId);
+                    if (asig && selectVeh) {
+                        if (selectVeh.value !== String(asig.idVehDatosGenerales)) {
+                            selectVeh.value = String(asig.idVehDatosGenerales);
+                            selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                    }
+                }
+            } finally {
+                isVinculandoInfraccion = false;
+            }
+            actualizarVistaPreviaInfraccion();
+        });
+    } catch (err) {
+        console.error("Error al cargar catálogos de infracciones:", err);
+    }
 
     // 3. Cargar catálogos (Forma de pago, Estatus)
     fetch("/Vehiculos/GetVehiculoCatalogos")
@@ -119,33 +290,46 @@ function cargarCatalogosInfracciones() {
                 if (selectStatus && result.data.idVehCatStatus) {
                     selectStatus.innerHTML = '<option value="">Seleccionar...</option>';
                     result.data.idVehCatStatus.forEach(item => {
-                        const opt = document.createElement("option");
-                        opt.value = String(item.id);
-                        // En el contexto de infracciones: 1 = Pendiente (Activo en DB), 2 = Pagada (Inactivo en DB)
-                        opt.textContent = item.id === 1 ? "Pendiente" : item.id === 2 ? "Pagada" : (item.strValor || item.strDescripcion);
-                        selectStatus.appendChild(opt);
+                        const name = (item.strValor || "").toLowerCase();
+                        if (name === "pendiente" || name === "pagada") {
+                            const opt = document.createElement("option");
+                            opt.value = String(item.id);
+                            opt.textContent = item.strValor || item.strDescripcion;
+                            selectStatus.appendChild(opt);
+                        }
                     });
-                    // Por defecto: Pendiente (1)
-                    selectStatus.value = "1";
+                    
+                    // Seleccionar "Pendiente" por defecto
+                    for (let i = 0; i < selectStatus.options.length; i++) {
+                        if (selectStatus.options[i].text.toLowerCase().includes("pendiente")) {
+                            selectStatus.selectedIndex = i;
+                            break;
+                        }
+                    }
                     toggleCamposPago(false);
                     actualizarVistaPreviaInfraccion();
                 }
             }
+            // Cargar registros de infracciones
+            cargarInfraccionesList();
         })
-        .catch(err => console.error("Error al cargar catálogos de infracción:", err));
+        .catch(() => {});
 }
 
+// Vincula el evento change del select de Estatus
 function inicializarEstatusInfraccion() {
     const selectStatus = document.getElementById("infraccion-idVehCatStatus");
     if (!selectStatus) return;
 
     selectStatus.addEventListener("change", () => {
-        const esPagada = (selectStatus.value === "2"); // 2 = Pagada
+        const text = selectStatus.options[selectStatus.selectedIndex]?.text.toLowerCase() || "";
+        const esPagada = text.includes("pagada");
         toggleCamposPago(esPagada);
         actualizarVistaPreviaInfraccion();
     });
 }
 
+// Habilita o deshabilita los campos de pago según el estatus de la infracción
 function toggleCamposPago(requerido) {
     const monto = document.getElementById("infraccion-mnyMontoPagado");
     const fecha = document.getElementById("infraccion-dteFechaPago");
@@ -181,15 +365,27 @@ function toggleCamposPago(requerido) {
     }
 }
 
+// Configura el cargador del archivo comprobante (Drag & Drop + Selección manual)
 function inicializarCargaComprobante() {
     const area = document.getElementById("infraccionComprobanteArea");
     const input = document.getElementById("infraccionComprobanteArchivo");
     if (!area || !input) return;
 
+    // Al hacer clic en el área, abre el explorador de archivos si no está deshabilitado y no se clica en Quitar
     area.addEventListener("click", event => {
         if (input.disabled) return;
-        if (!event.target.closest(".infraccion-file-actions button")) input.click();
+        if (event.target.closest("#btnQuitarComprobanteInfraccion")) {
+            return;
+        }
+        input.click();
     });
+
+    document.getElementById("btnQuitarComprobanteInfraccion")?.addEventListener("click", event => {
+        event.stopPropagation();
+        limpiarComprobante();
+    });
+
+    // Permite abrir el explorador de archivos con Enter o Espacio
     area.addEventListener("keydown", event => {
         if (input.disabled) return;
         if (event.key === "Enter" || event.key === " ") {
@@ -197,32 +393,47 @@ function inicializarCargaComprobante() {
             input.click();
         }
     });
+
+    // Añade clase visual al arrastrar archivos sobre el área
     area.addEventListener("dragover", event => {
         if (input.disabled) return;
         event.preventDefault();
+        event.stopPropagation();
         area.classList.add("is-drag-over");
     });
-    area.addEventListener("dragleave", () => area.classList.remove("is-drag-over"));
+    area.addEventListener("dragleave", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.remove("is-drag-over");
+    });
+
+    // Procesa el archivo soltado en el área
     area.addEventListener("drop", event => {
         if (input.disabled) return;
         event.preventDefault();
+        event.stopPropagation();
         area.classList.remove("is-drag-over");
         const archivo = event.dataTransfer.files?.[0];
         if (archivo) procesarArchivoComprobante(archivo);
     });
+
+    // Procesa el archivo cuando es seleccionado manualmente
     input.addEventListener("change", () => {
         const archivo = input.files?.[0];
         if (archivo) procesarArchivoComprobante(archivo);
     });
 }
 
+// Valida el formato y tamaño del archivo comprobante (por extensión)
 function procesarArchivoComprobante(archivo) {
     const limBytes = 5 * 1024 * 1024;
-    const tiposPermitidos = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const extensionesPermitidas = ["jpg", "jpeg", "png", "webp", "pdf"];
 
     limpiarErrorComprobante();
 
-    if (!tiposPermitidos.includes(archivo.type)) {
+    // Extrae y valida la extensión del archivo para máxima compatibilidad
+    const ext = archivo.name.split('.').pop().toLowerCase();
+    if (!extensionesPermitidas.includes(ext)) {
         mostrarErrorComprobante("El archivo debe ser PDF, JPG, PNG o WEBP.");
         return;
     }
@@ -231,22 +442,77 @@ function procesarArchivoComprobante(archivo) {
         return;
     }
 
-    document.getElementById("infraccionComprobantePrompt").hidden = true;
-    document.getElementById("infraccionFilePreview").hidden = false;
-    document.getElementById("infraccionFileName").textContent = archivo.name;
-    document.getElementById("infraccion-strUrlComprobantePago").value = "/uploads/infraccion_demo.pdf";
+    // Asignar el archivo al input usando DataTransfer (estilo Nuevo Empleado)
+    const input = document.getElementById("infraccionComprobanteArchivo");
+    if (input) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(archivo);
+        input.files = dataTransfer.files;
+    }
+
+    comprobanteArchivoSeleccionado = archivo;
+    renderizarPreviaComprobante();
     actualizarVistaPreviaInfraccion();
 }
 
+function renderizarPreviaComprobante() {
+    const prompt = document.getElementById("infraccionComprobantePrompt");
+    const preview = document.getElementById("infraccionFilePreview");
+    const hidden = document.getElementById("infraccion-strUrlComprobantePago");
+    if (!prompt || !preview) return;
+
+    const urlExistente = hidden ? hidden.value : "";
+
+    if (!comprobanteArchivoSeleccionado && !urlExistente) {
+        prompt.style.display = "flex";
+        preview.style.display = "none";
+        return;
+    }
+
+    prompt.style.display = "none";
+    preview.style.display = "flex";
+
+    const nameText = document.getElementById("infraccionFileName");
+    const sizeText = document.getElementById("infraccionFileSize");
+
+    if (urlExistente) {
+        const name = urlExistente.split("/").pop();
+        if (nameText) nameText.textContent = name;
+        if (sizeText) sizeText.textContent = "Comprobante guardado";
+    } else if (comprobanteArchivoSeleccionado) {
+        if (nameText) nameText.textContent = comprobanteArchivoSeleccionado.name;
+        if (sizeText) sizeText.textContent = (comprobanteArchivoSeleccionado.size / 1024 / 1024).toFixed(2) + " MB";
+    }
+}
+
+window.quitarComprobanteExistenteInfraccion = function() {
+    const hidden = document.getElementById("infraccion-strUrlComprobantePago");
+    if (hidden) hidden.value = "";
+    renderizarPreviaComprobante();
+    actualizarVistaPreviaInfraccion();
+};
+
+window.quitarArchivoComprobanteInfraccion = function() {
+    comprobanteArchivoSeleccionado = null;
+    const input = document.getElementById("infraccionComprobanteArchivo");
+    if (input) input.value = "";
+    renderizarPreviaComprobante();
+    actualizarVistaPreviaInfraccion();
+};
+
+// Limpia el estado del comprobante
 function limpiarComprobante() {
+    comprobanteArchivoSeleccionado = null;
     const input = document.getElementById("infraccionComprobanteArchivo");
     if (input) input.value = "";
     const hidden = document.getElementById("infraccion-strUrlComprobantePago");
     if (hidden) hidden.value = "";
+    
     const prompt = document.getElementById("infraccionComprobantePrompt");
     const preview = document.getElementById("infraccionFilePreview");
-    if (prompt) prompt.hidden = false;
-    if (preview) preview.hidden = true;
+    if (prompt) prompt.style.display = "flex";
+    if (preview) preview.style.display = "none";
+    
     limpiarErrorComprobante();
     actualizarVistaPreviaInfraccion();
 }
@@ -263,6 +529,7 @@ function limpiarErrorComprobante() {
     if (error) { error.textContent = ""; error.classList.remove("d-block"); }
 }
 
+// Configura contadores de caracteres para los campos textarea
 function inicializarContadores() {
     const motivo = document.getElementById("infraccion-strMotivo");
     const counterMotivo = document.getElementById("infraccionMotivoCounter");
@@ -281,6 +548,7 @@ function inicializarContadores() {
     }
 }
 
+// Mapea y actualiza la tarjeta lateral de Vista Previa con los valores del formulario
 function actualizarVistaPreviaInfraccion() {
     const val = id => document.getElementById(id)?.value?.trim() || "";
     const txt = id => {
@@ -289,13 +557,15 @@ function actualizarVistaPreviaInfraccion() {
         return opt?.value ? opt.textContent.trim() : "";
     };
 
-    const statusVal = val("infraccion-idVehCatStatus");
-    const statusText = statusVal === "2" ? "Pagada" : "Pendiente";
+    const selectStatus = document.getElementById("infraccion-idVehCatStatus");
+    const statusValText = selectStatus ? (selectStatus.options[selectStatus.selectedIndex]?.text.toLowerCase() || "") : "";
+    const isPaid = statusValText.includes("pagada");
+    const statusText = isPaid ? "Pagada" : "Pendiente";
 
     const elStatus = document.getElementById("previewInfraccionStatus");
     if (elStatus) {
         elStatus.textContent = statusText;
-        elStatus.className = "infraccion-status " + (statusVal === "2" ? "infraccion-status-paid" : "infraccion-status-pending");
+        elStatus.className = "infraccion-status " + (isPaid ? "infraccion-status-paid" : "infraccion-status-pending");
     }
 
     // Buscar placa
@@ -319,15 +589,18 @@ function actualizarVistaPreviaInfraccion() {
     setText("previewInfraccionFechaPago", val("infraccion-dteFechaPago") || "No registrada");
     setText("previewInfraccionFormaPago", txt("infraccion-idVehFormaPago") || "Sin seleccionar");
 
-    const compFilename = document.getElementById("infraccionFileName")?.textContent;
-    setText("previewInfraccionComprobante", val("infraccion-strUrlComprobantePago") ? (compFilename || "Archivo cargado") : "Sin archivo");
+    const hasFile = comprobanteArchivoSeleccionado || document.getElementById("infraccion-strUrlComprobantePago")?.value;
+    const name = comprobanteArchivoSeleccionado ? comprobanteArchivoSeleccionado.name : (document.getElementById("infraccion-strUrlComprobantePago")?.value.split("/").pop() || "Archivo cargado");
+    setText("previewInfraccionComprobante", hasFile ? name : "Sin archivo");
 }
 
+// Realiza validación de campos obligatorios requeridos
 function validarFormularioInfraccion(form) {
     const obligatorios = ["infraccion-idVehDatosGenerales", "infraccion-idEmpEmpleado", "infraccion-dteFechaInfraccion", "infraccion-idVehCatStatus", "infraccion-strMotivo"];
     
-    const statusVal = document.getElementById("infraccion-idVehCatStatus")?.value;
-    if (statusVal === "2") {
+    const selectStatus = document.getElementById("infraccion-idVehCatStatus");
+    const isPaid = selectStatus ? (selectStatus.options[selectStatus.selectedIndex]?.text.toLowerCase() || "").includes("pagada") : false;
+    if (isPaid) {
         obligatorios.push("infraccion-mnyMontoPagado", "infraccion-dteFechaPago", "infraccion-idVehFormaPago");
     }
 
@@ -345,6 +618,7 @@ function validarFormularioInfraccion(form) {
     return valido;
 }
 
+// Realiza validación lógica individual por campo
 function validarCampoInfraccion(campo) {
     const original = String(campo.value || "");
     const valor = original.trim();
@@ -386,6 +660,7 @@ function validarCampoInfraccion(campo) {
     return true;
 }
 
+// Limpia el estado de error de un input/select
 function limpiarErrorCampo(campo) {
     campo.classList.remove("is-invalid", "is-valid");
     campo.removeAttribute("aria-invalid");
@@ -395,3 +670,272 @@ function limpiarErrorCampo(campo) {
         error.classList.remove("d-block");
     }
 }
+
+// ─── CRUD Actions y Renderizado ───
+let listaInfracciones = [];
+let editModeInfraccionId = null;
+
+async function cargarInfraccionesList() {
+    try {
+        const response = await fetch("/Vehiculos/GetInfracciones");
+        const result = await response.json();
+        if (result.success && result.data) {
+            listaInfracciones = result.data;
+        } else {
+            listaInfracciones = [];
+        }
+        renderInfraccionesTable();
+    } catch (err) {
+        console.error("Error al cargar infracciones:", err);
+        listaInfracciones = [];
+        renderInfraccionesTable();
+    }
+}
+
+function renderInfraccionesTable() {
+    const tbody = document.getElementById("infraccionesTableBody");
+    if (!tbody) return;
+
+    if (!listaInfracciones || listaInfracciones.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No se encontraron infracciones registradas.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = listaInfracciones.map(inf => {
+        const v = listaVehiculosInfracciones.find(veh => veh.id === inf.idVehDatosGenerales);
+        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
+        const modelo = v ? v.strModelo : "Desconocido";
+        const placa = v ? v.strPlaca : "—";
+        const brandModel = `${marca} ${modelo}`;
+
+        const emp = listaEmpleadosInfracciones.find(e => e.id === inf.idEmpEmpleado);
+        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (inf.strEmpEmpleado || "Desconocido");
+
+        const motivo = inf.strMotivo || "";
+        const smallMotivo = motivo.length > 40 ? motivo.substring(0, 40) + "..." : motivo;
+
+        // Estatus basado en texto
+        const isPaid = (inf.strVehCatStatus || "").toLowerCase() === "pagada";
+        const statusBadge = isPaid
+            ? '<span class="badge bg-success">Pagada</span>'
+            : '<span class="badge bg-warning text-dark">Pendiente</span>';
+
+        return `
+            <tr>
+                <td>${escapeHtml(brandModel)}</td>
+                <td><span class="badge bg-light text-dark border">${escapeHtml(placa)}</span></td>
+                <td>${escapeHtml(empleadoName)}</td>
+                <td title="${escapeHtml(motivo)}">${escapeHtml(smallMotivo)}</td>
+                <td>${statusBadge}</td>
+                <td class="text-end">
+                    <div class="dropdown actions-dropdown d-inline-block">
+                        <button class="btn-action-trigger btn-sm" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                            <span>Acciones</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="verDetalleInfraccion(${inf.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-info"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Ver detalles
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="editarInfraccion(${inf.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Editar
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="eliminarInfraccion(${inf.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                    Eliminar
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    tbody.querySelectorAll('.btn-action-trigger').forEach(el => {
+        new bootstrap.Dropdown(el, {
+            popperConfig: (defaultConfig) => {
+                return {
+                    ...defaultConfig,
+                    strategy: 'fixed'
+                };
+            }
+        });
+    });
+}
+
+function verDetalleInfraccion(id) {
+    const inf = listaInfracciones.find(item => item.id === id);
+    if (!inf) return;
+
+    const v = listaVehiculosInfracciones.find(veh => veh.id === inf.idVehDatosGenerales);
+    const emp = listaEmpleadosInfracciones.find(e => e.id === inf.idEmpEmpleado);
+    const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (inf.strEmpEmpleado || "Desconocido");
+
+    const statusText = inf.strVehCatStatus || "Pendiente";
+
+    let comprobanteHtml = '<span class="text-muted small">No registrado</span>';
+    if (inf.strUrlComprobantePago) {
+        const isPdf = inf.strUrlComprobantePago.toLowerCase().endsWith(".pdf");
+        const filename = inf.strUrlComprobantePago.split("/").pop();
+        if (isPdf) {
+            comprobanteHtml = `<a href="${inf.strUrlComprobantePago}" target="_blank" class="text-teal-cavex fw-semibold small" style="text-decoration: underline;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                ${escapeHtml(filename)}
+                               </a>`;
+        } else {
+            comprobanteHtml = `<a href="${inf.strUrlComprobantePago}" target="_blank" class="d-inline-block border rounded p-1">
+                                <img src="${inf.strUrlComprobantePago}" style="max-height: 80px; object-fit: contain;" />
+                               </a>`;
+        }
+    }
+
+    Swal.fire({
+        title: "Detalle de Infracción",
+        html: `
+            <div class="text-start fs-6" style="line-height: 1.6;">
+                <p><strong>Vehículo:</strong> ${v ? `${v.strModelo} (${v.intAnio})` : "Desconocido"}</p>
+                <p><strong>Placa:</strong> ${v ? v.strPlaca : "—"}</p>
+                <p><strong>Chofer Responsable:</strong> ${empleadoName}</p>
+                <p><strong>Fecha Infracción:</strong> ${inf.dteFechaInfraccion ? new Date(inf.dteFechaInfraccion).toLocaleDateString("es-MX") : "—"}</p>
+                <p><strong>Estatus:</strong> <span class="badge ${inf.idVehCatStatus === 2 ? "bg-success" : "bg-warning text-dark"}">${statusText}</span></p>
+                <p><strong>Motivo:</strong> ${escapeHtml(inf.strMotivo)}</p>
+                <p><strong>Monto Pagado:</strong> ${inf.mnyMontoPagado ? `$${Number(inf.mnyMontoPagado).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "$0.00"}</p>
+                <p><strong>Fecha Pago:</strong> ${inf.dteFechaPago ? new Date(inf.dteFechaPago).toLocaleDateString("es-MX") : "No registrada"}</p>
+                <p><strong>Forma Pago:</strong> ${escapeHtml(inf.strVehFormaPago || "Sin seleccionar")}</p>
+                <p><strong>Comprobante:</strong></p>
+                <div class="mb-3">${comprobanteHtml}</div>
+                <p><strong>Observaciones:</strong> ${escapeHtml(inf.strObservaciones || "Ninguna")}</p>
+            </div>
+        `,
+        confirmButtonColor: "var(--teal-cavex)"
+    });
+}
+
+function editarInfraccion(id) {
+    const inf = listaInfracciones.find(item => item.id === id);
+    if (!inf) return;
+
+    editModeInfraccionId = id;
+
+    const selectVeh = document.getElementById("infraccion-idVehDatosGenerales");
+    const selectEmp = document.getElementById("infraccion-idEmpEmpleado");
+    if (selectVeh) selectVeh.disabled = false;
+    if (selectEmp) selectEmp.disabled = false;
+
+    if (selectVeh) {
+        selectVeh.value = inf.idVehDatosGenerales;
+        selectVeh.dispatchEvent(new Event("change"));
+    }
+
+    if (selectEmp) {
+        selectEmp.value = inf.idEmpEmpleado;
+    }
+    
+    if (inf.dteFechaInfraccion) {
+        document.getElementById("infraccion-dteFechaInfraccion").value = inf.dteFechaInfraccion.split("T")[0];
+    }
+    
+    document.getElementById("infraccion-idVehCatStatus").value = inf.idVehCatStatus;
+    document.getElementById("infraccion-idVehCatStatus").dispatchEvent(new Event("change"));
+
+    document.getElementById("infraccion-strMotivo").value = inf.strMotivo || "";
+    document.getElementById("infraccion-strMotivo").dispatchEvent(new Event("input"));
+
+    document.getElementById("infraccion-mnyMontoPagado").value = inf.mnyMontoPagado || "";
+    if (inf.dteFechaPago) {
+        document.getElementById("infraccion-dteFechaPago").value = inf.dteFechaPago.split("T")[0];
+    } else {
+        document.getElementById("infraccion-dteFechaPago").value = "";
+    }
+    document.getElementById("infraccion-idVehFormaPago").value = inf.idVehFormaPago || "";
+    document.getElementById("infraccion-strObservaciones").value = inf.strObservaciones || "";
+    document.getElementById("infraccion-strObservaciones").dispatchEvent(new Event("input"));
+
+    if (inf.strUrlComprobantePago) {
+        document.getElementById("infraccion-strUrlComprobantePago").value = inf.strUrlComprobantePago;
+    } else {
+        document.getElementById("infraccion-strUrlComprobantePago").value = "";
+    }
+    comprobanteArchivoSeleccionado = null;
+    renderizarPreviaComprobante();
+
+    actualizarVistaPreviaInfraccion();
+
+    document.getElementById("infraccionVehiculoForm").scrollIntoView({ behavior: "smooth" });
+}
+
+function eliminarInfraccion(id) {
+    Swal.fire({
+        title: "¿Estás seguro?",
+        text: "Este registro de infracción será eliminado permanentemente.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: "Eliminando...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            try {
+                const response = await fetch(`/Vehiculos/DeleteInfraccion/${id}`, { method: "POST" });
+                const res = await response.json();
+                Swal.close();
+                if (res.success) {
+                    Swal.fire("Eliminado", "La infracción ha sido eliminada.", "success");
+                    cargarInfraccionesList();
+                } else {
+                    Swal.fire("Error", res.message || "No se pudo eliminar la infracción.", "error");
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire("Error", "Error de red al intentar eliminar.", "error");
+            }
+        }
+    });
+}
+
+function resetearFormularioInfraccion() {
+    editModeInfraccionId = null;
+    const selectVeh = document.getElementById("infraccion-idVehDatosGenerales");
+    const selectEmp = document.getElementById("infraccion-idEmpEmpleado");
+    if (selectVeh) selectVeh.disabled = false;
+    if (selectEmp) selectEmp.disabled = false;
+
+    const form = document.getElementById("infraccionVehiculoForm");
+    if (form) {
+        form.reset();
+        form.querySelectorAll(".is-valid, .is-invalid").forEach(el => el.classList.remove("is-valid", "is-valid"));
+        
+        // Por defecto: Pendiente
+        const statusSelect = document.getElementById("infraccion-idVehCatStatus");
+        if (statusSelect) {
+            for (let i = 0; i < statusSelect.options.length; i++) {
+                if (statusSelect.options[i].text.toLowerCase().includes("pendiente")) {
+                    statusSelect.selectedIndex = i;
+                    break;
+                }
+            }
+            statusSelect.dispatchEvent(new Event("change"));
+        }
+    }
+    limpiarComprobante();
+    actualizarVistaPreviaInfraccion();
+}
+
+function escapeHtml(text) {
+    return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+

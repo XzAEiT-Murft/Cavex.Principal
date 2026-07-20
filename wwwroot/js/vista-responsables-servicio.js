@@ -1,60 +1,14 @@
 let responsables = [];
-let statusCatalog = [];
 let editingId = null;
 let currentPage = 1;
 let pageSize = 10;
-let statusFilter = "";
 let searchQuery = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
     wireFormInputs();
-    await loadStatusOptions();
     await loadResponsablesFromServer();
     resetForm();
 });
-
-async function loadStatusOptions() {
-    const statusField = document.getElementById("intIdStatus");
-    if (statusField) {
-        statusField.innerHTML = '<option value="">-- Seleccionar Estado --</option>';
-    }
-
-    try {
-        const response = await fetch("/Vehiculos/ResponsablesServicio/GetStatus", {
-            method: "GET",
-            headers: { "Accept": "application/json" }
-        });
-
-        const result = await response.json();
-
-        if (!result.success) {
-            showError(result.message || "No fue posible cargar los estatus.");
-            renderStatusTabs();
-            return;
-        }
-
-        statusCatalog = (result.data || []).map(status => ({
-            id: status.id,
-            nombre: status.strValor || status.StrValor || `Estatus ${status.id}`,
-            descripcion: status.strDescripcion || status.StrDescripcion || ""
-        }));
-
-        if (statusField) {
-            statusCatalog.forEach(status => {
-                const option = document.createElement("option");
-                option.value = status.id;
-                option.textContent = status.nombre;
-                statusField.appendChild(option);
-            });
-        }
-
-        renderStatusTabs();
-    } catch (error) {
-        console.error(error);
-        showError("Ocurrio un error al cargar los estatus.");
-        renderStatusTabs();
-    }
-}
 
 async function loadResponsablesFromServer() {
     try {
@@ -71,18 +25,13 @@ async function loadResponsablesFromServer() {
         }
 
         responsables = (result.data || []).map(item => {
-            const idCatStatus = item.idCatStatus ?? item.IdCatStatus;
-
             return {
                 id: item.id,
                 nombre: item.strValor || item.StrValor || "",
-                descripcion: item.strDescripcion || item.StrDescripcion || "",
-                idCatStatus: idCatStatus === null || idCatStatus === undefined ? "" : String(idCatStatus),
-                strCatStatus: item.strCatStatus || item.StrCatStatus || ""
+                descripcion: item.strDescripcion || item.StrDescripcion || ""
             };
         });
 
-        renderStatusTabs();
         renderResponsables();
     } catch (error) {
         console.error(error);
@@ -93,83 +42,24 @@ async function loadResponsablesFromServer() {
 function wireFormInputs() {
     const nombreInput = document.getElementById("strNombre");
     const descInput = document.getElementById("strDescripcion");
-    const statusField = document.getElementById("intIdStatus");
 
     if (nombreInput) {
+        if (typeof registerSanitizer === "function" && typeof sanitizeLettersOnly === "function") {
+            registerSanitizer(nombreInput, sanitizeLettersOnly);
+        }
         nombreInput.addEventListener("input", () => {
-            const originalVal = nombreInput.value;
-            const cleanedVal = typeof sanitizeLettersOnly === "function"
-                ? sanitizeLettersOnly(originalVal)
-                : originalVal.replace(/[^a-zA-Z0-9#.\-\s]/g, "");
-
-            if (originalVal !== cleanedVal) {
-                const start = nombreInput.selectionStart;
-                const end = nombreInput.selectionEnd;
-                nombreInput.value = cleanedVal;
-                try {
-                    nombreInput.setSelectionRange(start, end);
-                } catch (err) { }
-            }
-
             nombreInput.classList.remove("is-invalid", "is-valid");
         });
-
-        nombreInput.addEventListener("blur", () => {
-            nombreInput.value = nombreInput.value.trim();
-        });
     }
-
+ 
     if (descInput) {
+        if (typeof registerSanitizer === "function" && typeof sanitizeGeneralText === "function") {
+            registerSanitizer(descInput, sanitizeGeneralText);
+        }
         descInput.addEventListener("input", () => {
-            const originalVal = descInput.value;
-            const cleanedVal = typeof sanitizeGeneralText === "function"
-                ? sanitizeGeneralText(originalVal)
-                : originalVal.replace(/[^a-zA-Z0-9#.,_()\/\-\s]/g, "");
-
-            if (originalVal !== cleanedVal) {
-                const start = descInput.selectionStart;
-                const end = descInput.selectionEnd;
-                descInput.value = cleanedVal;
-                try {
-                    descInput.setSelectionRange(start, end);
-                } catch (err) { }
-            }
-
             descInput.classList.remove("is-invalid", "is-valid");
         });
-
-        descInput.addEventListener("blur", () => {
-            descInput.value = descInput.value.trim();
-        });
     }
-
-    if (statusField) {
-        statusField.addEventListener("change", () => {
-            statusField.classList.remove("is-invalid", "is-valid");
-        });
-    }
-}
-
-function renderStatusTabs() {
-    const tabsContainer = document.getElementById("statusTabs");
-    if (!tabsContainer) return;
-
-    tabsContainer.innerHTML = "";
-    tabsContainer.appendChild(createStatusTab("", "Todos", responsables.length));
-
-    statusCatalog.forEach(status => {
-        const count = responsables.filter(r => r.idCatStatus === String(status.id)).length;
-        tabsContainer.appendChild(createStatusTab(String(status.id), status.nombre, count));
-    });
-}
-
-function createStatusTab(value, text, count) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `tab-item ${statusFilter === value ? "active" : ""}`;
-    button.onclick = () => setStatusFilter(value);
-    button.innerHTML = `${escapeHtml(text)} <span class="tab-count count-all">${count}</span>`;
-    return button;
 }
 
 function renderResponsables() {
@@ -179,15 +69,11 @@ function renderResponsables() {
     tbody.innerHTML = "";
 
     const filtered = responsables.filter(r => {
-        if (statusFilter && r.idCatStatus !== statusFilter) return false;
-
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             return r.nombre.toLowerCase().includes(query)
-                || (r.descripcion || "").toLowerCase().includes(query)
-                || getStatusName(r).toLowerCase().includes(query);
+                || (r.descripcion || "").toLowerCase().includes(query);
         }
-
         return true;
     });
 
@@ -204,19 +90,18 @@ function renderResponsables() {
     if (pagedList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="text-center py-5">
+                <td colspan="3" class="text-center py-5">
                     <div class="text-muted">
                         <p class="m-0 font-weight-700">No se encontraron responsables</p>
-                        <small>Prueba ajustando los filtros o la busqueda</small>
+                        <small>Prueba ajustando la búsqueda</small>
                     </div>
                 </td>
             </tr>`;
     } else {
         pagedList.forEach(r => {
             const tr = document.createElement("tr");
-            const statusName = getStatusName(r);
             const descText = r.descripcion || "Sin descripcion";
-            const truncatedDesc = descText.length > 60 ? `${descText.substring(0, 60)}...` : descText;
+            const truncatedDesc = descText.length > 80 ? `${descText.substring(0, 80)}...` : descText;
 
             tr.innerHTML = `
                 <td>
@@ -224,9 +109,6 @@ function renderResponsables() {
                 </td>
                 <td>
                     <div class="description-text" title="${escapeHtml(descText)}">${escapeHtml(truncatedDesc)}</div>
-                </td>
-                <td>
-                    <span class="${getStatusBadgeClass(statusName)}">${escapeHtml(statusName)}</span>
                 </td>
                 <td class="text-end">
                     <div class="dropdown actions-dropdown d-inline-block">
@@ -244,7 +126,7 @@ function renderResponsables() {
                             <li>
                                 <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="deleteResponsable(${r.id})">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                                    Dar de baja
+                                    Eliminar
                                 </button>
                             </li>
                         </ul>
@@ -312,13 +194,6 @@ function changePage(event, page) {
     renderResponsables();
 }
 
-function setStatusFilter(statusId) {
-    statusFilter = statusId || "";
-    currentPage = 1;
-    renderStatusTabs();
-    renderResponsables();
-}
-
 function handleSearch(query) {
     searchQuery = query || "";
     currentPage = 1;
@@ -330,13 +205,11 @@ async function handleFormSubmit(e) {
 
     const nombreInput = document.getElementById("strNombre");
     const descInput = document.getElementById("strDescripcion");
-    const statusField = document.getElementById("intIdStatus");
 
     if (!nombreInput) return;
 
     const nombre = nombreInput.value.trim();
     const descripcion = descInput ? descInput.value.trim() : "";
-    const statusVal = statusField ? statusField.value : "";
 
     if (!nombre) {
         nombreInput.classList.add("is-invalid");
@@ -344,14 +217,6 @@ async function handleFormSubmit(e) {
         const feedback = document.getElementById("nombreFeedback");
         if (feedback) feedback.textContent = "El nombre del responsable es obligatorio.";
         nombreInput.focus();
-        return;
-    }
-
-    if (editingId !== null && !statusVal) {
-        statusField.classList.add("is-invalid");
-        const feedback = document.getElementById("statusFeedback");
-        if (feedback) feedback.textContent = "Selecciona un estatus.";
-        statusField.focus();
         return;
     }
 
@@ -369,8 +234,7 @@ async function handleFormSubmit(e) {
 
     const payload = {
         strValor: nombre,
-        strDescripcion: descripcion,
-        idCatStatus: editingId === null ? 1 : Number.parseInt(statusVal, 10)
+        strDescripcion: descripcion
     };
 
     if (editingId !== null) {
@@ -425,14 +289,8 @@ function editResponsable(id) {
     const descInput = document.getElementById("strDescripcion");
     if (descInput) descInput.value = responsable.descripcion || "";
 
-    const statusField = document.getElementById("intIdStatus");
-    if (statusField) statusField.value = responsable.idCatStatus || "";
-
-    const statusContainer = document.getElementById("statusContainer");
-    if (statusContainer) statusContainer.style.display = "block";
-
     setText("formTitle", "Editar responsable");
-    setText("formSubtitle", "Modifica los detalles del responsable de servicio seleccionado.");
+    setText("formSubtitle", "Modifica los detalles del responsable seleccionado.");
     setText("btnSubmit", "Guardar cambios");
 
     const btnCancel = document.getElementById("btnCancel");
@@ -446,7 +304,7 @@ function editResponsable(id) {
 
 function deleteResponsable(id) {
     Swal.fire({
-        title: "Estas seguro?",
+        title: "¿Estas seguro?",
         text: "No podras revertir esta accion.",
         icon: "warning",
         showCancelButton: true,
@@ -466,7 +324,7 @@ function deleteResponsable(id) {
             const data = await response.json();
 
             if (!data.success) {
-                showError(data.message || "No fue posible eliminar el responsable.");
+                showError(data.message || "No fue posible eliminar al responsable.");
                 return;
             }
 
@@ -481,7 +339,7 @@ function deleteResponsable(id) {
             await loadResponsablesFromServer();
         } catch (error) {
             console.error(error);
-            showError("Ocurrio un error al eliminar el responsable.");
+            showError("Ocurrio un error al eliminar al responsable.");
         }
     });
 }
@@ -499,29 +357,20 @@ function resetForm() {
 
     const btnCancel = document.getElementById("btnCancel");
     if (btnCancel) btnCancel.style.display = "none";
-
-    const statusContainer = document.getElementById("statusContainer");
-    if (statusContainer) statusContainer.style.display = "none";
 }
 
 function clearValidation() {
     document.getElementById("strNombre")?.classList.remove("is-invalid", "is-valid");
     document.getElementById("strDescripcion")?.classList.remove("is-invalid", "is-valid");
-    document.getElementById("intIdStatus")?.classList.remove("is-invalid", "is-valid");
 }
 
-function getStatusName(responsable) {
-    if (responsable.strCatStatus) return responsable.strCatStatus;
-
-    const status = statusCatalog.find(item => String(item.id) === responsable.idCatStatus);
-    return status ? status.nombre : "Sin estatus";
-}
-
-function getStatusBadgeClass(statusName) {
-    const normalized = (statusName || "").toLowerCase();
-    return normalized.includes("baja") || normalized.includes("inactivo") || normalized.includes("cancel")
-        ? "badge-danger"
-        : "badge-active";
+function escapeHtml(string) {
+    return String(string)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function setText(id, value) {
@@ -536,14 +385,4 @@ function showError(message) {
         text: message,
         confirmButtonColor: "var(--teal-cavex)"
     });
-}
-
-function escapeHtml(text) {
-    if (!text) return "";
-    return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
 }

@@ -6,95 +6,88 @@ let pageSize = 10;
 let statusFilter = 'todos';
 let searchQuery = '';
 
-// Al cargar el DOM, renderizamos
+// Al cargar el DOM se inicia la obtención de la lista del servidor
 document.addEventListener('DOMContentLoaded', () => {
     loadEmpleadosFromServer();
 });
 
+// Obtiene los datos paginados de empleados desde la base de datos aplicando filtros de estado y búsqueda en tiempo real
 function loadEmpleadosFromServer() {
-    fetch('/Empleado/GetEmpleados')
+    // Construye la URL de la API con los parámetros de paginación, búsqueda (sanitizada) y filtro de estado
+    const url = `/Empleado/GetEmpleados?pagina=${currentPage}&search=${encodeURIComponent(searchQuery)}&status=${encodeURIComponent(statusFilter)}`;
+    
+    // Realiza la petición asíncrona (AJAX) al controlador utilizando Fetch API
+    fetch(url)
         .then(response => {
+            // Verifica que la respuesta HTTP del servidor sea correcta (status 200-299)
             if (!response.ok) {
                 throw new Error("HTTP error " + response.status);
             }
+            // Convierte la respuesta recibida a formato JSON
             return response.json();
         })
         .then(result => {
-            console.log("Respuesta de GetEmpleados:", result);
+            // Si la respuesta del servidor indica éxito
             if (result.success) {
+                // Comprueba que los datos contengan un arreglo válido de registros de empleados
                 if (result.data && Array.isArray(result.data)) {
-                    empleados = result.data.map(item => ({
-                        id: item.id,
-                        nombre: item.strNombre + ' ' + item.strApellidoPaterno + (item.strApellidoMaterno ? ' ' + item.strApellidoMaterno : ''),
-                        curp: item.strCurp,
-                        rfc: item.strRfc,
-                        area: item.strEmpCondicionesLaborales || 'Operativo',
-                        puesto: 'Asesor',
-                        correo: item.strCorreoElectronico,
-                        telefono: item.intNss ? item.intNss.toString() : '—',
-                        activo: item.idCatStatus === 1 || item.strCatStatus === "Activo" || item.strCatStatus === "1"
-                    }));
+                    // Mapea la lista de registros de base de datos a un formato estandarizado para la vista
+                    empleados = result.data.map(item => {
+                        // Concatena el nombre y apellidos (el materno es opcional y se evalúa si existe)
+                        const rawFullName = item.strNombre + ' ' + item.strApellidoPaterno + (item.strApellidoMaterno ? ' ' + item.strApellidoMaterno : '');
+                        return {
+                            id: item.id,
+                            // Aplica formato Title Case al nombre completo usando el helper global
+                            nombre: toTitleCase(rawFullName),
+                            curp: item.strCurp,
+                            rfc: item.strRfc,
+                            // Si no tiene condiciones laborales registradas, se indica explícitamente
+                            area: toTitleCase(item.strEmpCondicionesLaborales || 'Sin Condiciones Laborales'),
+                            // Si no tiene tipo de contratación definido, se indica explícitamente
+                            puesto: toTitleCase(item.strEmpCatTipoContratacion || 'Sin Tipo de Contratación'),
+                            correo: item.strCorreoElectronico,
+                            // Extrae el número de celular del arreglo de teléfonos si existe un registro, en caso contrario asigna '—'
+                            telefono: (item.empTelefonos && item.empTelefonos.length > 0) ? (item.empTelefonos[0].strNumeroCelular || '—') : '—',
+                            // Define el estado activo mapeando el idCatStatus o cadena de texto
+                            activo: item.idCatStatus === 1 || item.strCatStatus === "Activo" || item.strCatStatus === "1"
+                        };
+                    });
                 } else {
                     empleados = [];
                 }
-                renderEmpleados();
+                
+                // Obtiene las referencias a los elementos DOM que muestran las cantidades totales en cada tab
+                const elTodos = document.getElementById('countTodos');
+                const elActivos = document.getElementById('countActivos');
+                const elBaja = document.getElementById('countBaja');
+                
+                // Actualiza dinámicamente los contadores en las pestañas con los valores provistos por la API
+                if (elTodos) elTodos.textContent = result.totalAllCount ?? 0;
+                if (elActivos) elActivos.textContent = result.activeCount ?? 0;
+                if (elBaja) elBaja.textContent = result.inactiveCount ?? 0;
+
+                // Obtiene la cantidad total de registros coincidentes para calcular la paginación y renderiza
+                const totalCount = result.totalCount ?? 0;
+                renderEmpleados(totalCount);
             } else {
-                console.error("Error al cargar empleados:", result.message);
                 empleados = [];
-                renderEmpleados();
+                renderEmpleados(0);
             }
         })
         .catch(err => {
-            console.error("Error al cargar empleados:", err);
+            // En caso de fallar la comunicación o haber error de parseo, inicializa vacío y dibuja la tabla
             empleados = [];
-            renderEmpleados();
+            renderEmpleados(0);
         });
 }
 
-// Renderizar la tabla de empleados
-function renderEmpleados() {
+// Dibuja las filas de la tabla de empleados en la interfaz de usuario, controlando estados vacíos y badges
+function renderEmpleados(totalCount) {
     const tbody = document.getElementById('employeesTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // Filtrar empleados
-    let filtered = empleados.filter(e => {
-        // Filtro por Estado
-        if (statusFilter === 'activos' && !e.activo) return false;
-        if (statusFilter === 'baja' && e.activo) return false;
-
-        // Filtro por Búsqueda (Nombre, Área, Puesto, Correo, RFC, CURP)
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            const nombreMatch = e.nombre.toLowerCase().includes(query);
-            const areaMatch = e.area.toLowerCase().includes(query);
-            const puestoMatch = e.puesto.toLowerCase().includes(query);
-            const correoMatch = e.correo.toLowerCase().includes(query);
-            const rfcMatch = e.rfc.toLowerCase().includes(query);
-            const curpMatch = e.curp.toLowerCase().includes(query);
-            
-            return nombreMatch || areaMatch || puestoMatch || correoMatch || rfcMatch || curpMatch;
-        }
-
-        return true;
-    });
-
-    // Actualizar Conteos en Pestañas
-    const countTodos = empleados.length;
-    const countActivos = empleados.filter(e => e.activo).length;
-    const countBaja = empleados.filter(e => !e.activo).length;
-
-    const elTodos = document.getElementById('countTodos');
-    const elActivos = document.getElementById('countActivos');
-    const elBaja = document.getElementById('countBaja');
-
-    if (elTodos) elTodos.textContent = countTodos;
-    if (elActivos) elActivos.textContent = countActivos;
-    if (elBaja) elBaja.textContent = countBaja;
-
-    // Paginación
-    const totalRecords = filtered.length;
-    const totalPages = Math.ceil(totalRecords / pageSize) || 1;
+    const totalPages = Math.ceil(totalCount / pageSize) || 1;
     
     if (currentPage > totalPages) {
         currentPage = totalPages;
@@ -103,12 +96,8 @@ function renderEmpleados() {
         currentPage = 1;
     }
 
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = Math.min(startIndex + pageSize, totalRecords);
-    const pagedList = filtered.slice(startIndex, endIndex);
-
     // Renderizar vacío si no hay registros
-    if (pagedList.length === 0) {
+    if (empleados.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-5">
@@ -121,7 +110,7 @@ function renderEmpleados() {
             </tr>
         `;
     } else {
-        pagedList.forEach(e => {
+        empleados.forEach(e => {
             const tr = document.createElement('tr');
             
             // Badge de Estado
@@ -138,11 +127,10 @@ function renderEmpleados() {
             tr.innerHTML = `
                 <td>
                     <div class="cotizacion-main-text">${escapeHtml(e.nombre)}</div>
-                    <div class="small text-muted font-weight-500">${escapeHtml(e.curp)} | ${escapeHtml(e.rfc)}</div>
+                    <div class="small text-muted font-weight-500">${escapeHtml(e.curp)}</div>
                 </td>
                 <td>
                     <div class="description-text font-weight-700">${escapeHtml(e.area)}</div>
-                    <div class="small text-muted font-weight-500">${escapeHtml(e.puesto)}</div>
                 </td>
                 <td>
                     <div class="description-text">${escapeHtml(e.correo)}</div>
@@ -158,6 +146,12 @@ function renderEmpleados() {
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center" type="button" onclick="window.location.href='/Empleado/Details/${e.id}'">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-info"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Ver detalle
+                                </button>
+                            </li>
                             <li>
                                 <button class="dropdown-item d-flex align-items-center" type="button" onclick="editEmpleado(${e.id})">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -179,8 +173,10 @@ function renderEmpleados() {
     }
 
     // Actualizar contadores en barra inferior
-    const infoText = totalRecords > 0 
-        ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalRecords} registros`
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + empleados.length, totalCount);
+    const infoText = totalCount > 0 
+        ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalCount} registros`
         : `Mostrando 0-0 de 0 registros`;
     const elInfo = document.getElementById('paginationInfo');
     if (elInfo) elInfo.textContent = infoText;
@@ -191,7 +187,7 @@ function renderEmpleados() {
     // Actualizar contadores en la cabecera de la tabla
     const countPill = document.querySelector('.table-module .records-pill');
     if (countPill) {
-        countPill.textContent = `${totalRecords} empleados`;
+        countPill.textContent = `${totalCount} empleados`;
     }
 
     const extraPill = document.querySelector('.table-module .records-pill-soft');
@@ -208,42 +204,78 @@ function renderPagination(totalPages) {
 
     if (totalPages <= 1) return;
 
-    // Botón de Anterior
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `
-        <a class="page-link" href="#" onclick="changePage(event, ${currentPage - 1})" aria-label="Anterior">
-            <span aria-hidden="true">&laquo;</span>
-        </a>
-    `;
-    paginationList.appendChild(prevLi);
+    paginationList.appendChild(createPageItem("Anterior", currentPage - 1, currentPage === 1));
 
-    // Números de páginas
-    for (let i = 1; i <= totalPages; i++) {
-        const li = document.createElement('li');
-        li.className = `page-item ${currentPage === i ? 'active' : ''}`;
-        li.innerHTML = `
-            <a class="page-link" href="#" onclick="changePage(event, ${i})">${i}</a>
-        `;
-        paginationList.appendChild(li);
+    if (totalPages <= 10) {
+        for (let i = 1; i <= totalPages; i++) {
+            paginationList.appendChild(createPageItem(String(i), i, false, currentPage === i));
+        }
+    } else {
+        // dynamic sliding window for pages 11 to N
+        let startPage = 1;
+        let endPage = 10;
+
+        if (currentPage > 10) {
+            startPage = currentPage - 5;
+            endPage = currentPage + 4;
+            if (endPage > totalPages) {
+                endPage = totalPages;
+                startPage = totalPages - 9;
+            }
+        }
+
+        if (startPage > 1) {
+            paginationList.appendChild(createPageItem("1", 1, false, currentPage === 1));
+            if (startPage > 2) {
+                const li = document.createElement("li");
+                li.className = "page-item disabled";
+                li.innerHTML = '<span class="page-link">...</span>';
+                paginationList.appendChild(li);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationList.appendChild(createPageItem(String(i), i, false, currentPage === i));
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const li = document.createElement("li");
+                li.className = "page-item disabled";
+                li.innerHTML = '<span class="page-link">...</span>';
+                paginationList.appendChild(li);
+            }
+            paginationList.appendChild(createPageItem(String(totalPages), totalPages, false, currentPage === totalPages));
+        }
     }
 
-    // Botón de Siguiente
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `
-        <a class="page-link" href="#" onclick="changePage(event, ${currentPage + 1})" aria-label="Siguiente">
-            <span aria-hidden="true">&raquo;</span>
-        </a>
-    `;
-    paginationList.appendChild(nextLi);
+    paginationList.appendChild(createPageItem("Siguiente", currentPage + 1, currentPage === totalPages));
+}
+
+function createPageItem(text, page, disabled, active) {
+    const li = document.createElement("li");
+    li.className = `page-item ${disabled ? "disabled" : ""} ${active ? "active" : ""}`;
+    
+    let innerContent = text;
+    let ariaLabel = "";
+    if (text === "Anterior") {
+        innerContent = `<span aria-hidden="true">&laquo;</span>`;
+        ariaLabel = `aria-label="Anterior"`;
+    } else if (text === "Siguiente") {
+        innerContent = `<span aria-hidden="true">&raquo;</span>`;
+        ariaLabel = `aria-label="Siguiente"`;
+    }
+    
+    li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${page})" ${ariaLabel}>${innerContent}</a>`;
+    return li;
 }
 
 // Cambiar página
 function changePage(event, page) {
     if (event) event.preventDefault();
+    if (page < 1) return;
     currentPage = page;
-    renderEmpleados();
+    loadEmpleadosFromServer();
 }
 
 // Filtro de estado
@@ -263,14 +295,14 @@ function setStatusFilter(status) {
     if (status === 'baja' && elBaja) elBaja.classList.add('active');
 
     currentPage = 1;
-    renderEmpleados();
+    loadEmpleadosFromServer();
 }
 
 // Búsqueda en tiempo real
 function handleSearch(query) {
     searchQuery = query;
     currentPage = 1;
-    renderEmpleados();
+    loadEmpleadosFromServer();
 }
 
 // Acción: Editar empleado
@@ -292,7 +324,7 @@ function editEmpleado(id) {
     });
 }
 
-// Acción: Dar de baja / Activar empleado (en memoria local)
+// Cambia de forma lógica el estado activo/inactivo (alta/baja) de un empleado enviando una petición POST
 function toggleBajaEmpleado(id) {
     const emp = empleados.find(e => e.id === id);
     if (!emp) return;
@@ -310,27 +342,45 @@ function toggleBajaEmpleado(id) {
         cancelButtonColor: '#6b7280',
         confirmButtonText: confirmButtonText,
         cancelButtonText: 'Cancelar'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            emp.activo = !emp.activo;
-            Swal.fire({
-                icon: 'success',
-                title: '¡Actualizado!',
-                text: `El empleado ha sido ${emp.activo ? 'activado' : 'dado de baja'} exitosamente (en memoria local).`,
-                confirmButtonColor: 'var(--teal-cavex)'
-            });
-            renderEmpleados();
+            try {
+                const response = await fetch(`/Empleado/DeactivateEmpleado?id=${id}`, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '¡Ups!',
+                        text: data.message || `No fue posible ${actionText} al empleado.`,
+                        confirmButtonColor: 'var(--teal-cavex)'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Actualizado!',
+                    text: `El empleado ha sido ${emp.activo ? 'dado de baja' : 'activado'} exitosamente.`,
+                    confirmButtonColor: 'var(--teal-cavex)'
+                });
+
+                await loadEmpleadosFromServer();
+            } catch (error) {
+                console.error(error);
+                Swal.fire({
+                    icon: 'error',
+                    title: '¡Ups!',
+                    text: `Ocurrió un error al ${actionText} al empleado.`,
+                    confirmButtonColor: 'var(--teal-cavex)'
+                });
+            }
         }
     });
 }
 
-// Escapar caracteres HTML por seguridad
-function escapeHtml(text) {
-    if (!text) return '';
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+

@@ -831,3 +831,242 @@
         width: 100%;
     }
 }
+
+/* Nuevo diseño para "Cubierto por seguro" */
+.danio-switch-card {
+    background: #f8fafc;
+    border: 1px solid var(--borde-cavex);
+    border-radius: 11px;
+    padding: 10px 16px;
+    min-height: 46px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.danio-switch-card:hover {
+    background-color: #eef8f8;
+    border-color: rgba(0, 140, 149, .5);
+    box-shadow: 0 0 0 3px rgba(0, 140, 149, .08);
+}
+
+.danio-switch-card:active {
+    background-color: #e0f2f2;
+}
+
+.danio-switch-card__text {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--azul-cavex);
+    pointer-events: none;
+}
+
+.danio-switch-card .form-check-input {
+    width: 2.6rem;
+    height: 1.4rem;
+    cursor: pointer;
+    margin-top: 0;
+    pointer-events: none;
+}
+
+.danio-switch-card .form-check-input:checked {
+    background-color: var(--teal-cavex);
+    border-color: var(--teal-cavex);
+}
+
+/* Estilos del badge premium para fecha del sistema y fotos obligatorias */
+.custom-system-data {
+    background: rgba(13, 148, 136, 0.05) !important;
+    border: 1px solid rgba(13, 148, 136, 0.15) !important;
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.8);
+}
+
+.custom-system-data .vehiculo-system-data-icon {
+    background: #0d9488 !important;
+    color: #ffffff !important;
+    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.3);
+    flex: 0 0 44px;
+}
+
+.custom-system-data .vehiculo-system-kicker {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #0d9488 !important;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.fecha-registro-visual {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #0f172a;
+    display: block;
+}
+
+.fecha-registro-ayuda {
+    font-size: 11px;
+    color: #64748b;
+    display: block;
+    margin-top: 1px;
+}
+
+.vehiculo-upload-area.is-valid {
+    background: #F0FDF4 !important;
+    border-color: var(--exito) !important;
+    box-shadow: 0 0 0 .2rem rgba(16, 185, 129, .12) !important;
+}
+
+/* Botón Desplegable de Acciones Premium */
+.btn-action-trigger {
+    background: rgba(0, 140, 149, 0.05);
+    border: 1px solid rgba(0, 140, 149, 0.15);
+    color: var(--teal-cavex);
+    font-weight: 750;
+    font-size: 0.82rem;
+    border-radius: 10px;
+    padding: 6px 14px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.btn-action-trigger:hover,
+.btn-action-trigger[aria-expanded="true"] {
+    background: var(--teal-cavex);
+    color: white !important;
+    border-color: var(--teal-cavex);
+    box-shadow: 0 4px 10px rgba(0, 140, 149, 0.15);
+    transform: translateY(-1px);
+}
+
+.btn-action-trigger:focus,
+.btn-action-trigger:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(0, 140, 149, 0.15) !important;
+}
+
+
+/* Caja de Búsqueda de Tabla */
+.table-search-box {
+    max-width: 320px;
+    width: 100%;
+}
+
+.table-search-box .form-control {
+    border-radius: 12px;
+    padding-left: 40px;
+    font-size: 0.88rem;
+    height: 38px;
+    border-color: var(--borde-cavex);
+    transition: all 0.2s ease;
+    background: rgba(6, 27, 58, 0.01);
+}
+
+.table-search-box .form-control:focus {
+    background: var(--blanco);
+    border-color: var(--teal-cavex);
+    box-shadow: 0 0 0 3px rgba(0, 140, 149, 0.1);
+}
+
+.table-search-box .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gris);
+    opacity: 0.7;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.table-search-box .form-control:focus + .search-icon {
+    color: var(--teal-cavex);
+    opacity: 1;
+}
+
+/* Barra de filtros ligera y limpia */
+.table-filter-bar {
+    padding: 16px 24px;
+    background: transparent;
+    border-bottom: 1px solid rgba(6, 27, 58, 0.05);
+}
+
+/* Vista previa de archivo que abarca todo el espacio interior del Drag & Drop */
+.file-preview-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    height: 100%;
+    min-height: 158px;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.file-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    text-align: left;
+}
+
+.file-name-text {
+    font-size: 0.95rem;
+    font-weight: 750;
+    color: var(--azul-cavex);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+    max-width: 320px;
+}
+
+.file-size-text {
+    font-size: 0.8rem;
+    color: var(--gris);
+}
+
+.btn-quitar-archivo {
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-quitar-archivo:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+}
+
+

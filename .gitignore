@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Ignorar appsettings
+/appsettings.json
+/wwwroot/Vehiculos/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -216,6 +220,9 @@ rcf/
 
 # Windows Store app package directories and files
 AppPackages/
+uploads/
+*.pdf
+*.jpg
 BundleArtifacts/
 Package.StoreAssociation.xml
 _pkginfo.txt
@@ -361,3 +368,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Temporary scratch folder
+/scratch/

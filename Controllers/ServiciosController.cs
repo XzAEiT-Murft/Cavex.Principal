@@ -1,6 +1,7 @@
 using Cavex.Principal.Models.ServicioAClientes;
 using Cavex.Principal.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Cavex.Principal.Controllers
 {
@@ -8,11 +9,14 @@ namespace Cavex.Principal.Controllers
     {
         private readonly IServicioAClientesService _service;
         private readonly ICatStatusService _catStatusService;
+        private readonly IMemoryCache _cache;
+        private const string StatusCacheKey = "status_list";
 
-        public ServiciosController(IServicioAClientesService service, ICatStatusService catStatusService)
+        public ServiciosController(IServicioAClientesService service, ICatStatusService catStatusService, IMemoryCache cache)
         {
             _service = service;
             _catStatusService = catStatusService;
+            _cache = cache;
         }
 
         public IActionResult Index(int pagina = 1)
@@ -22,63 +26,157 @@ namespace Cavex.Principal.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetServices(CancellationToken cancellationToken)
+        public async Task<JsonResult> GetServices(
+            int pagina = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? status = null,
+            CancellationToken cancellationToken = default)
         {
-            var response = await _service.ObtenerTodosAsync(cancellationToken);
+            if (pagina < 1) pagina = 1;
+            int? statusVal = null;
+            if (int.TryParse(status, out var parsedStatus))
+            {
+                statusVal = parsedStatus;
+            }
 
-            return Json(response.Success
-                ? new { success = true, data = response.Data?.Items }
-                : new { success = false, message = response.Message });
+            var countsCacheKey = $"servicios_counts_{search}";
+            if (!_cache.TryGetValue(countsCacheKey, out Dictionary<string, int>? statusCounts))
+            {
+                var allCountResponse = await _service.ObtenerTodosAsync(1, 1, search, null, cancellationToken);
+                int totalAllCount = allCountResponse.Success ? (allCountResponse.Data?.TotalCount ?? 0) : 0;
+
+                var activeCountResponse = await _service.ObtenerTodosAsync(1, 1, search, 1, cancellationToken);
+                int activeCount = activeCountResponse.Success ? (activeCountResponse.Data?.TotalCount ?? 0) : 0;
+
+                var inactiveCountResponse = await _service.ObtenerTodosAsync(1, 1, search, 2, cancellationToken);
+                int inactiveCount = inactiveCountResponse.Success ? (inactiveCountResponse.Data?.TotalCount ?? 0) : 0;
+
+                statusCounts = new Dictionary<string, int>
+                {
+                    { "1", activeCount },
+                    { "2", inactiveCount },
+                    { "total", totalAllCount }
+                };
+
+                _cache.Set(countsCacheKey, statusCounts, TimeSpan.FromSeconds(10));
+            }
+
+            int totalAllCountVal = statusCounts["total"];
+
+            var response = await _service.ObtenerTodosAsync(pagina, 10, search, statusVal, cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
+
+            var items = response.Data?.Items?.ToList() ?? new List<CatServicioSaveDto>();
+            int totalCount = response.Data?.TotalCount ?? 0;
+
+            return Json(new { 
+                success = true, 
+                data = items, 
+                totalCount = totalCount,
+                pageIndex = pagina,
+                pageSize = 10,
+                statusCounts = statusCounts,
+                totalAllCount = totalAllCountVal
+            });
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetStatus(CancellationToken cancellationToken)
+        public async Task<JsonResult> GetStatus(CancellationToken cancellationToken)
         {
-            var response = await _catStatusService.ObtenerTodosAsync(cancellationToken);
+            var statusItems = _cache.Get<object>(StatusCacheKey);
+            if (statusItems != null)
+            {
+                return Json(new { success = true, data = statusItems });
+            }
 
-            return Json(response.Success
-                ? new { success = true, data = response.Data?.Items }
-                : new { success = false, message = response.Message });
+            var response = await _catStatusService.ObtenerTodosAsync(cancellationToken);
+            if (!response.Success || response.Data?.Items == null || !response.Data.Items.Any())
+            {
+                statusItems = GetDefaultStatusItems();
+                _cache.Set(StatusCacheKey, statusItems, TimeSpan.FromSeconds(30));
+                return Json(new { success = true, data = statusItems });
+            }
+
+            statusItems = response.Data.Items;
+            _cache.Set(StatusCacheKey, statusItems, TimeSpan.FromMinutes(10));
+
+            return Json(new { success = true, data = statusItems });
         }
 
+        private static object[] GetDefaultStatusItems() =>
+        [
+            new { id = 1, strValor = "Activo", strDescripcion = "Activo" },
+            new { id = 2, strValor = "Inactivo", strDescripcion = "Inactivo" }
+        ];
+
         [HttpPost]
-        public async Task<IActionResult> SaveService([FromBody] CatServicioSaveDto model, CancellationToken cancellationToken)
+        public async Task<JsonResult> SaveService([FromBody] CatServicioSaveDto model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = GetModelStateErrors() });
+            }
+
+            var exists = await _service.ExistePorNombreAsync(
+                model.StrValor.Trim(),
+                null,
+                cancellationToken);
+
+            if (exists)
+            {
+                return Json(new { success = false, message = "El nombre del servicio ya existe." });
             }
 
             var response = await _service.CrearAsync(model, cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
 
-            return Json(response.Success
-                ? new { success = true, data = response.Data }
-                : new { success = false, message = response.Message });
+            return Json(new { success = true, data = response.Data });
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateService([FromBody] CatServicioSaveDto model, CancellationToken cancellationToken)
+        public async Task<JsonResult> UpdateService([FromBody] CatServicioSaveDto model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = GetModelStateErrors() });
             }
 
-            var response = await _service.ActualizarAsync(model.Id, model, cancellationToken);
+            var exists = await _service.ExistePorNombreAsync(
+                model.StrValor.Trim(),
+                model.Id,
+                cancellationToken);     
 
-            return Json(response.Success
-                ? new { success = true, data = response.Data }
-                : new { success = false, message = response.Message });
+            if (exists)
+            {
+                return Json(new { success = false, message = "El nombre del servicio ya existe." });
+            }
+
+            var response = await _service.ActualizarAsync(model.Id, model, cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
+
+            return Json(new { success = true, data = response.Data });
         }
 
         [HttpPost]
-        public async Task<IActionResult> DeleteService(int id, CancellationToken cancellationToken)
+        public async Task<JsonResult> DeleteService(int id, CancellationToken cancellationToken)
         {
             var response = await _service.EliminarAsync(id, cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
 
-            return Json(response.Success
-                ? new { success = true, data = response.Data }
-                : new { success = false, message = response.Message });
+            return Json(new { success = true, data = response.Data });
         }
 
         private string GetModelStateErrors()

@@ -7,7 +7,12 @@ namespace Cavex.Principal.ApiClients.EmpEmpleado
     public interface IEmpEmpleadoApi
     {
         [Get("/api/v1/EmpEmpleado")]
-        Task<ResponseWrapper<PagedResponse<EmpEmpleadoDto>>> GetAllAsync(CancellationToken cancellationToken);
+        Task<ResponseWrapper<PagedResponse<EmpEmpleadoDto>>> GetAllAsync(
+            [Query] int? pageIndex = null,
+            [Query] int? pageSize = null,
+            [Query] string? search = null,
+            [Query] int? status = null,
+            CancellationToken cancellationToken = default);
 
         [Get("/api/v1/EmpEmpleado/{id}")]
         Task<ResponseWrapper<EmpEmpleadoDto>> GetByIdAsync(int id, CancellationToken cancellationToken);

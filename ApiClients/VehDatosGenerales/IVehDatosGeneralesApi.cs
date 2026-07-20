@@ -13,7 +13,7 @@ namespace Cavex.Principal.ApiClients.VehDatosGenerales
         Task<ResponseWrapper<VehDatosGeneralesDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
         [Post("/api/v1/VehDatosGenerales")]
-        Task<ResponseWrapper<VehDatosGeneralesDto>> CreateAsync([Body] VehDatosGeneralesSaveDto dto, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<VehDatosGeneralesDto>> CreateAsync([Body] RequestWrapper<VehDatosGeneralesSaveDto> dto, CancellationToken cancellationToken = default);
 
         [Put("/api/v1/VehDatosGenerales")]
         Task<ResponseWrapper<VehDatosGeneralesDto>> UpdateAsync([Body] VehDatosGeneralesEditDto dto, CancellationToken cancellationToken = default);

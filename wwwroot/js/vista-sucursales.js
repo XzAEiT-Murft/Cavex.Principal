@@ -42,7 +42,7 @@ async function loadStatusOptions() {
         if (statusField) {
             statusCatalog.forEach(status => {
                 const option = document.createElement("option");
-                option.value = status.id;
+                option.value = String(status.id);
                 option.textContent = status.nombre;
                 statusField.appendChild(option);
             });
@@ -77,7 +77,7 @@ async function loadSucursalesFromServer() {
                 id: item.id,
                 nombre: item.strValor || item.StrValor || "",
                 descripcion: item.strDescripcion || item.StrDescripcion || "",
-                idCatStatus: idCatStatus === null || idCatStatus === undefined ? "" : String(idCatStatus),
+                idCatStatus: (idCatStatus === null || idCatStatus === undefined || idCatStatus === 0 || idCatStatus === "0") ? "1" : String(idCatStatus),
                 strCatStatus: item.strCatStatus || item.StrCatStatus || ""
             };
         });
@@ -96,50 +96,16 @@ function wireFormInputs() {
     const statusField = document.getElementById("intIdStatusSucursal");
 
     if (nombreInput) {
+        registerSanitizer(nombreInput, sanitizeLettersOnly);
         nombreInput.addEventListener("input", () => {
-            const originalVal = nombreInput.value;
-            const cleanedVal = typeof sanitizeLettersOnly === "function"
-                ? sanitizeLettersOnly(originalVal)
-                : originalVal.replace(/[^a-zA-Z0-9#.\-\s]/g, "");
-
-            if (originalVal !== cleanedVal) {
-                const start = nombreInput.selectionStart;
-                const end = nombreInput.selectionEnd;
-                nombreInput.value = cleanedVal;
-                try {
-                    nombreInput.setSelectionRange(start, end);
-                } catch (err) { }
-            }
-
             nombreInput.classList.remove("is-invalid", "is-valid");
         });
-
-        nombreInput.addEventListener("blur", () => {
-            nombreInput.value = nombreInput.value.trim();
-        });
     }
-
+ 
     if (descInput) {
+        registerSanitizer(descInput, sanitizeGeneralText);
         descInput.addEventListener("input", () => {
-            const originalVal = descInput.value;
-            const cleanedVal = typeof sanitizeGeneralText === "function"
-                ? sanitizeGeneralText(originalVal)
-                : originalVal.replace(/[^a-zA-Z0-9#.,_()\/\-\s]/g, "");
-
-            if (originalVal !== cleanedVal) {
-                const start = descInput.selectionStart;
-                const end = descInput.selectionEnd;
-                descInput.value = cleanedVal;
-                try {
-                    descInput.setSelectionRange(start, end);
-                } catch (err) { }
-            }
-
             descInput.classList.remove("is-invalid", "is-valid");
-        });
-
-        descInput.addEventListener("blur", () => {
-            descInput.value = descInput.value.trim();
         });
     }
 
@@ -242,9 +208,15 @@ function renderSucursales() {
                                 </button>
                             </li>
                             <li>
+                                <button class="dropdown-item d-flex align-items-center ${s.idCatStatus !== '2' ? 'text-danger' : 'text-success'}" type="button" onclick="toggleStatusSucursal(${s.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 ${s.idCatStatus !== '2' ? 'text-danger' : 'text-success'}"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                    ${s.idCatStatus !== '2' ? 'Dar de baja' : 'Activar'}
+                                </button>
+                            </li>
+                            <li>
                                 <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="deleteSucursal(${s.id})">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                                    Dar de baja
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                    <span>Eliminar</span>
                                 </button>
                             </li>
                         </ul>
@@ -302,7 +274,18 @@ function renderPagination(totalPages) {
 function createPageItem(text, page, disabled, active) {
     const li = document.createElement("li");
     li.className = `page-item ${disabled ? "disabled" : ""} ${active ? "active" : ""}`;
-    li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${page})">${text}</a>`;
+    
+    let innerContent = text;
+    let ariaLabel = "";
+    if (text === "Anterior") {
+        innerContent = `<span aria-hidden="true">&laquo;</span>`;
+        ariaLabel = `aria-label="Anterior"`;
+    } else if (text === "Siguiente") {
+        innerContent = `<span aria-hidden="true">&raquo;</span>`;
+        ariaLabel = `aria-label="Siguiente"`;
+    }
+    
+    li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${page})" ${ariaLabel}>${innerContent}</a>`;
     return li;
 }
 
@@ -413,6 +396,24 @@ async function handleFormSubmit(e) {
     }
 }
 
+function getDefaultStatusName(idCatStatus) {
+    if (String(idCatStatus) === "2") return "Inactivo";
+    return "Activo";
+}
+
+function ensureStatusOption(select, idCatStatus, statusName) {
+    if (!select || !idCatStatus) return;
+
+    const value = String(idCatStatus);
+    const exists = Array.from(select.options).some(option => option.value === value);
+    if (exists) return;
+
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = statusName || getDefaultStatusName(value);
+    select.appendChild(option);
+}
+
 function editSucursal(id) {
     const sucursal = sucursales.find(s => s.id === id);
     if (!sucursal) return;
@@ -425,11 +426,15 @@ function editSucursal(id) {
     const descInput = document.getElementById("strDescripcionSucursal");
     if (descInput) descInput.value = sucursal.descripcion || "";
 
-    const statusField = document.getElementById("intIdStatusSucursal");
-    if (statusField) statusField.value = sucursal.idCatStatus || "";
-
     const statusContainer = document.getElementById("statusContainer");
     if (statusContainer) statusContainer.style.display = "block";
+
+    const statusField = document.getElementById("intIdStatusSucursal");
+    if (statusField) {
+        ensureStatusOption(statusField, sucursal.idCatStatus, getStatusName(sucursal));
+        statusField.value = sucursal.idCatStatus || "1";
+        statusField.dispatchEvent(new Event("change"));
+    }
 
     setText("formTitle", "Editar sucursal");
     setText("formSubtitle", "Modifica los detalles de la sucursal seleccionada.");
@@ -444,15 +449,76 @@ function editSucursal(id) {
     document.getElementById("strNombreSucursal").focus();
 }
 
+function toggleStatusSucursal(id) {
+    const sucursal = sucursales.find(s => s.id === id);
+    if (!sucursal) return;
+
+    const isActive = sucursal.idCatStatus !== '2';
+    const actionText = isActive ? 'dar de baja' : 'activar';
+    const confirmButtonText = isActive ? 'Sí, dar de baja' : 'Sí, activar';
+    const confirmButtonColor = isActive ? '#ef4444' : '#10b981';
+
+    Swal.fire({
+        title: "¿Estás seguro?",
+        text: `El estado de la sucursal cambiará a ${isActive ? 'Inactivo' : 'Activo'}.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: confirmButtonColor,
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: confirmButtonText,
+        cancelButtonText: "Cancelar"
+    }).then(async result => {
+        if (!result.isConfirmed) return;
+
+        const payload = {
+            id: sucursal.id,
+            strValor: sucursal.nombre,
+            strDescripcion: sucursal.descripcion,
+            idCatStatus: isActive ? 2 : 1
+        };
+
+        try {
+            const response = await fetch("/Sucursales/UpdateSucursal", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                showError(data.message || `No fue posible ${actionText} la sucursal.`);
+                return;
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: isActive ? "Dada de baja" : "Activada",
+                text: `La sucursal ha sido ${isActive ? 'dada de baja' : 'activada'} exitosamente.`,
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+
+            if (editingId === id) resetForm();
+            await loadSucursalesFromServer();
+        } catch (error) {
+            console.error(error);
+            showError(`Ocurrio un error al ${actionText} la sucursal.`);
+        }
+    });
+}
+
 function deleteSucursal(id) {
     Swal.fire({
-        title: "Estas seguro?",
-        text: "No podras revertir esta accion.",
+        title: "¿Estás seguro?",
+        text: "¡No podrás revertir esta acción!",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#ef4444",
         cancelButtonColor: "#6b7280",
-        confirmButtonText: "Si, eliminar",
+        confirmButtonText: "Sí, eliminar",
         cancelButtonText: "Cancelar"
     }).then(async result => {
         if (!result.isConfirmed) return;
@@ -514,7 +580,10 @@ function getStatusName(sucursal) {
     if (sucursal.strCatStatus) return sucursal.strCatStatus;
 
     const status = statusCatalog.find(item => String(item.id) === sucursal.idCatStatus);
-    return status ? status.nombre : "Sin estatus";
+    if (status) return status.nombre;
+
+    if (sucursal.idCatStatus === "2") return "Inactivo";
+    return "Activo";
 }
 
 function getStatusBadgeClass(statusName) {
