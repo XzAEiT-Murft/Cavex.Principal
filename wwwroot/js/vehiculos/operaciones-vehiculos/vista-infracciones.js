@@ -104,7 +104,7 @@ function inicializarVistaInfracciones() {
         }
 
         try {
-            const response = await fetch("/Vehiculos/SaveInfraccion", {
+            const response = await fetch("/Infracciones/SaveInfraccion", {
                 method: "POST",
                 body: formData
             });
@@ -155,7 +155,7 @@ async function cargarCatalogosInfracciones() {
         const [vehRes, empRes, asigRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
             fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
-            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+            fetch("/Asignaciones/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
         // Asignaciones activas para vinculación y filtrado
@@ -715,7 +715,7 @@ let editModeInfraccionId = null;
 
 async function cargarInfraccionesList() {
     try {
-        const response = await fetch("/Vehiculos/GetInfracciones");
+        const response = await fetch("/Infracciones/GetInfracciones");
         const result = await response.json();
         if (result.success && result.data) {
             listaInfracciones = result.data;
@@ -934,7 +934,7 @@ function eliminarInfraccion(id) {
                 didOpen: () => Swal.showLoading()
             });
             try {
-                const response = await fetch(`/Vehiculos/DeleteInfraccion/${id}`, { method: "POST" });
+                const response = await fetch(`/Infracciones/DeleteInfraccion/${id}`, { method: "POST" });
                 const res = await response.json();
                 Swal.close();
                 if (res.success) {

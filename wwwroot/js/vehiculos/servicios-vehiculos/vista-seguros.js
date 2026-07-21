@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadSegurosFromServer() {
     try {
-        const response = await fetch("/Vehiculos/Seguros/GetSeguros", {
+        const response = await fetch("/Seguros/GetSeguros", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
@@ -242,8 +242,8 @@ async function handleFormSubmit(e) {
     }
 
     const url = editingId === null
-        ? "/Vehiculos/Seguros/SaveSeguro"
-        : "/Vehiculos/Seguros/UpdateSeguro";
+        ? "/Seguros/SaveSeguro"
+        : "/Seguros/UpdateSeguro";
 
     try {
         const response = await fetch(url, {
@@ -316,7 +316,7 @@ function deleteSeguro(id) {
         if (!result.isConfirmed) return;
 
         try {
-            const response = await fetch(`/Vehiculos/Seguros/DeleteSeguro?id=${id}`, {
+            const response = await fetch(`/Seguros/DeleteSeguro?id=${id}`, {
                 method: "POST",
                 headers: { "Accept": "application/json" }
             });

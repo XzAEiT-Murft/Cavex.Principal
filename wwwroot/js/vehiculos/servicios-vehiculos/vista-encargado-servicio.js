@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadResponsablesFromServer() {
     try {
-        const response = await fetch("/Vehiculos/ResponsablesServicio/GetResponsables", {
+        const response = await fetch("/IngresoTaller/ResponsablesServicio/GetResponsables", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
@@ -236,7 +236,7 @@ async function handleFormSubmit(e) {
     if (nombreInput) nombreInput.classList.add("is-valid");
 
     const isEdit = editingId !== null;
-    const url = isEdit ? "/Vehiculos/ResponsablesServicio/Actualizar" : "/Vehiculos/ResponsablesServicio/Crear";
+    const url = isEdit ? "/IngresoTaller/ResponsablesServicio/Actualizar" : "/IngresoTaller/ResponsablesServicio/Crear";
 
     const payload = {
         Id: editingId || 0,
@@ -311,7 +311,7 @@ function deleteResponsable(id) {
     }).then(async (res) => {
         if (res.isConfirmed) {
             try {
-                const response = await fetch(`/Vehiculos/ResponsablesServicio/Eliminar/${id}`, {
+                const response = await fetch(`/IngresoTaller/ResponsablesServicio/Eliminar/${id}`, {
                     method: "POST"
                 });
                 const result = await response.json();

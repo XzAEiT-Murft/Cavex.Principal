@@ -96,7 +96,7 @@ function inicializarVistaGasolina() {
         }
 
         try {
-            const response = await fetch("/Vehiculos/SaveGasolina", {
+            const response = await fetch("/Gasolina/SaveGasolina", {
                 method: "POST",
                 body: formData
             });
@@ -141,7 +141,7 @@ async function cargarCatalogosGasolina() {
         const [vehRes, empRes, asigRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
             fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
-            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+            fetch("/Asignaciones/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
         // Asignaciones activas para vinculación y filtrado
@@ -591,7 +591,7 @@ let editModeGasolinaId = null;
 
 async function cargarGasolinaList() {
     try {
-        const response = await fetch("/Vehiculos/GetGasolinas");
+        const response = await fetch("/Gasolina/GetGasolinas");
         const result = await response.json();
         if (result.success && result.data) {
             listaGasolinas = result.data;
@@ -798,7 +798,7 @@ function eliminarGasolina(id) {
                 didOpen: () => Swal.showLoading()
             });
             try {
-                const response = await fetch(`/Vehiculos/DeleteGasolina/${id}`, { method: "POST" });
+                const response = await fetch(`/Gasolina/DeleteGasolina/${id}`, { method: "POST" });
                 const res = await response.json();
                 Swal.close();
                 if (res.success) {

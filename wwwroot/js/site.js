@@ -405,6 +405,17 @@ function closeAllOpenDropdowns(e) {
 document.addEventListener('click', closeAllOpenDropdowns);
 window.addEventListener('scroll', closeAllOpenDropdowns, true);
 
+// Asegura que todos los desplegables de acciones dentro de tablas utilicen la estrategia 'fixed' de Popper
+// para evitar que se recorten detrás del contenedor scrollable (.table-responsive / overflow)
+document.addEventListener('pointerdown', (e) => {
+    const trigger = e.target.closest('[data-bs-toggle="dropdown"]');
+    if (trigger && (trigger.classList.contains('btn-action-trigger') || trigger.closest('.table-responsive, table, .table-cavex-compact'))) {
+        if (!trigger.hasAttribute('data-bs-popper-config')) {
+            trigger.setAttribute('data-bs-popper-config', '{"strategy":"fixed"}');
+        }
+    }
+}, { capture: true });
+
 // Exporta la función globalmente para inicializar selects que carguen dinámicamente
 window.initializeCustomSelects = initializeCustomSelects;
 
@@ -540,4 +551,70 @@ async function populateSelectOptions(selectId, url, valueField = 'id', textField
     }
 }
 window.populateSelectOptions = populateSelectOptions;
+
+// ── PREVENCIÓN GLOBAL DE PÉRDIDA DE DATOS EN FORMULARIOS ──
+window.globalFormIsDirty = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Escuchar cambios e inputs en todos los formularios
+    document.addEventListener('input', (event) => {
+        if (event.target.closest('form')) {
+            window.globalFormIsDirty = true;
+        }
+    });
+
+    document.addEventListener('change', (event) => {
+        if (event.target.closest('form')) {
+            window.globalFormIsDirty = true;
+        }
+    });
+
+    // Resetear la bandera cuando cualquier formulario sea enviado
+    document.addEventListener('submit', (event) => {
+        window.globalFormIsDirty = false;
+    });
+
+    // Interceptar clic en enlaces "Cancelar", "Volver" o botones con clase cancel-trigger/btn-outline-cavex
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+        if (!link) return;
+
+        const text = (link.textContent || '').toLowerCase();
+        const isCancel = text.includes('cancelar') || text.includes('volver') || link.classList.contains('btn-cancelar');
+
+        if (isCancel && window.globalFormIsDirty) {
+            event.preventDefault();
+            const targetUrl = link.href;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: "¿Deseas salir del formulario?",
+                    text: "Tienes cambios sin guardar. Si continúas, los datos ingresados se borrarán.",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#ef4444",
+                    cancelButtonColor: "#6b7280",
+                    confirmButtonText: "Sí, salir y borrar",
+                    cancelButtonText: "Permanecer aquí"
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        window.globalFormIsDirty = false;
+                        window.location.href = targetUrl;
+                    }
+                });
+            } else if (confirm("Tienes cambios sin guardar. ¿Estás seguro de que deseas salir? Los datos ingresados se borrarán.")) {
+                window.globalFormIsDirty = false;
+                window.location.href = targetUrl;
+            }
+        }
+    });
+
+    // Alerta nativa antes de recargar (F5/Ctrl+R) o cerrar la pestaña si hay datos modificados
+    window.addEventListener('beforeunload', (event) => {
+        if (window.globalFormIsDirty) {
+            event.preventDefault();
+            event.returnValue = "Tienes cambios sin guardar. Si recargas o sales de la página, los datos se borrarán.";
+            return event.returnValue;
+        }
+    });
+});
 
