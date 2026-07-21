@@ -5,12 +5,15 @@ let editingId = null;
 let currentPage = 1;
 let pageSize = 10;
 let searchQuery = '';
+let activeFilter = 'todos';
 
 // Renderizado inicial de la tabla cargando datos del servidor
 document.addEventListener('DOMContentLoaded', () => {
+    populateStatusDropdown();
+    inicializarFiltros();
     loadAreasFromServer();
     
-    // Aplicacion en tiempo real utilizando las funciones globales de site.js
+    // Aplicación en tiempo real utilizando las funciones globales de site.js
     const nombreInput = document.getElementById('strNombre');
     const descInput = document.getElementById('strDescripcion');
     
@@ -29,9 +32,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+async function populateStatusDropdown() {
+    await populateSelectOptions("intIdStatus", "/AreaLaboral/GetStatus");
+}
+
+function inicializarFiltros() {
+    setupStatusTabs('statusTabs', (filter) => {
+        activeFilter = filter;
+        currentPage = 1;
+        renderAreas();
+    });
+}
+
 // Obtiene la lista de áreas laborales desde el servidor aplicando paginación y búsqueda
 function loadAreasFromServer() {
-    const url = `/AreaLaboral/GetAreas?pagina=${currentPage}&search=${encodeURIComponent(searchQuery)}`;
+    const url = `/AreaLaboral/GetAreas?pagina=1&pageSize=10&search=${encodeURIComponent(searchQuery)}`;
     fetch(url)
         .then(response => {
             if (!response.ok) {
@@ -40,65 +55,78 @@ function loadAreasFromServer() {
             return response.json();
         })
         .then(result => {
-            console.log("Respuesta de GetAreas:", result);
             if (result.success) {
                 if (result.data && Array.isArray(result.data)) {
-                    areas = result.data.map(item => ({
-                        id: item.id,
-                        nombre: item.strValor,
-                        descripcion: item.strDescripcion
-                    }));
+                    areas = result.data.map(item => {
+                        const stId = item.idCatStatus ?? item.IdCatStatus ?? 1;
+                        return {
+                            id: item.id ?? item.Id,
+                            nombre: item.strValor || item.StrValor || '',
+                            descripcion: item.strDescripcion || item.StrDescripcion || '',
+                            idCatStatus: Number(stId),
+                            strCatStatus: item.strCatStatus || item.StrCatStatus || (Number(stId) === 2 ? 'Inactivo' : 'Activo')
+                        };
+                    });
                 } else {
                     areas = [];
                 }
-                const totalCount = result.totalCount ?? 0;
-                renderAreas(totalCount);
+                renderAreas();
             } else {
-                console.error("Error al cargar areas desde base de datos:", result.message);
-                Swal.fire({
-                    icon: 'error',
-                    title: '¡Ups!',
-                    text: 'No se pudieron obtener los datos de las áreas laborales. ¡Intenta de nuevo!',
-                    confirmButtonColor: 'var(--teal-cavex)'
-                });
+                console.error("Error al cargar áreas:", result.message);
                 areas = [];
-                renderAreas(0);
+                renderAreas();
             }
         })
         .catch(err => {
-            console.error("Error en petición:", err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error de conexión',
-                text: 'No se pudieron obtener los datos. ¡Intenta de nuevo!',
-                confirmButtonColor: 'var(--teal-cavex)'
-            });
+            console.error("Error en petición de áreas:", err);
             areas = [];
-            renderAreas(0);
+            renderAreas();
         });
 }
 
-// Función para renderizar las áreas
-function renderAreas(totalCount) {
+// Función para renderizar las áreas filtradas
+function renderAreas() {
     const tbody = document.getElementById('areasTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const totalPages = Math.ceil(totalCount / pageSize) || 1;
-    
-    // Ajustar página actual si queda fuera del rango
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
-    }
-    if (currentPage < 1) {
-        currentPage = 1;
-    }
+    // Actualizar contadores numéricos en pestañas
+    const countAll = areas.length;
+    const countActive = areas.filter(a => a.idCatStatus !== 2).length;
+    const countInactive = areas.filter(a => a.idCatStatus === 2).length;
 
-    // Mostrar vacío si no hay registros en tabla de area laboral
-    if (areas.length === 0) {
+    const elTodos = document.getElementById('countTodos');
+    const elActivos = document.getElementById('countActivos');
+    const elInactivos = document.getElementById('countInactivos');
+    if (elTodos) elTodos.textContent = countAll;
+    if (elActivos) elActivos.textContent = countActive;
+    if (elInactivos) elInactivos.textContent = countInactive;
+
+    // Filtrar localmente por estado y búsqueda
+    let filtered = areas.filter(a => {
+        if (activeFilter === 'activos' && a.idCatStatus === 2) return false;
+        if (activeFilter === 'inactivos' && a.idCatStatus !== 2) return false;
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            return a.nombre.toLowerCase().includes(query) || (a.descripcion || '').toLowerCase().includes(query);
+        }
+        return true;
+    });
+
+    const totalRecords = filtered.length;
+    const totalPages = Math.ceil(totalRecords / pageSize) || 1;
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalRecords);
+    const pagedList = filtered.slice(startIndex, endIndex);
+
+    if (pagedList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="3" class="text-center py-5">
+                <td colspan="4" class="text-center py-5">
                     <div class="text-muted">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 opacity-50"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                         <p class="m-0 font-weight-700">No se encontraron áreas laborales</p>
@@ -108,21 +136,24 @@ function renderAreas(totalCount) {
             </tr>
         `;
     } else {
-        areas.forEach(a => {
+        pagedList.forEach(a => {
             const tr = document.createElement('tr');
             
             const descText = a.descripcion || 'Sin descripción';
-            const truncatedDesc = a.descripcion && a.descripcion.length > 50 
-                ? a.descripcion.substring(0, 50) + '...' 
-                : descText;
-            const descTitle = a.descripcion ? `title="${escapeHtml(a.descripcion)}"` : '';
-            // Inyeccion de la tabla con campos de nombre, descripcion y acciones de editar y eliminar
+            const truncatedDesc = descText.length > 60 ? `${descText.substring(0, 60)}...` : descText;
+            const isInactive = a.idCatStatus === 2;
+
             tr.innerHTML = `
                 <td>
                     <div class="cotizacion-main-text">${escapeHtml(a.nombre)}</div>
                 </td>
                 <td>
-                    <div class="description-text" ${descTitle}>${escapeHtml(truncatedDesc)}</div>
+                    <div class="description-text" title="${escapeHtml(descText)}">${escapeHtml(truncatedDesc)}</div>
+                </td>
+                <td>
+                    ${isInactive
+                        ? '<span class="badge badge-danger px-2.5 py-1.5 rounded-pill">Inactivo</span>'
+                        : '<span class="badge badge-active px-2.5 py-1.5 rounded-pill">Activo</span>'}
                 </td>
                 <td class="text-end">
                     <div class="dropdown actions-dropdown d-inline-block">
@@ -135,6 +166,12 @@ function renderAreas(totalCount) {
                                 <button class="dropdown-item d-flex align-items-center" type="button" onclick="editArea(${a.id})">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                     Editar
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center ${isInactive ? 'text-success' : 'text-danger'}" type="button" onclick="toggleStatusArea(${a.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 ${isInactive ? 'text-success' : 'text-danger'}"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                    ${isInactive ? 'Activar' : 'Dar de baja'}
                                 </button>
                             </li>
                             <li>
@@ -152,37 +189,22 @@ function renderAreas(totalCount) {
     }
 
     // Actualizar contadores e información en barra inferior
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = Math.min(startIndex + areas.length, totalCount);
-    const infoText = totalCount > 0 
-        ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalCount} registros`
-        : `Mostrando 0-0 de 0 registros`;
-    const infoEl = document.getElementById('paginationInfo');
-    if (infoEl) infoEl.textContent = infoText;
+    const infoText = totalRecords > 0 
+        ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalRecords} registros`
+        : 'Mostrando 0-0 de 0 registros';
+    
+    const infoElement = document.getElementById('paginationInfo');
+    if (infoElement) infoElement.textContent = infoText;
 
-    // Renderizar botones de paginación
+    const countPill = document.querySelector('.table-module .records-pill');
+    if (countPill) countPill.textContent = `${totalRecords} áreas`;
+
     renderPagination(totalPages);
 
-    // Actualizar contadores en la cabecera de la tabla
-    const countPill = document.querySelector('.table-module .records-pill');
-    if (countPill) {
-        countPill.textContent = `${totalCount} áreas`;
-    }
-
-    const extraPill = document.querySelector('.table-module .records-pill-soft');
-    if (extraPill) {
-        extraPill.textContent = `Página ${currentPage} de ${totalPages}`;
-    }
-
-    // Inicializar dropdowns de acciones con estrategia 'fixed' para prevenir recortes
+    // Inicializar dropdowns de bootstrap
     document.querySelectorAll('#areasTableBody .btn-action-trigger').forEach(el => {
         new bootstrap.Dropdown(el, {
-            popperConfig: (defaultConfig) => {
-                return {
-                    ...defaultConfig,
-                    strategy: 'fixed'
-                };
-            }
+            popperConfig: (defaultConfig) => ({ ...defaultConfig, strategy: 'fixed' })
         });
     });
 }
@@ -191,119 +213,60 @@ function renderAreas(totalCount) {
 function renderPagination(totalPages) {
     const paginationList = document.getElementById('paginationList');
     if (!paginationList) return;
+
     paginationList.innerHTML = '';
+    if (totalPages <= 1) return;
 
-    if (totalPages <= 1) return; // No mostrar paginación si solo hay una página
+    // Botón Anterior
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${currentPage - 1})">&laquo;</a>`;
+    paginationList.appendChild(prevLi);
 
-    paginationList.appendChild(createPageItem("Anterior", currentPage - 1, currentPage === 1));
-
-    if (totalPages <= 10) {
-        for (let i = 1; i <= totalPages; i++) {
-            paginationList.appendChild(createPageItem(String(i), i, false, currentPage === i));
-        }
-    } else {
-        // dynamic sliding window for pages 11 to N
-        let startPage = 1;
-        let endPage = 10;
-
-        if (currentPage > 10) {
-            startPage = currentPage - 5;
-            endPage = currentPage + 4;
-            if (endPage > totalPages) {
-                endPage = totalPages;
-                startPage = totalPages - 9;
-            }
-        }
-
-        if (startPage > 1) {
-            paginationList.appendChild(createPageItem("1", 1, false, currentPage === 1));
-            if (startPage > 2) {
-                const li = document.createElement("li");
-                li.className = "page-item disabled";
-                li.innerHTML = '<span class="page-link">...</span>';
-                paginationList.appendChild(li);
-            }
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            paginationList.appendChild(createPageItem(String(i), i, false, currentPage === i));
-        }
-
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                const li = document.createElement("li");
-                li.className = "page-item disabled";
-                li.innerHTML = '<span class="page-link">...</span>';
-                paginationList.appendChild(li);
-            }
-            paginationList.appendChild(createPageItem(String(totalPages), totalPages, false, currentPage === totalPages));
-        }
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${i})">${i}</a>`;
+        paginationList.appendChild(li);
     }
 
-    paginationList.appendChild(createPageItem("Siguiente", currentPage + 1, currentPage === totalPages));
+    // Botón Siguiente
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${currentPage + 1})">&raquo;</a>`;
+    paginationList.appendChild(nextLi);
 }
 
-function createPageItem(text, page, disabled, active) {
-    const li = document.createElement("li");
-    li.className = `page-item ${disabled ? "disabled" : ""} ${active ? "active" : ""}`;
-    
-    let innerContent = text;
-    let ariaLabel = "";
-    if (text === "Anterior") {
-        innerContent = `<span aria-hidden="true">&laquo;</span>`;
-        ariaLabel = `aria-label="Anterior"`;
-    } else if (text === "Siguiente") {
-        innerContent = `<span aria-hidden="true">&raquo;</span>`;
-        ariaLabel = `aria-label="Siguiente"`;
-    }
-    
-    li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${page})" ${ariaLabel}>${innerContent}</a>`;
-    return li;
-}
-
-// Cambiar página
 function changePage(event, page) {
     if (event) event.preventDefault();
     if (page < 1) return;
     currentPage = page;
-    loadAreasFromServer();
+    renderAreas();
 }
 
-// Manejar búsqueda de texto
 function handleSearch(query) {
-    searchQuery = query;
-    currentPage = 1; // Reiniciar a primera página al buscar
-    loadAreasFromServer();
+    searchQuery = query || '';
+    currentPage = 1;
+    renderAreas();
 }
 
-// Limpiar errores de validación
-function clearValidation() {
-    const nombreInput = document.getElementById('strNombre');
-    if (nombreInput) {
-        nombreInput.classList.remove('is-invalid', 'is-valid');
-    }
-    const descInput = document.getElementById('strDescripcion');
-    if (descInput) {
-        descInput.classList.remove('is-invalid', 'is-valid');
-    }
-}
-
-// Manejar el submit del formulario (Guardar o Actualizar)
 function handleFormSubmit(e) {
     e.preventDefault();
+
     const nombreInput = document.getElementById('strNombre');
     const descInput = document.getElementById('strDescripcion');
+    const statusSelect = document.getElementById('intIdStatus');
+
+    clearValidation();
 
     const nombre = nombreInput.value.trim();
     const descripcion = descInput.value.trim();
+    const statusVal = statusSelect && statusSelect.value ? parseInt(statusSelect.value) : 1;
 
     if (!nombre) {
         nombreInput.classList.add('is-invalid');
-        nombreInput.classList.remove('is-valid');
         const feedback = document.getElementById('nombreFeedback');
-        if (feedback) {
-            feedback.textContent = 'El nombre del área es obligatorio.';
-        }
+        if (feedback) feedback.textContent = 'El nombre del área es obligatorio.';
         nombreInput.focus();
         return;
     }
@@ -312,11 +275,8 @@ function handleFormSubmit(e) {
     const regexLettersOnly = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/;
     if (!regexLettersOnly.test(nombre)) {
         nombreInput.classList.add('is-invalid');
-        nombreInput.classList.remove('is-valid');
         const feedback = document.getElementById('nombreFeedback');
-        if (feedback) {
-            feedback.textContent = 'El nombre solo debe contener letras y espacios (sin números, símbolos ni emojis).';
-        }
+        if (feedback) feedback.textContent = 'El nombre solo debe contener letras y espacios (sin números, símbolos ni emojis).';
         nombreInput.focus();
         return;
     }
@@ -327,34 +287,28 @@ function handleFormSubmit(e) {
     
     if (existeDuplicado) {
         nombreInput.classList.add('is-invalid');
-        nombreInput.classList.remove('is-valid');
         const feedback = document.getElementById('nombreFeedback');
-        if (feedback) {
-            feedback.textContent = 'El nombre del área laboral ya existe.';
-        }
+        if (feedback) feedback.textContent = 'El nombre del área laboral ya existe.';
         nombreInput.focus();
         return;
     }
 
     // Si todo es válido, aplicar clases de éxito
     nombreInput.classList.add('is-valid');
-    if (descripcion) {
-        descInput.classList.add('is-valid');
-    }
+    if (descripcion) descInput.classList.add('is-valid');
 
     const url = editingId === null ? '/AreaLaboral/SaveArea' : '/AreaLaboral/UpdateArea';
 
     const payload = {
         id: editingId || 0,
         strValor: nombre,
-        strDescripcion: descripcion
+        strDescripcion: descripcion,
+        idCatStatus: statusVal
     };
 
     fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     })
     .then(response => response.json())
@@ -370,29 +324,13 @@ function handleFormSubmit(e) {
             loadAreasFromServer();
         } else {
             nombreInput.classList.add('is-invalid');
-            nombreInput.classList.remove('is-valid');
             const feedback = document.getElementById('nombreFeedback');
-            if (feedback) {
-                feedback.textContent = result.message || 'Error al guardar el área laboral.';
-            }
-
-            let errorText = result.message || "";
-            const isTechnicalError = errorText.toLowerCase().includes("database") || 
-                                     errorText.toLowerCase().includes("db") || 
-                                     errorText.toLowerCase().includes("sql") || 
-                                     errorText.toLowerCase().includes("conexion") || 
-                                     errorText.toLowerCase().includes("connection");
-
-            if (!errorText || isTechnicalError) {
-                errorText = editingId === null 
-                    ? 'El área laboral no se pudo agregar exitosamente.' 
-                    : 'El área laboral no se pudo actualizar exitosamente.';
-            }
+            if (feedback) feedback.textContent = result.message || 'Error al guardar el área laboral.';
 
             Swal.fire({
                 icon: 'error',
                 title: 'No se pudo guardar',
-                text: errorText,
+                text: result.message || 'El área laboral no se pudo guardar.',
                 confirmButtonColor: 'var(--teal-cavex)'
             });
         }
@@ -402,9 +340,7 @@ function handleFormSubmit(e) {
         Swal.fire({
             icon: 'error',
             title: 'Error de conexión',
-            text: editingId === null 
-                ? 'El área laboral no se pudo agregar exitosamente. ¡Intenta de nuevo!' 
-                : 'El área laboral no se pudo actualizar exitosamente. ¡Intenta de nuevo!',
+            text: 'No se pudo procesar la solicitud. ¡Intenta de nuevo!',
             confirmButtonColor: 'var(--teal-cavex)'
         });
     });
@@ -420,7 +356,11 @@ function editArea(id) {
     document.getElementById('strNombre').value = area.nombre;
     document.getElementById('strDescripcion').value = area.descripcion || '';
 
-    // Cambiar estados del formulario
+    const statusSelect = document.getElementById('intIdStatus');
+    const statusContainer = document.getElementById('statusContainer');
+    if (statusSelect) statusSelect.value = String(area.idCatStatus);
+    if (statusContainer) statusContainer.style.display = 'block';
+
     document.getElementById('formTitle').textContent = 'Editar área laboral';
     document.getElementById('formSubtitle').textContent = 'Modifica los detalles del área laboral seleccionada.';
     document.getElementById('btnSubmit').textContent = 'Guardar cambios';
@@ -429,6 +369,69 @@ function editArea(id) {
     // Desplazar suavemente al formulario y enfocar el campo principal
     document.querySelector('.filter-card').scrollIntoView({ behavior: 'smooth' });
     document.getElementById('strNombre').focus();
+}
+
+function toggleStatusArea(id) {
+    const area = areas.find(a => a.id === id);
+    if (!area) return;
+
+    const isActive = area.idCatStatus !== 2;
+    const confirmButtonText = isActive ? 'Sí, dar de baja' : 'Sí, activar';
+    const confirmButtonColor = isActive ? '#ef4444' : '#10b981';
+
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: `El estado del área laboral cambiará a ${isActive ? 'Inactivo' : 'Activo'}.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: confirmButtonColor,
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: confirmButtonText,
+        cancelButtonText: 'Cancelar'
+    }).then(async result => {
+        if (!result.isConfirmed) return;
+
+        const payload = {
+            id: area.id,
+            strValor: area.nombre,
+            strDescripcion: area.descripcion,
+            idCatStatus: isActive ? 2 : 1
+        };
+
+        try {
+            const response = await fetch('/AreaLaboral/UpdateArea', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const res = await response.json();
+            if (res.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Estatus actualizado!',
+                    text: `El área laboral fue ${isActive ? 'dada de baja' : 'activada'} exitosamente.`,
+                    confirmButtonColor: 'var(--teal-cavex)'
+                });
+                loadAreasFromServer();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: res.message || 'No se pudo actualizar el estatus.',
+                    confirmButtonColor: 'var(--teal-cavex)'
+                });
+            }
+        } catch (err) {
+            console.error('Error al cambiar estatus:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo procesar la solicitud.',
+                confirmButtonColor: 'var(--teal-cavex)'
+            });
+        }
+    });
 }
 
 // Eliminar área
@@ -462,16 +465,9 @@ function deleteArea(id) {
                     loadAreasFromServer();
                 } else {
                     let errorText = result.message || 'Inténtalo de nuevo más tarde.';
-                    const isReferenceError = errorText.toLowerCase().includes("reference") || 
-                                             errorText.toLowerCase().includes("relacion") || 
-                                             errorText.toLowerCase().includes("fk") || 
-                                             errorText.toLowerCase().includes("foreign key") || 
-                                             errorText.toLowerCase().includes("empleado");
-
-                    if (isReferenceError) {
+                    if (errorText.toLowerCase().includes("empleado")) {
                         errorText = 'No se puede eliminar el área laboral porque está asociada a uno o más empleados activos.';
                     }
-
                     Swal.fire({
                         icon: 'error',
                         title: 'No se pudo eliminar',
@@ -499,11 +495,28 @@ function resetForm() {
     clearValidation();
     document.getElementById('formArea').reset();
 
-    // Restaurar textos originales
+    const statusSelect = document.getElementById('intIdStatus');
+    const statusContainer = document.getElementById('statusContainer');
+    if (statusSelect) statusSelect.value = '1';
+    if (statusContainer) statusContainer.style.display = 'none';
+
     document.getElementById('formTitle').textContent = 'Registrar área laboral';
     document.getElementById('formSubtitle').textContent = 'Ingresa el nombre y la descripción para registrar el área laboral.';
     document.getElementById('btnSubmit').textContent = 'Guardar área laboral';
     document.getElementById('btnCancel').style.display = 'none';
 }
 
+function clearValidation() {
+    const inputs = document.querySelectorAll('#formArea .form-control, #formArea .form-select');
+    inputs.forEach(input => {
+        input.classList.remove('is-invalid', 'is-valid');
+    });
+}
 
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}

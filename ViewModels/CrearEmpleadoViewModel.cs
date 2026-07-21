@@ -28,10 +28,6 @@ namespace Cavex.Principal.ViewModels
             {
                 birthDate = dateOnlyValue;
             }
-            else if (value is DateTime dateTimeValue)
-            {
-                birthDate = DateOnly.FromDateTime(dateTimeValue);
-            }
             else if (value is string stringValue && DateOnly.TryParse(stringValue, out var parsedDate))
             {
                 birthDate = parsedDate;

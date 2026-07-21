@@ -1,15 +1,13 @@
 @model Cavex.Principal.Models.VehCatMarcaVehiculo.VehCatMarcaVehiculoSaveDto;
 @{
-    ViewBag.Title = "Nueva Marca";
+    ViewBag.Title = "Nueva Marca de Vehiculos";
     ViewBag.HeaderEyebrow = "Configuración";
-    ViewBag.HeaderTitle = "Nueva Marca";
     ViewBag.HeaderSubtitle = "Administra el catálogo de marcas de vehículos de la plataforma.";
 
-    ViewBag.TableTitle = "Listado de marcas";
+    ViewBag.TableTitle = "Listado de marcas de vehiculos";
     ViewBag.TableSubtitle = "Catálogo de marcas de vehículos y sus descripciones.";
     ViewBag.TableCount = 0;
     ViewBag.TableCountLabel = "marcas";
-    ViewBag.TableExtraPill = "Catálogo General";
 }
 
 @section Head {
@@ -35,7 +33,7 @@
                 <div class="invalid-feedback" id="nombreFeedback">El nombre de la marca es obligatorio.</div>
             </div>
             <div class="col-md-12">
-                <label class="form-label" for="strDescripcion">Descripción (Opcional)</label>
+                <label class="form-label" for="strDescripcion">Descripción</label>
                 <textarea id="strDescripcion" name="StrDescripcion" class="form-control no-uppercase" rows="3" placeholder="Ej. Vehículos de pasajeros y carga" style="resize: none;"></textarea>
                 <div class="invalid-feedback" id="descripcionFeedback">La descripción contiene caracteres no válidos.</div>
             </div>
@@ -90,5 +88,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-marcas.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/servicios-vehiculos/vista-marcas.js" asp-append-version="true"></script>
 }

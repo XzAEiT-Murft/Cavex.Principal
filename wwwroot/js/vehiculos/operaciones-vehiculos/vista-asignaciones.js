@@ -1,9 +1,11 @@
 "use strict";
 
 // ─── State ────────────────────────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────────────────────
 let listaVehiculosAsignacion = [];
 let listaEmpleadosAsignacion = [];
 let asignacionesActivas = [];
+let listaMarcasVehiculos = [];
 let editModeId = null;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -120,45 +122,30 @@ function inicializarVistaAsignaciones() {
 // ─── Carga de catálogos ───────────────────────────────────────────────────────
 async function cargarCatalogosAsignacion() {
     try {
-        // Cargar vehículos, empleados y asignaciones activas en paralelo
-        const [vehRes, empRes, asigRes] = await Promise.all([
+        // Cargar vehículos, empleados, asignaciones y catálogos de marcas en paralelo
+        const [vehRes, empRes, asigRes, catRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
-            fetch("/Empleado/GetEmpleados").then(r => r.json()),
-            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+            fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
+            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false })),
+            fetch("/Vehiculos/GetVehiculoCatalogos").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
-        // Vehículos
-        const selectVeh = document.getElementById("asignacion-idVehDatosGenerales");
-        if (selectVeh && vehRes.success && vehRes.data) {
-            listaVehiculosAsignacion = vehRes.data;
-            selectVeh.innerHTML = '<option value="">Seleccionar...</option>';
-            vehRes.data.forEach(v => {
-                const opt = document.createElement("option");
-                opt.value = String(v.id);
-                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                selectVeh.appendChild(opt);
-            });
+        // Guardar catálogos maestros completos para la tabla y vistas previas
+        if (vehRes.success && vehRes.data) listaVehiculosAsignacion = vehRes.data;
+        if (empRes.success && empRes.data) listaEmpleadosAsignacion = empRes.data;
+        if (asigRes.success && asigRes.data) asignacionesActivas = asigRes.data;
+        if (catRes.success && catRes.data && catRes.data.idVehCatMarcaVehiculo) {
+            listaMarcasVehiculos = catRes.data.idVehCatMarcaVehiculo;
         }
 
-        // Empleados
-        const selectEmp = document.getElementById("asignacion-idEmpEmpleado");
-        if (selectEmp && empRes.success && empRes.data) {
-            listaEmpleadosAsignacion = empRes.data;
-            selectEmp.innerHTML = '<option value="">Seleccionar...</option>';
-            empRes.data.forEach(e => {
-                const opt = document.createElement("option");
-                opt.value = String(e.id);
-                const nombre = e.strNombre + " " + e.strApellidoPaterno + (e.strApellidoMaterno ? " " + e.strApellidoMaterno : "");
-                opt.textContent = nombre;
-                selectEmp.appendChild(opt);
-            });
-        }
+        // Renderizar la tabla con la información completa
+        renderAsignacionesTable();
 
-        // Asignaciones activas para vinculación vehículo-chofer
-        if (asigRes.success && asigRes.data) {
-            asignacionesActivas = asigRes.data;
-            renderAsignacionesTable();
-        }
+        // Poblar los dropdowns con unidades y choferes disponibles
+        poblarDropdownVehiculos();
+        poblarDropdownEmpleados();
+
+        // Los dropdowns son convertidos automáticamente por el componente global custom-select de CAVEX (site.js)
 
         // Eventos de vinculación bidireccional
         selectVeh?.addEventListener("change", () => {
@@ -182,6 +169,10 @@ function inicializarFechaAsignacion() {
     const fechaInput = document.getElementById("asignacion-dteFechaAsigncion");
     const fechaVisual = document.getElementById("asignacionFechaVisual");
     if (!fechaInput) return;
+
+    fechaInput.readOnly = true;
+    fechaInput.style.backgroundColor = "#e9ecef";
+    fechaInput.style.pointerEvents = "none";
 
     const hoy = new Date();
     const yyyy = hoy.getFullYear();
@@ -384,6 +375,18 @@ function limpiarErrorCampo(campo) {
     }
 }
 
+function obtenerNombreMarca(v) {
+    if (!v) return "—";
+    if (v.strVehCatMarcaVehiculo && v.strVehCatMarcaVehiculo !== "—") return v.strVehCatMarcaVehiculo;
+    if (v.strMarca && v.strMarca !== "—") return v.strMarca;
+    if (v.strMarcaVehiculo && v.strMarcaVehiculo !== "—") return v.strMarcaVehiculo;
+    if (v.idVehCatMarcaVehiculo && listaMarcasVehiculos.length > 0) {
+        const m = listaMarcasVehiculos.find(item => Number(item.id) === Number(v.idVehCatMarcaVehiculo));
+        if (m && (m.strValor || m.nombre)) return m.strValor || m.nombre;
+    }
+    return "—";
+}
+
 // Dibuja la tabla de asignaciones de vehículos en pantalla
 function renderAsignacionesTable() {
     const tbody = document.getElementById("asignacionesTableBody");
@@ -398,15 +401,19 @@ function renderAsignacionesTable() {
     // Mapeamos cada asignación a un renglón (tr) de la tabla
     tbody.innerHTML = asignacionesActivas.map(a => {
         // Buscamos los datos completos del vehículo vinculado
-        const v = listaVehiculosAsignacion.find(veh => veh.id === a.idVehDatosGenerales);
-        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
-        const modelo = v ? v.strModelo : "Desconocido";
+        const v = listaVehiculosAsignacion.find(veh => Number(veh.id) === Number(a.idVehDatosGenerales));
+        let marca = v ? obtenerNombreMarca(v) : "—";
+        if (marca === "—" && a.strVehDatosGenerales) {
+            const parts = a.strVehDatosGenerales.split(/[·\-]/);
+            if (parts.length > 0 && parts[0].trim()) marca = parts[0].trim();
+        }
+        const modelo = v ? (v.strModelo || "—") : (a.strVehDatosGenerales || "—");
         const anio = v ? String(v.intAnio || "—") : "—";
-        const placa = v ? v.strPlaca : "—";
+        const placa = v ? (v.strPlaca || "—") : "—";
         
         // Buscamos los datos completos del empleado vinculado
-        const emp = listaEmpleadosAsignacion.find(e => e.id === a.idEmpEmpleado);
-        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (a.strEmpEmpleado || "Desconocido");
+        const emp = listaEmpleadosAsignacion.find(e => Number(e.id) === Number(a.idEmpEmpleado));
+        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")).trim() : (a.strEmpEmpleado || "—");
 
         // Construimos el HTML del renglón con las 6 columnas solicitadas
         return `
@@ -469,11 +476,13 @@ function verDetalleAsignacion(id) {
     const v = listaVehiculosAsignacion.find(veh => veh.id === a.idVehDatosGenerales);
     const emp = listaEmpleadosAsignacion.find(e => e.id === a.idEmpEmpleado);
     const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (a.strEmpEmpleado || "Desconocido");
+    const marcaNombre = obtenerNombreMarca(v);
 
     Swal.fire({
         title: "Detalle de Asignación",
         html: `
             <div class="text-start fs-6" style="line-height: 1.6;">
+                <p><strong>Marca:</strong> ${marcaNombre}</p>
                 <p><strong>Vehículo:</strong> ${v ? `${v.strModelo} (${v.intAnio})` : "Desconocido"}</p>
                 <p><strong>Placa:</strong> ${v ? v.strPlaca : "—"}</p>
                 <p><strong>Empleado Responsable:</strong> ${empleadoName}</p>
@@ -487,11 +496,90 @@ function verDetalleAsignacion(id) {
     });
 }
 
+function poblarDropdownVehiculos(currentVehId = null) {
+    const selectVeh = document.getElementById("asignacion-idVehDatosGenerales");
+    if (!selectVeh || !listaVehiculosAsignacion) return;
+
+    const vehIdAsignados = new Set(
+        (asignacionesActivas || [])
+            .map(a => Number(a.idVehDatosGenerales ?? a.IdVehDatosGenerales))
+            .filter(id => !isNaN(id) && id > 0)
+    );
+
+    selectVeh.innerHTML = '<option value="">Seleccionar vehículo disponible...</option>';
+    listaVehiculosAsignacion.forEach(v => {
+        const vId = Number(v.id ?? v.Id);
+        const isAssigned = vehIdAsignados.has(vId);
+        const isCurrentSelected = currentVehId && vId === Number(currentVehId);
+
+        if (!isAssigned || isCurrentSelected) {
+            const opt = document.createElement("option");
+            opt.value = String(vId);
+            const marcaNombre = obtenerNombreMarca(v);
+            const marcaDisplay = marcaNombre !== "—" ? marcaNombre + " " : "";
+            opt.textContent = `${v.strPlaca || v.StrPlaca || '—'} - ${marcaDisplay}${v.strModelo || v.StrModelo || ''} (${v.intAnio || v.IntAnio || ''})`.trim();
+            selectVeh.appendChild(opt);
+        }
+    });
+    selectVeh.addEventListener("change", () => {
+        const vId = Number(selectVeh.value);
+        const v = listaVehiculosAsignacion.find(veh => Number(veh.id ?? veh.Id) === vId);
+        const kmInicialInput = document.getElementById("asignacion-decKilometrajeInicial");
+        if (kmInicialInput) {
+            if (v && (v.decKilometrajeActual != null || v.DecKilometrajeActual != null)) {
+                const km = v.decKilometrajeActual ?? v.DecKilometrajeActual;
+                kmInicialInput.value = formatoConComas(km);
+                kmInicialInput.readOnly = true;
+                kmInicialInput.style.backgroundColor = "#e9ecef";
+            } else {
+                kmInicialInput.readOnly = false;
+                kmInicialInput.style.backgroundColor = "";
+            }
+        }
+    });
+
+    selectVeh.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function poblarDropdownEmpleados(currentEmpId = null) {
+    const selectEmp = document.getElementById("asignacion-idEmpEmpleado");
+    if (!selectEmp || !listaEmpleadosAsignacion) return;
+
+    const empIdAsignados = new Set(
+        (asignacionesActivas || [])
+            .map(a => Number(a.idEmpEmpleado ?? a.IdEmpEmpleado))
+            .filter(id => !isNaN(id) && id > 0)
+    );
+
+    selectEmp.innerHTML = '<option value="">Seleccionar chofer disponible...</option>';
+    listaEmpleadosAsignacion.forEach(e => {
+        const eId = Number(e.id ?? e.Id);
+        const isAssigned = empIdAsignados.has(eId);
+        const isCurrentSelected = currentEmpId && eId === Number(currentEmpId);
+
+        if (!isAssigned || isCurrentSelected) {
+            const opt = document.createElement("option");
+            opt.value = String(eId);
+            const nom = e.strNombre || e.StrNombre || '';
+            const pat = e.strApellidoPaterno || e.StrApellidoPaterno || '';
+            const mat = e.strApellidoMaterno || e.StrApellidoMaterno || '';
+            const nombre = `${nom} ${pat} ${mat}`.trim();
+            opt.textContent = nombre;
+            selectEmp.appendChild(opt);
+        }
+    });
+    selectEmp.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
 function editarAsignacion(id) {
     const a = asignacionesActivas.find(item => item.id === id);
     if (!a) return;
 
     editModeId = id;
+
+    // Repoblar los dropdowns permitiendo el vehículo y chofer asignados a esta asignación que se edita
+    poblarDropdownVehiculos(a.idVehDatosGenerales);
+    poblarDropdownEmpleados(a.idEmpEmpleado);
 
     const selectVeh = document.getElementById("asignacion-idVehDatosGenerales");
     const selectEmp = document.getElementById("asignacion-idEmpEmpleado");
@@ -513,8 +601,6 @@ function editarAsignacion(id) {
     document.getElementById("asignacion-decKilometrajeTotal").value = a.decKilometrajeTotal ? formatoConComas(a.decKilometrajeTotal) : "";
 
     actualizarVistaPreviaAsignacion();
-
-    // Desplazar al formulario
     document.getElementById("asignacionVehiculoForm").scrollIntoView({ behavior: "smooth" });
 }
 
@@ -555,6 +641,9 @@ function eliminarAsignacion(id) {
 
 function resetearFormularioAsignacion() {
     editModeId = null;
+    poblarDropdownVehiculos();
+    poblarDropdownEmpleados();
+
     const form = document.getElementById("asignacionVehiculoForm");
     if (form) {
         form.reset();
@@ -567,3 +656,7 @@ function resetearFormularioAsignacion() {
 function escapeHtml(text) {
     return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
+
+
+
+

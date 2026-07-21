@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehAsignacionVehiculos
 {
@@ -17,7 +17,7 @@ namespace Cavex.Principal.Models.VehAsignacionVehiculos
         public string StrEmpEmpleado { get; set; } = string.Empty;
 
         [Display(Name = "Fecha de asignacion")]
-        public DateTime DteFechaAsigncion { get; set; }
+        public DateOnly DteFechaAsigncion { get; set; }
 
         [Display(Name = "Kilometraje inicial")]
         public decimal DecKilometrajeInicial { get; set; }

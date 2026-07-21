@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehCatGasolineras
 {
@@ -10,6 +10,11 @@ namespace Cavex.Principal.Models.VehCatGasolineras
         public required string StrValor { get; set; }
 
         [Display(Name = "Descripcion")]
-        public required string StrDescripcion { get; set; }
+        public string? StrDescripcion { get; set; }
+
+        public int IdVehCatStatus { get; set; } = 1;
+
+        [Display(Name = "Estatus")]
+        public string StrVehCatStatus { get; set; } = string.Empty;
     }
 }

@@ -1,15 +1,13 @@
 @model Cavex.Principal.Models.VehCatResponsableServicio.VehCatResponsableServicioSaveDto;
 @{
-    ViewBag.Title = "Nuevo Responsable de Servicio";
+    ViewBag.Title = "Nuevo Encargado de Servicio";
     ViewBag.HeaderEyebrow = "Configuracion";
-    ViewBag.HeaderTitle = "Nuevo Responsable de Servicio";
-    ViewBag.HeaderSubtitle = "Administra el catalogo de responsables de servicio de la plataforma.";
+    ViewBag.HeaderSubtitle = "Administra el catalogo de encargados del servicio de los vehiculos.";
 
-    ViewBag.TableTitle = "Listado de responsables de servicio";
-    ViewBag.TableSubtitle = "Catalogo de responsables de servicio y sus descripciones.";
-    ViewBag.TableCount = 0;
-    ViewBag.TableCountLabel = "responsables";
-    ViewBag.TableExtraPill = "Catalogo Activo";
+    ViewData["TableTitle"] = "Listado de encargados del servicio";
+    ViewData["TableSubtitle"] = "Catalogo de encargados del servicio y sus descripciones.";
+    ViewData["TableCount"] = 0;
+    ViewData["TableCountLabel"] = "encargados";
 }
 
 @section Head {
@@ -23,27 +21,27 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div>
             <span class="eyebrow">Formulario</span>
-            <h2 class="filter-title" id="formTitle">Registrar responsable de servicio</h2>
-            <p class="cavex-subtitle" id="formSubtitle">Ingresa el nombre y la descripcion para registrar el responsable de servicio.</p>
+            <h2 class="filter-title" id="formTitle">Registrar encargado de servicio</h2>
+            <p class="cavex-subtitle" id="formSubtitle">Ingresa el nombre y la descripcion para registrar el encargado de servicio.</p>
         </div>
     </div>
 
     <form id="formResponsableServicio" class="filter-form-compact" novalidate onsubmit="handleFormSubmit(event)">
         <div class="row g-3">
             <div class="col-md-12">
-                <label class="form-label" for="strNombre">Nombre del responsable</label>
+                <label class="form-label" for="strNombre">Nombre del encargado</label>
                 <input id="strNombre" name="StrValor" class="form-control no-uppercase" placeholder="Ej. Juan Perez" required />
-                <div class="invalid-feedback" id="nombreFeedback">El nombre del responsable ya existe.</div>
+                <div class="invalid-feedback" id="nombreFeedback">El nombre del encargado ya existe.</div>
             </div>
             <div class="col-md-12">
-                <label class="form-label" for="strDescripcion">Descripcion (Opcional)</label>
+                <label class="form-label" for="strDescripcion">Descripcion</label>
                 <textarea id="strDescripcion" name="StrDescripcion" class="form-control no-uppercase" rows="3" placeholder="Ej. Encargado del turno matutino" style="resize: none;"></textarea>
                 <div class="invalid-feedback" id="descripcionFeedback">La descripcion contiene caracteres no validos.</div>
             </div>
         </div>
 
         <div class="search-actions mt-3">
-            <button type="submit" class="btn btn-cavex" id="btnSubmit">Guardar responsable</button>
+            <button type="submit" class="btn btn-cavex" id="btnSubmit">Guardar encargado</button>
             <button type="button" class="btn btn-outline-cavex" id="btnCancel" onclick="resetForm()" style="display: none;">Cancelar</button>
         </div>
     </form>
@@ -89,3 +87,4 @@
 @section Scripts {
     <script src="~/js/vehiculos/servicios-vehiculos/vista-encargado-servicio.js" asp-append-version="true"></script>
 }
+

@@ -10,12 +10,15 @@ namespace Cavex.Principal.Controllers
     public class AreaLaboralController : Controller
     {
         private readonly IEmpCatAreaLaboralService _serviceAreaLaboral;
+        private readonly ICatStatusService _catStatusService;
         private readonly IMemoryCache _cache;
         private const string CacheKey = "areas_list";
+        private const string StatusCacheKey = "status_list";
 
-        public AreaLaboralController(IEmpCatAreaLaboralService serviceAreaLaboral, IMemoryCache cache)
+        public AreaLaboralController(IEmpCatAreaLaboralService serviceAreaLaboral, ICatStatusService catStatusService, IMemoryCache cache)
         {
             _serviceAreaLaboral = serviceAreaLaboral;
+            _catStatusService = catStatusService;
             _cache = cache;
         }
 
@@ -23,6 +26,33 @@ namespace Cavex.Principal.Controllers
         public IActionResult Index()
         {
             return View();
+        }
+
+        [HttpGet]
+        public async Task<JsonResult> GetStatus(CancellationToken cancellationToken)
+        {
+            var statusItems = _cache.Get<object>(StatusCacheKey);
+            if (statusItems != null)
+            {
+                return Json(new { success = true, data = statusItems });
+            }
+
+            var response = await _catStatusService.ObtenerTodosAsync(cancellationToken);
+            if (!response.Success || response.Data?.Items == null || !response.Data.Items.Any())
+            {
+                statusItems = new[]
+                {
+                    new { id = 1, strValor = "Activo", strDescripcion = "Activo" },
+                    new { id = 2, strValor = "Inactivo", strDescripcion = "Inactivo" }
+                };
+                _cache.Set(StatusCacheKey, statusItems, TimeSpan.FromSeconds(30));
+                return Json(new { success = true, data = statusItems });
+            }
+
+            statusItems = response.Data.Items;
+            _cache.Set(StatusCacheKey, statusItems, TimeSpan.FromMinutes(10));
+
+            return Json(new { success = true, data = statusItems });
         }
 
         // Obtiene las áreas laborales paginadas con opción de filtrado/búsqueda
@@ -98,7 +128,8 @@ namespace Cavex.Principal.Controllers
             var saveModel = new EmpCatAreaLaboralSaveDto
             {
                 StrValor = model.StrValor,
-                StrDescripcion = model.StrDescripcion
+                StrDescripcion = model.StrDescripcion,
+                IdCatStatus = model.IdCatStatus
             };
 
             var response = await _serviceAreaLaboral.ActualizarAsync(model.Id, saveModel, cancellationToken);

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehCatGasolineras
 {
@@ -13,5 +13,8 @@ namespace Cavex.Principal.Models.VehCatGasolineras
         [StringLength(500, ErrorMessage = "El valor no puede superar los 500 caracteres.")]
         [Display(Name = "Descripcion")]
         public string? StrDescripcion { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El estatus es obligatorio.")]
+        public int IdCatStatus { get; set; } = 1;
     }
 }

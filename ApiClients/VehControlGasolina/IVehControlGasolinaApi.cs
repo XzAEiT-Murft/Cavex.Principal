@@ -13,10 +13,10 @@ namespace Cavex.Principal.ApiClients.VehControlGasolina
         Task<ResponseWrapper<VehControlGasolinaDto>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
         [Post("/api/v1/VehControlGasolina")]
-        Task<ResponseWrapper<VehControlGasolinaDto>> CreateAsync([Body] VehControlGasolinaSaveDto dto, CancellationToken cancellationToken = default);
+        Task<ResponseWrapper<VehControlGasolinaDto>> CreateAsync(RequestWrapper<VehControlGasolinaSaveDto> request, CancellationToken cancellationToken = default);
 
-        [Put("/api/v1/VehControlGasolina")]
-        Task<ResponseWrapper<VehControlGasolinaDto>> UpdateAsync([Body] VehControlGasolinaEditDto dto, CancellationToken cancellationToken = default);
+        [Put("/api/v1/VehControlGasolina/{id}")]
+        Task<ResponseWrapper<VehControlGasolinaDto>> UpdateAsync(int id, RequestWrapper<VehControlGasolinaEditDto> request, CancellationToken cancellationToken = default);
 
         [Delete("/api/v1/VehControlGasolina/{id}")]
         Task<ResponseWrapper<bool>> DeleteAsync(int id, CancellationToken cancellationToken = default);

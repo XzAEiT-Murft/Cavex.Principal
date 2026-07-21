@@ -60,8 +60,8 @@ namespace Cavex.Principal.Models.VehDatosGenerales
         [Display(Name = "Foto")]
         public string? StrUrlFoto { get; set; }
 
-        [Display(Name = "Fecha de registro")]
-        public DateOnly DteFechaRegistro { get; set; }
+        [Display(Name = "Fecha de asignación")]
+        public DateOnly DteFechaAsignacion { get; set; }
 
         [Display(Name = "Observaciones")]
         public string? StrObservaciones { get; set; }

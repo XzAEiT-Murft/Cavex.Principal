@@ -1,4 +1,4 @@
-﻿@model Cavex.Principal.Models.VehCatGasolineras.VehCatGasolinerasSaveDto;
+@model Cavex.Principal.Models.VehCatGasolineras.VehCatGasolinerasSaveDto;
 @{
     ViewBag.Title = "Nueva Gasolinera";
     ViewBag.HeaderEyebrow = "Configuracion";
@@ -14,6 +14,7 @@
 
 @section Head {
     <link rel="stylesheet" href="~/css/vista-gasolineras.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/vista-vehiculos.css" asp-append-version="true" />
 }
 
 <partial name="_PageHeader" />
@@ -39,18 +40,11 @@
                 <textarea id="strDescripcionGasolinera" name="StrDescripcion" class="form-control no-uppercase" rows="3" placeholder="Ej. Ubicada sobre la carretera principal" style="resize: none;"></textarea>
                 <div class="invalid-feedback" id="descripcionFeedback">La descripcion contiene caracteres no validos.</div>
             </div>
-            <div class="col-md-12" id="statusContainer">
-                <label class="form-label" for="intIdStatusGasolinera">Estado de la gasolinera</label>
-                <select id="intIdStatusGasolinera" name="IdCatStatus" class="form-select" required>
-                    <option value="">-- Seleccionar Estado --</option>
-                </select>
-                <div class="invalid-feedback" id="statusFeedback">Selecciona un estatus.</div>
-            </div>
         </div>
 
-        <div class="search-actions mt-3">
-            <button type="submit" class="btn btn-cavex" id="btnSubmit">Guardar gasolinera</button>
-            <button type="button" class="btn btn-outline-cavex" id="btnCancel" onclick="resetForm()" style="display: none;">Cancelar</button>
+        <div class="form-action-bar">
+            <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Index">Cancelar / Volver</a>
+            <button type="submit" class="btn btn-cavex">Guardar gasolinera</button>
         </div>
     </form>
 </div>
@@ -59,7 +53,7 @@
     <partial name="_TableCardHeader" />
 
     <div class="table-filter-bar d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="custom-tabs-container" id="statusTabs"></div>
+        <div></div>
         <div class="table-search-box position-relative">
             <input type="text" id="tableSearch" class="form-control" placeholder="Buscar gasolinera..." oninput="handleSearch(this.value)" />
             <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -75,7 +69,6 @@
                 <tr>
                     <th>Nombre de la gasolinera</th>
                     <th>Descripcion</th>
-                    <th style="width: 120px;">Estado</th>
                     <th class="text-end" style="width: 160px;">Acciones</th>
                 </tr>
             </thead>
@@ -94,5 +87,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-gasolineras.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/servicios-vehiculos/vista-gasolineras.js" asp-append-version="true"></script>
 }

@@ -35,7 +35,7 @@ async function loadGasolinerasFromServer() {
         renderGasolineras();
     } catch (error) {
         console.error(error);
-        showError("Ocurrio un error al cargar las gasolineras.");
+        showError("Ocurrió un error al cargar las gasolineras.");
     }
 }
 
@@ -51,7 +51,7 @@ function wireFormInputs() {
             nombreInput.classList.remove("is-invalid", "is-valid");
         });
     }
- 
+
     if (descInput) {
         if (typeof registerSanitizer === "function" && typeof sanitizeGeneralText === "function") {
             registerSanitizer(descInput, sanitizeGeneralText);
@@ -100,7 +100,7 @@ function renderGasolineras() {
     } else {
         pagedList.forEach(g => {
             const tr = document.createElement("tr");
-            const descText = g.descripcion || "Sin descripcion";
+            const descText = g.descripcion || "Sin descripción";
             const truncatedDesc = descText.length > 80 ? `${descText.substring(0, 80)}...` : descText;
 
             tr.innerHTML = `
@@ -131,36 +131,24 @@ function renderGasolineras() {
                             </li>
                         </ul>
                     </div>
-                </td>`;
-
+                </td>
+            `;
             tbody.appendChild(tr);
         });
     }
 
-    setText(
-        "paginationInfo",
-        totalRecords > 0
-            ? `Mostrando ${startIndex + 1}-${endIndex} de ${totalRecords} registros`
-            : "Mostrando 0-0 de 0 registros"
-    );
-
+    const startIndexText = totalRecords > 0 ? startIndex + 1 : 0;
+    setText("paginationInfo", `Mostrando ${startIndexText}-${endIndex} de ${totalRecords} registros`);
+    
     const countPill = document.querySelector(".table-module .records-pill");
     if (countPill) countPill.textContent = `${totalRecords} gasolineras`;
-
-    const extraPill = document.querySelector(".table-module .records-pill-soft");
-    if (extraPill) extraPill.textContent = `Pagina ${currentPage} de ${totalPages}`;
 
     renderPagination(totalPages);
 
     // Inicializar dropdowns de acciones con estrategia 'fixed' para prevenir recortes
     document.querySelectorAll('#gasolinerasTableBody .btn-action-trigger').forEach(el => {
         new bootstrap.Dropdown(el, {
-            popperConfig: (defaultConfig) => {
-                return {
-                    ...defaultConfig,
-                    strategy: 'fixed'
-                };
-            }
+            popperConfig: (defaultConfig) => ({ ...defaultConfig, strategy: 'fixed' })
         });
     });
 }
@@ -172,30 +160,33 @@ function renderPagination(totalPages) {
     paginationList.innerHTML = "";
     if (totalPages <= 1) return;
 
-    paginationList.appendChild(createPageItem("Anterior", currentPage - 1, currentPage === 1));
+    const prevLi = document.createElement("li");
+    prevLi.className = `page-item ${currentPage === 1 ? "disabled" : ""}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${currentPage - 1})">&laquo;</a>`;
+    paginationList.appendChild(prevLi);
 
     for (let i = 1; i <= totalPages; i++) {
-        paginationList.appendChild(createPageItem(String(i), i, false, currentPage === i));
+        const li = document.createElement("li");
+        li.className = `page-item ${i === currentPage ? "active" : ""}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${i})">${i}</a>`;
+        paginationList.appendChild(li);
     }
 
-    paginationList.appendChild(createPageItem("Siguiente", currentPage + 1, currentPage === totalPages));
+    const nextLi = document.createElement("li");
+    nextLi.className = `page-item ${currentPage === totalPages ? "disabled" : ""}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${currentPage + 1})">&raquo;</a>`;
+    paginationList.appendChild(nextLi);
 }
 
-function createPageItem(text, page, disabled, active) {
-    const li = document.createElement("li");
-    li.className = `page-item ${disabled ? "disabled" : ""} ${active ? "active" : ""}`;
-    li.innerHTML = `<a class="page-link" href="#" onclick="changePage(event, ${page})">${text}</a>`;
-    return li;
-}
-
-function changePage(event, page) {
-    if (event) event.preventDefault();
+function changePage(e, page) {
+    if (e) e.preventDefault();
+    if (page < 1) return;
     currentPage = page;
     renderGasolineras();
 }
 
-function handleSearch(query) {
-    searchQuery = query || "";
+function handleSearch(val) {
+    searchQuery = val || "";
     currentPage = 1;
     renderGasolineras();
 }
@@ -206,140 +197,139 @@ async function handleFormSubmit(e) {
     const nombreInput = document.getElementById("strNombreGasolinera");
     const descInput = document.getElementById("strDescripcionGasolinera");
 
-    if (!nombreInput) return;
+    clearValidation();
 
-    const nombre = nombreInput.value.trim();
-    const descripcion = descInput ? descInput.value.trim() : "";
+    const nombreVal = nombreInput ? nombreInput.value.trim() : "";
+    const descVal = descInput ? descInput.value.trim() : "";
 
-    if (!nombre) {
-        nombreInput.classList.add("is-invalid");
-        nombreInput.classList.remove("is-valid");
-        const feedback = document.getElementById("nombreFeedback");
-        if (feedback) feedback.textContent = "El nombre de la gasolinera es obligatorio.";
-        nombreInput.focus();
+    if (!nombreVal) {
+        if (nombreInput) {
+            nombreInput.classList.add("is-invalid");
+            nombreInput.focus();
+        }
         return;
     }
 
-    const nombreLower = nombre.toLowerCase().trim();
-    const existeDuplicado = gasolineras.some(g => g.nombre.toLowerCase().trim() === nombreLower && g.id !== editingId);
-
-    if (existeDuplicado) {
-        nombreInput.classList.add("is-invalid");
-        nombreInput.classList.remove("is-valid");
-        const feedback = document.getElementById("nombreFeedback");
-        if (feedback) feedback.textContent = "El nombre de la gasolinera ya existe.";
-        nombreInput.focus();
+    const regexLettersOnly = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/;
+    if (!regexLettersOnly.test(nombreVal)) {
+        if (nombreInput) {
+            nombreInput.classList.add("is-invalid");
+            const feedback = document.getElementById("nombreFeedback");
+            if (feedback) feedback.textContent = "El nombre solo debe contener letras y espacios.";
+            nombreInput.focus();
+        }
         return;
     }
+
+    const nombreLower = nombreVal.toLowerCase();
+    const duplicate = gasolineras.some(g => g.nombre.toLowerCase() === nombreLower && g.id !== editingId);
+    if (duplicate) {
+        if (nombreInput) {
+            nombreInput.classList.add("is-invalid");
+            const feedback = document.getElementById("nombreFeedback");
+            if (feedback) feedback.textContent = "El nombre de la gasolinera ya existe.";
+            nombreInput.focus();
+        }
+        return;
+    }
+
+    if (nombreInput) nombreInput.classList.add("is-valid");
+
+    const isEdit = editingId !== null;
+    const url = isEdit ? "/Vehiculos/Gasolineras/Actualizar" : "/Vehiculos/Gasolineras/Crear";
 
     const payload = {
-        strValor: nombre,
-        strDescripcion: descripcion
+        Id: editingId || 0,
+        StrValor: nombreVal,
+        StrDescripcion: descVal
     };
-
-    if (editingId !== null) {
-        payload.id = editingId;
-    }
-
-    const url = editingId === null
-        ? "/Vehiculos/Gasolineras/SaveGasolinera"
-        : "/Vehiculos/Gasolineras/UpdateGasolinera";
 
     try {
         const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
 
         const result = await response.json();
 
-        if (!result.success) {
-            showError(result.message || "No fue posible guardar la gasolinera.");
-            return;
+        if (result.success) {
+            Swal.fire({
+                icon: "success",
+                title: "Éxito",
+                text: isEdit ? "Gasolinera actualizada correctamente." : "Gasolinera guardada correctamente.",
+                confirmButtonColor: "var(--teal-cavex)"
+            });
+
+            resetForm();
+            await loadGasolinerasFromServer();
+        } else {
+            showError(result.message || "No se pudo guardar la información.");
         }
-
-        Swal.fire({
-            icon: "success",
-            title: editingId === null ? "Registro exitoso" : "Actualizacion exitosa",
-            text: editingId === null ? "Gasolinera agregada exitosamente." : "Gasolinera actualizada exitosamente.",
-            confirmButtonColor: "var(--teal-cavex)"
-        });
-
-        resetForm();
-        await loadGasolinerasFromServer();
     } catch (error) {
         console.error(error);
-        showError("Ocurrio un error al guardar la gasolinera.");
+        showError("Ocurrió un error al guardar la gasolinera.");
     }
 }
 
 function editGasolinera(id) {
-    const gasolinera = gasolineras.find(g => g.id === id);
-    if (!gasolinera) return;
+    const item = gasolineras.find(g => g.id === id);
+    if (!item) return;
 
     clearValidation();
     editingId = id;
 
-    document.getElementById("strNombreGasolinera").value = gasolinera.nombre;
-
+    const nombreInput = document.getElementById("strNombreGasolinera");
     const descInput = document.getElementById("strDescripcionGasolinera");
-    if (descInput) descInput.value = gasolinera.descripcion || "";
+    const formTitle = document.getElementById("formTitle");
+    const formSub = document.getElementById("formSubtitle");
+    const btnSubmit = document.querySelector("#formGasolinera button[type='submit']");
 
-    setText("formTitle", "Editar gasolinera");
-    setText("formSubtitle", "Modifica los detalles de la gasolinera seleccionada.");
-    setText("btnSubmit", "Guardar cambios");
+    if (nombreInput) nombreInput.value = item.nombre;
+    if (descInput) descInput.value = item.descripcion || "";
 
-    const btnCancel = document.getElementById("btnCancel");
-    if (btnCancel) btnCancel.style.display = "inline-block";
+    if (formTitle) formTitle.textContent = "Editar gasolinera";
+    if (formSub) formSub.textContent = "Modifica los campos de la gasolinera.";
+    if (btnSubmit) btnSubmit.textContent = "Guardar cambios";
 
-    const formCard = document.querySelector(".filter-card");
-    if (formCard) formCard.scrollIntoView({ behavior: "smooth" });
-
-    document.getElementById("strNombreGasolinera").focus();
+    document.querySelector('.filter-card').scrollIntoView({ behavior: 'smooth' });
+    if (nombreInput) nombreInput.focus();
 }
 
 function deleteGasolinera(id) {
     Swal.fire({
-        title: "¿Estas seguro?",
-        text: "No podras revertir esta accion.",
+        title: "¿Deseas eliminar esta gasolinera?",
+        text: "Esta acción no se puede deshacer.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#ef4444",
         cancelButtonColor: "#6b7280",
-        confirmButtonText: "Si, eliminar",
+        confirmButtonText: "Sí, eliminar",
         cancelButtonText: "Cancelar"
-    }).then(async result => {
-        if (!result.isConfirmed) return;
+    }).then(async (res) => {
+        if (res.isConfirmed) {
+            try {
+                const response = await fetch(`/Vehiculos/Gasolineras/Eliminar/${id}`, {
+                    method: "POST"
+                });
+                const result = await response.json();
 
-        try {
-            const response = await fetch(`/Vehiculos/Gasolineras/DeleteGasolinera?id=${id}`, {
-                method: "POST",
-                headers: { "Accept": "application/json" }
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                showError(data.message || "No fue posible eliminar la gasolinera.");
-                return;
+                if (result.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Eliminado",
+                        text: "Gasolinera eliminada correctamente.",
+                        confirmButtonColor: "var(--teal-cavex)"
+                    });
+                    if (editingId === id) resetForm();
+                    await loadGasolinerasFromServer();
+                } else {
+                    showError(result.message || "No fue posible eliminar la gasolinera.");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Ocurrió un error al intentar eliminar.");
             }
-
-            Swal.fire({
-                icon: "success",
-                title: "Eliminado",
-                text: "La gasolinera ha sido eliminada exitosamente.",
-                confirmButtonColor: "var(--teal-cavex)"
-            });
-
-            if (editingId === id) resetForm();
-            await loadGasolinerasFromServer();
-        } catch (error) {
-            console.error(error);
-            showError("Ocurrio un error al eliminar la gasolinera.");
         }
     });
 }
@@ -351,38 +341,40 @@ function resetForm() {
     const form = document.getElementById("formGasolinera");
     if (form) form.reset();
 
-    setText("formTitle", "Registrar gasolinera");
-    setText("formSubtitle", "Ingresa el nombre y la descripcion para registrar la gasolinera.");
-    setText("btnSubmit", "Guardar gasolinera");
+    const formTitle = document.getElementById("formTitle");
+    const formSub = document.getElementById("formSubtitle");
+    const btnSubmit = document.querySelector("#formGasolinera button[type='submit']");
 
-    const btnCancel = document.getElementById("btnCancel");
-    if (btnCancel) btnCancel.style.display = "none";
+    if (formTitle) formTitle.textContent = "Registrar gasolinera";
+    if (formSub) formSub.textContent = "Ingresa el nombre y la descripción para registrar la gasolinera.";
+    if (btnSubmit) btnSubmit.textContent = "Guardar gasolinera";
 }
 
 function clearValidation() {
-    document.getElementById("strNombreGasolinera")?.classList.remove("is-invalid", "is-valid");
-    document.getElementById("strDescripcionGasolinera")?.classList.remove("is-invalid", "is-valid");
+    const inputs = document.querySelectorAll("#formGasolinera .form-control");
+    inputs.forEach(input => {
+        input.classList.remove("is-invalid", "is-valid");
+    });
 }
 
-function escapeHtml(string) {
-    return String(string)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
 }
 
-function setText(id, value) {
-    const element = document.getElementById(id);
-    if (element) element.textContent = value;
-}
-
-function showError(message) {
+function showError(msg) {
     Swal.fire({
         icon: "error",
         title: "Error",
-        text: message,
+        text: msg,
         confirmButtonColor: "var(--teal-cavex)"
     });
+}
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 }

@@ -1,7 +1,6 @@
 @{
-    ViewData["Title"] = "Control de gasolina";
+    ViewData["Title"] = "Control de la carga de gasolina";
     ViewData["HeaderEyebrow"] = "Consumo vehicular";
-    ViewData["HeaderTitle"] = "Control de gasolina";
     ViewData["HeaderSubtitle"] = "Registra cargas de combustible, costos, kilometraje, gasolinera y comprobantes por unidad.";
 }
 
@@ -14,7 +13,7 @@
 
 <!-- Formulario de VehControlGasolina.
      El cálculo de litros es exclusivamente visual y no agrega una columna al modelo SQL. -->
-<form id="gasolinaVehiculoForm" class="vehiculo-create-form gasolina-vehiculo-form vehiculo-module-form">
+<form id="gasolinaVehiculoForm" class="vehiculo-create-form gasolina-vehiculo-form vehiculo-module-form" novalidate>
     <div class="gasolina-form-grid">
         <div class="gasolina-main-column">
             <!-- Datos del vehículo: FK y kilometraje NOT NULL de VehControlGasolina. -->
@@ -31,7 +30,7 @@
                     <div class="col-lg-5">
                         <label class="form-label" for="gasolina-decKilometrajeActual">Kilometraje al cargar</label>
                         <div class="input-group">
-                            <input id="gasolina-decKilometrajeActual" name="decKilometrajeActual" type="number" min="0" max="999999" step="1" class="form-control" placeholder="0" required />
+                            <input id="gasolina-decKilometrajeActual" name="decKilometrajeActual" type="text" maxlength="15" class="form-control" placeholder="0" required />
                             <span class="input-group-text">km</span>
                         </div>
                         <div class="invalid-feedback" id="gasolina-decKilometrajeActualError">Captura un kilometraje válido.</div>
@@ -74,7 +73,7 @@
                         <label class="form-label" for="gasolina-mnyMontoPagado">Monto pagado</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input id="gasolina-mnyMontoPagado" name="mnyMontoPagado" type="number" min="0.01" max="999999" step="0.01" class="form-control" placeholder="0.00" required />
+                            <input id="gasolina-mnyMontoPagado" name="mnyMontoPagado" type="text" class="form-control" placeholder="0.00" required />
                         </div>
                         <div class="invalid-feedback" id="gasolina-mnyMontoPagadoError">Captura un monto mayor que cero.</div>
                     </div>
@@ -82,10 +81,10 @@
                         <label class="form-label" for="gasolina-mnyPrecioLitro">Precio por litro</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input id="gasolina-mnyPrecioLitro" name="mnyPrecioLitro" type="number" min="0.01" max="99.99" step="0.01" class="form-control" placeholder="0.00" required />
+                            <input id="gasolina-mnyPrecioLitro" name="mnyPrecioLitro" type="text" class="form-control" placeholder="0.00" required />
                             <span class="input-group-text">/ L</span>
                         </div>
-                        <div class="invalid-feedback" id="gasolina-mnyPrecioLitroError">Captura un precio entre $0.01 y $99.99.</div>
+                        <div class="invalid-feedback" id="gasolina-mnyPrecioLitroError">Captura un precio válido.</div>
                     </div>
                     <div class="col-md-6 col-xl-4">
                         <label class="form-label" for="gasolina-idVehFormaPago">Forma de pago</label>
@@ -93,16 +92,6 @@
                             <option value="">Seleccionar...</option>
                         </select>
                         <div class="invalid-feedback" id="gasolina-idVehFormaPagoError">Selecciona una forma de pago.</div>
-                    </div>
-                </div>
-
-                <!-- Cálculo informativo: no es campo ni columna de dbo.VehControlGasolina. -->
-                <div class="gasolina-litros-card" aria-live="polite">
-                    <div class="gasolina-litros-icon" aria-hidden="true">L</div>
-                    <div>
-                        <span>Litros estimados</span>
-                        <strong id="gasolinaLitrosEstimados">0.00 L</strong>
-                        <small>Monto pagado ÷ precio por litro. Dato únicamente visual.</small>
                     </div>
                 </div>
             </section>
@@ -167,5 +156,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/vista-gasolina.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/operaciones-vehiculos/vista-gasolina.js" asp-append-version="true"></script>
 }

@@ -12,7 +12,7 @@ namespace Cavex.Principal.Models.VehControlGasolina
         public string StrVehDatosGenerales { get; set; } = string.Empty;
 
         [Display(Name = "Fecha de carga")]
-        public DateTime DteFechaCarga { get; set; }
+        public DateOnly DteFechaCarga { get; set; }
 
         [Display(Name = "Monto pagado")]
         public decimal MnyMontoPagado { get; set; }

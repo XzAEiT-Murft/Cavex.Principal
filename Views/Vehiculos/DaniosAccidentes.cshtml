@@ -1,7 +1,6 @@
 @{
     ViewData["Title"] = "Daños y accidentes";
     ViewData["HeaderEyebrow"] = "Historial vehicular";
-    ViewData["HeaderTitle"] = "Daños y accidentes";
     ViewData["HeaderSubtitle"] = "Registra eventos, daños, reparaciones, seguros, evidencias y seguimiento por unidad.";
 }
 
@@ -14,7 +13,7 @@
 
 <!-- Formulario de daños y accidentes.
      La póliza solo se habilita cuando el evento se marca como cubierto por seguro. -->
-<form id="danioAccidenteForm" class="vehiculo-create-form danio-accidente-form vehiculo-module-form">
+<form id="danioAccidenteForm" class="vehiculo-create-form danio-accidente-form vehiculo-module-form" novalidate>
     <div class="danio-form-grid">
         <div class="danio-main-column">
             <!-- Datos del vehículo: representa la FK obligatoria idVehDatosGenerales. -->
@@ -73,7 +72,7 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label" for="danio-strUbicacion">Ubicación</label>
-                        <input id="danio-strUbicacion" name="strUbicacion" type="text" maxlength="300" class="form-control" placeholder="Lugar donde ocurrió el evento" />
+                        <input id="danio-strUbicacion" name="strUbicacion" type="text" maxlength="300" class="form-control" placeholder="Lugar donde ocurrió el evento" required/>
                         <div class="invalid-feedback" id="danio-strUbicacionError">La ubicación admite máximo 300 caracteres.</div>
                     </div>
                 </div>
@@ -87,7 +86,7 @@
                         <label class="form-label" for="danio-mnyMontoReparacion">Monto de reparación</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input id="danio-mnyMontoReparacion" name="mnyMontoReparacion" type="number" min="0" max="999999" step="0.01" class="form-control" placeholder="0.00" />
+                            <input id="danio-mnyMontoReparacion" name="mnyMontoReparacion" type="text" class="form-control" placeholder="0.00" />
                         </div>
                         <div class="invalid-feedback" id="danio-mnyMontoReparacionError">Captura un monto entre $0.00 y $999,999.00.</div>
                     </div>
@@ -117,7 +116,7 @@
                 <h3 class="form-section-title"><span class="form-section-number">4</span>Evidencia</h3>
                 <label class="form-label" for="danioEvidenciaArchivo">Archivo</label>
                 <div id="danioEvidenciaArea" class="vehiculo-upload-area danio-evidencia-area" role="button" tabindex="0">
-                    <input id="danioEvidenciaArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" multiple />
+                    <input id="danioEvidenciaArchivo" type="file" class="vehiculo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" multiple required/>
                     <input id="danio-strUrlEvidencia" name="strUrlEvidencia" type="hidden" value="" />
                     <div id="danioEvidenciaPrompt" class="vehiculo-upload-prompt danio-evidencia-prompt">
                         <span class="vehiculo-upload-icon" aria-hidden="true">
@@ -150,7 +149,7 @@
     <!-- Botones de captura; Guardar valida pero no ejecuta POST. -->
     <div class="form-action-bar vehiculo-action-bar">
         <a class="btn btn-outline-cavex" asp-controller="Vehiculos" asp-action="Index">Cancelar / Volver</a>
-        <button type="submit" class="btn btn-cavex">Guardar evento</button>
+        <button type="submit" class="btn btn-cavex">Guardar daño</button>
     </div>
 </form>
 
@@ -178,5 +177,5 @@
 
 
 @section Scripts {
-    <script src="~/js/vista-danios.js" asp-append-version="true"></script>
+    <script src="~/js/vehiculos/operaciones-vehiculos/vista-danios.js" asp-append-version="true"></script>
 }

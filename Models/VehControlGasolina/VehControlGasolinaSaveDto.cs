@@ -10,7 +10,7 @@ namespace Cavex.Principal.Models.VehControlGasolina
 
         [Required(ErrorMessage = "La fecha de carga es obligatoria.")]
         [Display(Name = "Fecha de carga")]
-        public DateTime DteFechaCarga { get; set; }
+        public DateOnly DteFechaCarga { get; set; }
 
         [Required(ErrorMessage = "El monto pagado es obligatorio.")]
         [Display(Name = "Monto pagado")]

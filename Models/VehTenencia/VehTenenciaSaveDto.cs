@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehTenencia
 {
@@ -14,11 +14,11 @@ namespace Cavex.Principal.Models.VehTenencia
 
         [Required(ErrorMessage = "La fecha de pago es obligatoria.")]
         [Display(Name = "Fecha de pago")]
-        public DateTime DteFechaPago { get; set; }
+        public DateOnly DteFechaPago { get; set; }
 
         [Required(ErrorMessage = "La fecha de vencimiento es obligatoria.")]
         [Display(Name = "Fecha de vencimiento")]
-        public DateTime DteFechaVencimiento { get; set; }
+        public DateOnly DteFechaVencimiento { get; set; }
 
         [Required(ErrorMessage = "El monto pagado es obligatorio.")]
         [Display(Name = "Monto pagado")]

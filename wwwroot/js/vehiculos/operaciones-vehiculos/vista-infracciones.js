@@ -17,6 +17,12 @@ function inicializarVistaInfracciones() {
     cargarCatalogosInfracciones();
     inicializarEstatusInfraccion();
     inicializarCargaComprobante();
+    
+    const montoInf = document.getElementById("infraccion-mnyMontoPagado");
+    if (montoInf) {
+        montoInf.addEventListener("input", () => formatCurrencyInput(montoInf));
+    }
+    
     inicializarContadores();
 
     // Eventos de validación en tiempo real para todos los inputs
@@ -80,7 +86,7 @@ function inicializarVistaInfracciones() {
         formData.append("IdVehCatStatus", statusVal);
         
         if (isPaid && montoInput) {
-            formData.append("MnyMontoPagado", parseFloat(montoInput));
+            formData.append("MnyMontoPagado", parseFloat(montoInput.replace(/,/g, "")));
         }
         if (isPaid && fechaPagoInput) {
             formData.append("DteFechaPago", fechaPagoInput);
@@ -148,40 +154,61 @@ async function cargarCatalogosInfracciones() {
     try {
         const [vehRes, empRes, asigRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
-            fetch("/Empleado/GetEmpleados").then(r => r.json()),
+            fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
             fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
-        // 1. Cargar vehículos
+        // Asignaciones activas para vinculación y filtrado
+        if (asigRes.success && asigRes.data) {
+            asignacionesActivasInfracciones = asigRes.data;
+        }
+
+        const vehIdAsignados = new Set(
+            (asignacionesActivasInfracciones || [])
+                .map(a => Number(a.idVehDatosGenerales ?? a.IdVehDatosGenerales))
+                .filter(id => !isNaN(id) && id > 0)
+        );
+
+        const empIdAsignados = new Set(
+            (asignacionesActivasInfracciones || [])
+                .map(a => Number(a.idEmpEmpleado ?? a.IdEmpEmpleado))
+                .filter(id => !isNaN(id) && id > 0)
+        );
+
+        // 1. Cargar solo vehículos asignados
         const selectVeh = document.getElementById("infraccion-idVehDatosGenerales");
         if (selectVeh && vehRes.success && vehRes.data) {
             listaVehiculosInfracciones = vehRes.data;
-            selectVeh.innerHTML = '<option value="">Seleccionar...</option>';
+            selectVeh.innerHTML = '<option value="">Seleccionar vehículo asignado...</option>';
             vehRes.data.forEach(v => {
-                const opt = document.createElement("option");
-                opt.value = String(v.id);
-                opt.textContent = `${v.strPlaca} - ${v.strModelo} (${v.intAnio})`;
-                selectVeh.appendChild(opt);
+                const vId = Number(v.id ?? v.Id);
+                if (vehIdAsignados.has(vId)) {
+                    const opt = document.createElement("option");
+                    opt.value = String(vId);
+                    opt.textContent = `${v.strPlaca || v.StrPlaca} - ${v.strModelo || v.StrModelo} (${v.intAnio || v.IntAnio})`;
+                    selectVeh.appendChild(opt);
+                }
             });
         }
 
-        // 2. Cargar empleados
+        // 2. Cargar solo empleados asignados
         const selectEmp = document.getElementById("infraccion-idEmpEmpleado");
         if (selectEmp && empRes.success && empRes.data) {
             listaEmpleadosInfracciones = empRes.data;
-            selectEmp.innerHTML = '<option value="">Seleccionar...</option>';
+            selectEmp.innerHTML = '<option value="">Seleccionar chofer asignado...</option>';
             empRes.data.forEach(e => {
-                const opt = document.createElement("option");
-                opt.value = String(e.id);
-                const nombreCompleto = e.strNombre + ' ' + e.strApellidoPaterno + (e.strApellidoMaterno ? ' ' + e.strApellidoMaterno : '');
-                opt.textContent = nombreCompleto;
-                selectEmp.appendChild(opt);
+                const eId = Number(e.id ?? e.Id);
+                if (empIdAsignados.has(eId)) {
+                    const opt = document.createElement("option");
+                    opt.value = String(eId);
+                    const nom = e.strNombre || e.StrNombre || '';
+                    const pat = e.strApellidoPaterno || e.StrApellidoPaterno || '';
+                    const mat = e.strApellidoMaterno || e.StrApellidoMaterno || '';
+                    const nombreCompleto = `${nom} ${pat} ${mat}`.trim();
+                    opt.textContent = nombreCompleto;
+                    selectEmp.appendChild(opt);
+                }
             });
-        }
-
-        // Asignaciones activas para vinculación
-        if (asigRes.success && asigRes.data) {
-            asignacionesActivasInfracciones = asigRes.data;
         }
 
         // Vinculación bidireccional segura
@@ -275,9 +302,10 @@ async function cargarCatalogosInfracciones() {
             if (result.success && result.data) {
                 // Formas de pago
                 const selectPago = document.getElementById("infraccion-idVehFormaPago");
-                if (selectPago && result.data.idVehFormaPago) {
+                const formasList = result.data.idVehCatFormaPago || result.data.idVehFormaPago;
+                if (selectPago && formasList) {
                     selectPago.innerHTML = '<option value="">Seleccionar...</option>';
-                    result.data.idVehFormaPago.forEach(item => {
+                    formasList.forEach(item => {
                         const opt = document.createElement("option");
                         opt.value = String(item.id);
                         opt.textContent = item.strValor || item.strDescripcion;
@@ -371,6 +399,10 @@ function inicializarCargaComprobante() {
     const input = document.getElementById("infraccionComprobanteArchivo");
     if (!area || !input) return;
 
+    input.addEventListener("click", event => {
+        event.stopPropagation();
+    });
+
     // Al hacer clic en el área, abre el explorador de archivos si no está deshabilitado y no se clica en Quitar
     area.addEventListener("click", event => {
         if (input.disabled) return;
@@ -397,6 +429,11 @@ function inicializarCargaComprobante() {
     // Añade clase visual al arrastrar archivos sobre el área
     area.addEventListener("dragover", event => {
         if (input.disabled) return;
+        event.preventDefault();
+        event.stopPropagation();
+        area.classList.add("is-drag-over");
+    });
+    area.addEventListener("dragenter", event => {
         event.preventDefault();
         event.stopPropagation();
         area.classList.add("is-drag-over");
@@ -634,7 +671,8 @@ function validarCampoInfraccion(campo) {
                 if (valor.length > 500) mensaje = "El motivo no debe superar 500 caracteres.";
                 break;
             case "infraccion-mnyMontoPagado": {
-                const num = Number(valor);
+                const rawVal = valor.replace(/,/g, "");
+                const num = Number(rawVal);
                 if (isNaN(num) || num < 0 || num > 999999) {
                     mensaje = "Monto pagado no válido.";
                 }
@@ -702,14 +740,16 @@ function renderInfraccionesTable() {
     }
 
     tbody.innerHTML = listaInfracciones.map(inf => {
-        const v = listaVehiculosInfracciones.find(veh => veh.id === inf.idVehDatosGenerales);
-        const marca = v ? (v.strMarca || "Desconocida") : "Desconocida";
-        const modelo = v ? v.strModelo : "Desconocido";
-        const placa = v ? v.strPlaca : "—";
+        const vehIdTarget = Number(inf.idVehDatosGenerales ?? inf.IdVehDatosGenerales);
+        const v = listaVehiculosInfracciones.find(veh => Number(veh.id ?? veh.Id) === vehIdTarget);
+        const marca = (window.obtenerNombreMarcaVehiculo && v) ? window.obtenerNombreMarcaVehiculo(v) : (v ? (v.strVehCatMarcaVehiculo || v.StrVehCatMarcaVehiculo || v.strMarca || "Desconocida") : "Desconocida");
+        const modelo = v ? (v.strModelo || v.StrModelo || "Desconocido") : "Desconocido";
+        const placa = v ? (v.strPlaca || v.StrPlaca || "—") : "—";
         const brandModel = `${marca} ${modelo}`;
 
-        const emp = listaEmpleadosInfracciones.find(e => e.id === inf.idEmpEmpleado);
-        const empleadoName = emp ? (emp.strNombre + " " + emp.strApellidoPaterno + (emp.strApellidoMaterno ? " " + emp.strApellidoMaterno : "")) : (inf.strEmpEmpleado || "Desconocido");
+        const empIdTarget = Number(inf.idEmpEmpleado ?? inf.IdEmpEmpleado);
+        const emp = listaEmpleadosInfracciones.find(e => Number(e.id ?? e.Id) === empIdTarget);
+        const empleadoName = emp ? ((emp.strNombre || emp.StrNombre || "") + " " + (emp.strApellidoPaterno || emp.StrApellidoPaterno || "") + ((emp.strApellidoMaterno || emp.StrApellidoMaterno) ? " " + (emp.strApellidoMaterno || emp.StrApellidoMaterno) : "")).trim() : (inf.strEmpEmpleado || "Desconocido");
 
         const motivo = inf.strMotivo || "";
         const smallMotivo = motivo.length > 40 ? motivo.substring(0, 40) + "..." : motivo;
@@ -849,7 +889,11 @@ function editarInfraccion(id) {
     document.getElementById("infraccion-strMotivo").value = inf.strMotivo || "";
     document.getElementById("infraccion-strMotivo").dispatchEvent(new Event("input"));
 
-    document.getElementById("infraccion-mnyMontoPagado").value = inf.mnyMontoPagado || "";
+    const montoEl = document.getElementById("infraccion-mnyMontoPagado");
+    if (montoEl) {
+        montoEl.value = inf.mnyMontoPagado || "";
+        if (montoEl.value) formatCurrencyInput(montoEl);
+    }
     if (inf.dteFechaPago) {
         document.getElementById("infraccion-dteFechaPago").value = inf.dteFechaPago.split("T")[0];
     } else {
@@ -937,5 +981,27 @@ function resetearFormularioInfraccion() {
 
 function escapeHtml(text) {
     return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+/**
+ * Formatea en tiempo real un input de tipo moneda, permitiendo solo un punto decimal
+ * e insertando comas para separar los miles mientras el usuario escribe.
+ * @param {HTMLInputElement} input - El elemento input a formatear.
+ */
+function formatCurrencyInput(input) {
+    let value = input.value.replace(/[^0-9.]/g, "");
+    const parts = value.split(".");
+    if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+    }
+    let integerPart = parts[0];
+    let decimalPart = parts[1];
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (decimalPart !== undefined) {
+        decimalPart = decimalPart.substring(0, 2);
+        input.value = integerPart + "." + decimalPart;
+    } else {
+        input.value = integerPart;
+    }
 }
 

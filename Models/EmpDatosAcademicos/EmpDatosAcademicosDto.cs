@@ -10,7 +10,7 @@ namespace Cavex.Principal.Models.EmpCatDatosAcademicos
         public string StrNivelEstudios { get; set; } = string.Empty;
 
         [Display(Name = "Institucion")]
-        public string StrInstitucion { get; set; }
+        public required string StrInstitucion { get; set; }
 
         [Display(Name = "Carrera")]
         public string? StrCarrera { get; set; }

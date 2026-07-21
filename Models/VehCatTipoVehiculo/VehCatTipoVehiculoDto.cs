@@ -5,8 +5,8 @@ namespace Cavex.Principal.Models.VehCatTipoVehiculo
     {
         public int Id { get; set; }
         [Display(Name = "Tipo de Vehiculo")]
-        public string? StrValor { get; set; }
+        public required string StrValor { get; set; }
         [Display(Name = "Descripcion")]
-        public string StrDescripcion { get; set; }
+        public string? StrDescripcion { get; set; }
     }
 }

@@ -31,8 +31,40 @@ document.addEventListener('DOMContentLoaded', () => {
  
     // Inicializar selectores de diseño personalizado de forma automática
     initializeCustomSelects();
+    cargarMarcasVehiculosGlobales();
 });
- 
+
+// ── RESOLUCIÓN GLOBAL DE MARCA DE VEHÍCULOS ──
+window.listaMarcasVehiculosGlobal = [];
+
+async function cargarMarcasVehiculosGlobales() {
+    if (window.listaMarcasVehiculosGlobal.length > 0) return;
+    try {
+        const res = await fetch("/Vehiculos/GetVehiculoCatalogos");
+        const json = await res.json();
+        if (json && json.success && json.data && json.data.idVehCatMarcaVehiculo) {
+            window.listaMarcasVehiculosGlobal = json.data.idVehCatMarcaVehiculo;
+        }
+    } catch (e) {
+        console.error("Error al cargar marcas globales:", e);
+    }
+}
+
+window.obtenerNombreMarcaVehiculo = function(v) {
+    if (!v) return "—";
+    if (v.strVehCatMarcaVehiculo && v.strVehCatMarcaVehiculo !== "—" && v.strVehCatMarcaVehiculo !== "Desconocida") return v.strVehCatMarcaVehiculo;
+    if (v.StrVehCatMarcaVehiculo && v.StrVehCatMarcaVehiculo !== "—" && v.StrVehCatMarcaVehiculo !== "Desconocida") return v.StrVehCatMarcaVehiculo;
+    if (v.strMarca && v.strMarca !== "—" && v.strMarca !== "Desconocida") return v.strMarca;
+    if (v.strMarcaVehiculo && v.strMarcaVehiculo !== "—" && v.strMarcaVehiculo !== "Desconocida") return v.strMarcaVehiculo;
+
+    const marcaId = Number(v.idVehCatMarcaVehiculo ?? v.IdVehCatMarcaVehiculo);
+    if (marcaId && window.listaMarcasVehiculosGlobal && window.listaMarcasVehiculosGlobal.length > 0) {
+        const m = window.listaMarcasVehiculosGlobal.find(item => Number(item.id ?? item.Id) === marcaId);
+        if (m) return m.strValor || m.StrValor || m.nombre || m.strDescripcion || "—";
+    }
+    return "—";
+};
+
 // ── FUNCIONES DE LIMPIEZA Y SANITIZACIÓN DE CAMPOS ──
 
 // Elimina emojis del texto usando expresiones regulares
@@ -159,11 +191,12 @@ function initializeCustomSelects() {
         // Envuelve el select original para controlarlo
         const wrapper = document.createElement('div');
         wrapper.className = 'custom-select-wrapper';
- 
+        
         select.parentNode.insertBefore(wrapper, select);
         wrapper.appendChild(select);
-        select.style.display = 'none'; // Oculta el select nativo
- 
+        select.style.setProperty('display', 'none', 'important'); // Oculta el select nativo de forma estricta
+        select.setAttribute('hidden', 'hidden');
+
         // Crea el disparador visual del dropdown (el botón que se muestra)
         const trigger = document.createElement('div');
         trigger.className = 'custom-select-trigger';
@@ -182,9 +215,33 @@ function initializeCustomSelects() {
         // Crea el contenedor que contendrá las opciones customizadas
         const optionsContainer = document.createElement('div');
         optionsContainer.className = 'custom-select-options';
+
+        // Barra de búsqueda con ícono SVG (CERO EMOJIS)
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'custom-select-search-container';
+        searchContainer.innerHTML = `
+            <div class="custom-select-search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#008C95" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="custom-select-search-input" placeholder="Buscar en catálogo..." />
+            </div>
+        `;
+        const searchInput = searchContainer.querySelector('.custom-select-search-input');
+        searchContainer.addEventListener('click', (e) => e.stopPropagation());
+
+        const itemsList = document.createElement('div');
+        itemsList.className = 'custom-select-items-list';
+
+        optionsContainer.appendChild(searchContainer);
+        optionsContainer.appendChild(itemsList);
  
         // Regenera la lista de opciones customizadas basándose en el select nativo
-        const rebuildOptions = () => {
+        const rebuildOptions = (filterTerm = '') => {
+            select.style.setProperty('display', 'none', 'important');
+            select.setAttribute('hidden', 'hidden');
+
             if (select.disabled) {
                 wrapper.classList.add('disabled');
                 trigger.classList.add('disabled');
@@ -192,11 +249,36 @@ function initializeCustomSelects() {
                 wrapper.classList.remove('disabled');
                 trigger.classList.remove('disabled');
             }
-            optionsContainer.innerHTML = '';
+
+            if (select.classList.contains('is-invalid')) {
+                wrapper.classList.add('is-invalid');
+                trigger.classList.add('is-invalid');
+            } else {
+                wrapper.classList.remove('is-invalid');
+                trigger.classList.remove('is-invalid');
+            }
+
+            if (select.classList.contains('is-valid')) {
+                wrapper.classList.add('is-valid');
+                trigger.classList.add('is-valid');
+            } else {
+                wrapper.classList.remove('is-valid');
+                trigger.classList.remove('is-valid');
+            }
+
+            itemsList.innerHTML = '';
+            const term = filterTerm.toLowerCase().trim();
+            let matchCount = 0;
+ 
             Array.from(select.options).forEach((opt, idx) => {
+                if (!opt.value && select.options.length > 1) return;
+                const text = opt.textContent;
+                if (term && !text.toLowerCase().includes(term)) return;
+                
+                matchCount++;
                 const optDiv = document.createElement('div');
-                optDiv.className = 'custom-select-option';
-                optDiv.textContent = opt.textContent;
+                optDiv.className = 'custom-select-option' + (opt.selected ? ' selected' : '');
+                optDiv.textContent = text;
                 optDiv.dataset.value = opt.value;
                 optDiv.dataset.index = idx;
  
@@ -205,10 +287,6 @@ function initializeCustomSelects() {
                     optDiv.classList.add('disabled');
                     optDiv.style.opacity = '0.5';
                     optDiv.style.cursor = 'not-allowed';
-                }
-                // Resalta la opción seleccionada
-                if (opt.selected) {
-                    optDiv.classList.add('selected');
                 }
  
                 // Evento click al elegir una opción customizada
@@ -220,9 +298,6 @@ function initializeCustomSelects() {
                     select.selectedIndex = idx;
                     triggerText.textContent = opt.textContent;
  
-                    optionsContainer.querySelectorAll('.custom-select-option').forEach(el => el.classList.remove('selected'));
-                    optDiv.classList.add('selected');
- 
                     optionsContainer.classList.remove('show');
                     trigger.classList.remove('active');
  
@@ -230,9 +305,18 @@ function initializeCustomSelects() {
                     select.dispatchEvent(new Event('change', { bubbles: true }));
                 });
  
-                optionsContainer.appendChild(optDiv);
+                itemsList.appendChild(optDiv);
             });
+            
+            if (matchCount === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'text-muted p-2 text-center small fst-italic';
+                empty.textContent = 'No hay coincidencias';
+                itemsList.appendChild(empty);
+            }
         };
+
+        searchInput.addEventListener('input', () => rebuildOptions(searchInput.value));
  
         rebuildOptions();
         wrapper.appendChild(optionsContainer);
@@ -245,28 +329,36 @@ function initializeCustomSelects() {
             document.querySelectorAll('.custom-select-options.show').forEach(openContainer => {
                 if (openContainer !== optionsContainer) {
                     openContainer.classList.remove('show');
-                    openContainer.previousSibling.classList.remove('active');
+                    if (openContainer.previousSibling) openContainer.previousSibling.classList.remove('active');
                 }
             });
  
             rebuildOptions();
             optionsContainer.classList.toggle('show');
             trigger.classList.toggle('active');
+
+            if (optionsContainer.classList.contains('show')) {
+                searchInput.value = '';
+                setTimeout(() => searchInput.focus(), 50);
+            }
         });
  
         // MutationObserver para reconstruir las opciones cuando el select original cambie dinámicamente o se deshabilite
         const observer = new MutationObserver(() => {
+            select.style.setProperty('display', 'none', 'important');
+            select.setAttribute('hidden', 'hidden');
             rebuildOptions();
             const currentSelOpt = select.options[select.selectedIndex];
             triggerText.textContent = currentSelOpt ? currentSelOpt.textContent : 'Seleccionar...';
         });
-        observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+        observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'style', 'class'] });
  
         // Escucha cambios manuales sobre el select nativo para mantener actualizada la UI personalizada
         select.addEventListener('change', () => {
+            rebuildOptions();
             const currentSelOpt = select.options[select.selectedIndex];
             triggerText.textContent = currentSelOpt ? currentSelOpt.textContent : 'Seleccionar...';
-            optionsContainer.querySelectorAll('.custom-select-option').forEach((el, index) => {
+            itemsList.querySelectorAll('.custom-select-option').forEach((el, index) => {
                 if (index === select.selectedIndex) {
                     el.classList.add('selected');
                 } else {
@@ -277,14 +369,42 @@ function initializeCustomSelects() {
     });
 }
  
-// Cierra todos los selectores personalizados si el usuario hace click fuera de ellos
-document.addEventListener('click', () => {
+// Cierra todos los selectores personalizados y dropdowns de acciones cuando el usuario hace click o scroll
+function closeAllOpenDropdowns(e) {
+    if (e && e.type === 'click') {
+        const clickedWrapper = e.target.closest('.custom-select-wrapper');
+        document.querySelectorAll('.custom-select-options.show').forEach(container => {
+            if (!clickedWrapper || !clickedWrapper.contains(container)) {
+                container.classList.remove('show');
+                if (container.previousSibling && container.previousSibling.classList) {
+                    container.previousSibling.classList.remove('active');
+                }
+            }
+        });
+        return;
+    }
+
+    // Al hacer scroll, cerrar desplegables flotantes
     document.querySelectorAll('.custom-select-options.show').forEach(container => {
         container.classList.remove('show');
-        container.previousSibling.classList.remove('active');
+        if (container.previousSibling && container.previousSibling.classList) {
+            container.previousSibling.classList.remove('active');
+        }
     });
-});
- 
+
+    document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+        menu.classList.remove('show');
+        const toggleBtn = menu.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"].show');
+        if (toggleBtn) {
+            toggleBtn.classList.remove('show');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+        }
+    });
+}
+
+document.addEventListener('click', closeAllOpenDropdowns);
+window.addEventListener('scroll', closeAllOpenDropdowns, true);
+
 // Exporta la función globalmente para inicializar selects que carguen dinámicamente
 window.initializeCustomSelects = initializeCustomSelects;
 
@@ -371,4 +491,53 @@ function formatNumberWithComas(val) {
     return parts.join('.');
 }
 window.formatNumberWithComas = formatNumberWithComas;
+
+/**
+ * Configura los eventos de clic de pestañas de filtro de estado (Todos, Activo, Inactivo)
+ * @param {string} containerId - ID del contenedor de pestañas
+ * @param {function} onFilterChange - Callback llamado con el valor del filtro ('todos', 'activo', 'inactivo')
+ */
+function setupStatusTabs(containerId, onFilterChange) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const buttons = container.querySelectorAll('[data-status-filter]');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const filterValue = btn.getAttribute('data-status-filter');
+            if (typeof onFilterChange === 'function') {
+                onFilterChange(filterValue);
+            }
+        });
+    });
+}
+window.setupStatusTabs = setupStatusTabs;
+
+/**
+ * Carga dinámicamente opciones en un select desde un endpoint URL
+ * @param {string} selectId - ID del elemento select
+ * @param {string} url - Endpoint para obtener los datos JSON
+ * @param {string} valueField - Nombre de la propiedad del id (default: 'id')
+ * @param {string} textField - Nombre de la propiedad del texto (default: 'strValor')
+ */
+async function populateSelectOptions(selectId, url, valueField = 'id', textField = 'strValor') {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    try {
+        const response = await fetch(url);
+        const res = await response.json();
+        if (res.success && res.data) {
+            sel.innerHTML = "";
+            res.data.forEach(item => {
+                const val = item[valueField] ?? item.id ?? item.Id;
+                const txt = item[textField] ?? item.strValor ?? item.StrValor ?? "";
+                sel.add(new Option(txt, val));
+            });
+        }
+    } catch (err) {
+        console.error("Error al cargar opciones select:", selectId, err);
+    }
+}
+window.populateSelectOptions = populateSelectOptions;
 

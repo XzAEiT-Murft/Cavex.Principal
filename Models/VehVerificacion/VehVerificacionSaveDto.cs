@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehVerificacion
 {
@@ -33,11 +33,11 @@ namespace Cavex.Principal.Models.VehVerificacion
 
         [Required(ErrorMessage = "La fecha de verificacion es obligatoria.")]
         [Display(Name = "Fecha de verificacion")]
-        public DateTime DteFechaVerificacion { get; set; }
+        public DateOnly DteFechaVerificacion { get; set; }
 
         [Required(ErrorMessage = "La fecha de vencimiento es obligatoria.")]
         [Display(Name = "Fecha de vencimiento")]
-        public DateTime DteFechaVencimiento { get; set; }
+        public DateOnly DteFechaVencimiento { get; set; }
 
         [Required(ErrorMessage = "El estatus es obligatorio.")]
         [Display(Name = "Estatus")]

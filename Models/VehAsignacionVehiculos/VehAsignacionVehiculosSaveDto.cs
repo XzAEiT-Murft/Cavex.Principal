@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehAsignacionVehiculos
 {
@@ -14,7 +14,7 @@ namespace Cavex.Principal.Models.VehAsignacionVehiculos
 
         [Required(ErrorMessage = "La fecha de asignacion es obligatoria.")]
         [Display(Name = "Fecha de asignacion")]
-        public DateTime DteFechaAsigncion { get; set; }
+        public DateOnly DteFechaAsigncion { get; set; }
 
         [Required(ErrorMessage = "El kilometraje inicial es obligatorio.")]
         [Display(Name = "Kilometraje inicial")]
