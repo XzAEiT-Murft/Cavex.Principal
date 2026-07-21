@@ -11,51 +11,28 @@ namespace Cavex.Principal.Models.VehControlServicio
         [Display(Name = "Vehiculo")]
         public string StrVehDatosGenerales { get; set; } = string.Empty;
 
-        public int IdVehCatTipoServicio { get; set; }
+        public int IdEmpEmpleado { get; set; }
+        [Display(Name = "Encargado")]
+        public string StrEmpEmpleado { get; set; } = string.Empty;
 
-        [Display(Name = "Tipo de servicio")]
-        public string StrVehCatTipoServicio { get; set; } = string.Empty;
 
         [Display(Name = "Fecha de servicio")]
-        public DateTime DteFechaServicio { get; set; }
-
-        [Display(Name = "Kilometraje actual")]
-        public decimal DecKilometrajeActual { get; set; }
+        public DateTime DteFechaInicio { get; set; }
 
         public int IdVehCatTaller { get; set; }
 
         [Display(Name = "Taller")]
         public string StrVehCatTaller { get; set; } = string.Empty;
 
-        [Display(Name = "Descripcion")]
-        public string? StrDescripcion { get; set; }
+        [Display(Name ="Kilometraje Actual")]
+        public long LngKilometrajeActual { get; set; }
 
-        [Display(Name = "Costo mano de obra")]
-        public decimal MnyCostoManoObra { get; set; }
+        public int IdVehServicioDetalle { get; set; }
+        [Display (Name ="Detalle del servicio")]
 
-        [Display(Name = "Costo refacciones")]
-        public decimal MnyCostoRefacciones { get; set; }
+        public string? StrVehServicioDetalle { get; set; }
 
-        [Display(Name = "Costo total")]
-        public decimal MnyCostoTotal { get; set; }
-
-        [Display(Name = "Proximo servicio por km")]
-        public int? IntProximoServicioPorKm { get; set; }
-
-        [Display(Name = "Proximo servicio por fecha")]
-        public DateTime? DteProximoServicioPorFecha { get; set; }
-
-        public int IdVehFormaPago { get; set; }
-
-        [Display(Name = "Forma de pago")]
-        public string StrVehFormaPago { get; set; } = string.Empty;
-
-        [Display(Name = "Comprobante de pago")]
-        public string? StrUrlComprobantePago { get; set; }
-
-        public int IdVehCatResponsableServicio { get; set; }
-
-        [Display(Name = "Responsable de servicio")]
-        public string StrVehCatResponsableServicio { get; set; } = string.Empty;
     }
 }
+
+        
