@@ -6,10 +6,10 @@ namespace Cavex.Principal.Models.VehRefaccionesUsadas
     {
         public int Id { get; set; }
 
-        public int IdVehControlServicio { get; set; }
+        public int IdVehServicioDetalle { get; set; }
 
-        [Display(Name = "Servicio")]
-        public string StrVehControlServicio { get; set; } = string.Empty;
+        [Display(Name = "Detalle")]
+        public string StrVehServicioDetalle { get; set; } = string.Empty;
 
         public int IdVehCatRefacciones { get; set; }
 

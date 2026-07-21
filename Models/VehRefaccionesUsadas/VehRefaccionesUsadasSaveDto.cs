@@ -4,9 +4,9 @@ namespace Cavex.Principal.Models.VehRefaccionesUsadas
 {
     public class VehRefaccionesUsadasSaveDto
     {
-        [Required(ErrorMessage = "El servicio es obligatorio.")]
+        [Required(ErrorMessage = "El detalle")]
         [Display(Name = "Servicio")]
-        public int IdVehControlServicio { get; set; }
+        public int IdVehServicioDetalle { get; set; }
 
         [Required(ErrorMessage = "La refaccion es obligatoria.")]
         [Display(Name = "Refaccion")]
