@@ -77,7 +77,7 @@ function inicializarVistaAsignaciones() {
         };
 
         try {
-            const response = await fetch("/Vehiculos/SaveAsignacion", {
+            const response = await fetch("/Asignaciones/SaveAsignacion", {
                 method: "POST",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
@@ -126,7 +126,7 @@ async function cargarCatalogosAsignacion() {
         const [vehRes, empRes, asigRes, catRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
             fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
-            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false })),
+            fetch("/Asignaciones/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false })),
             fetch("/Vehiculos/GetVehiculoCatalogos").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
@@ -622,7 +622,7 @@ function eliminarAsignacion(id) {
                 didOpen: () => Swal.showLoading()
             });
             try {
-                const response = await fetch(`/Vehiculos/DeleteAsignacion/${id}`, { method: "POST" });
+                const response = await fetch(`/Asignaciones/DeleteAsignacion/${id}`, { method: "POST" });
                 const res = await response.json();
                 Swal.close();
                 if (res.success) {

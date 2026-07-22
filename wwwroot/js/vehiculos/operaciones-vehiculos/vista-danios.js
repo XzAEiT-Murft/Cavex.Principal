@@ -105,7 +105,7 @@ function inicializarVistaDanios() {
         });
 
         try {
-            const response = await fetch("/Vehiculos/SaveDanio", {
+            const response = await fetch("/Danios/SaveDanio", {
                 method: "POST",
                 body: formData
             });
@@ -155,8 +155,8 @@ async function cargarCatalogosDanios() {
         const [vehRes, empRes, asigRes, segRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
             fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
-            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false })),
-            fetch("/Vehiculos/GetSeguros").then(r => r.json()).catch(() => ({ success: false }))
+            fetch("/Asignaciones/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false })),
+            fetch("/Seguros/GetSeguros").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
         if (asigRes.success && asigRes.data) {
@@ -671,7 +671,7 @@ function limpiarErrorCampo(campo) {
 // ─── CRUD Actions y Renderizado ───
 async function cargarDaniosList() {
     try {
-        const response = await fetch("/Vehiculos/GetDanios");
+        const response = await fetch("/Danios/GetDanios");
         const result = await response.json();
         if (result.success && result.data) {
             listaDanios = result.data;
@@ -896,7 +896,7 @@ function eliminarDanio(id) {
                 didOpen: () => Swal.showLoading()
             });
             try {
-                const response = await fetch(`/Vehiculos/DeleteDanio/${id}`, { method: "POST" });
+                const response = await fetch(`/Danios/DeleteDanio/${id}`, { method: "POST" });
                 const res = await response.json();
                 Swal.close();
                 if (res.success) {

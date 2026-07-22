@@ -1,5 +1,5 @@
 /**
- * vista-mantenimiento.js
+ * vista-ingreso-taller.js
  * Lógica para la pantalla "Registro de Ingreso a Taller".
  */
 
@@ -10,6 +10,9 @@ let _vehiculos = [];         // Catálogo completo de vehículos
 let _asignaciones = [];      // Asignaciones activas cargadas una vez
 let _empleados = [];         // Catálogo completo de empleados
 let _modoCompleto = false;   // true = switch ON (reporte de taller habilitado)
+let _listaHistorial = [];    // Datos completos de la tabla de historial
+let _filtroEstadoHistorial = 'todos'; // todos | incompletos | completos
+let _busquedaHistorial = ''; // Término de búsqueda en tabla
 
 /* ─── Init ──────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,6 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
     bindCostosChange();
     bindComprobanteUpload();
     bindFormSubmit();
+
+    setupStatusTabs('statusTabs', (filterValue) => {
+        _filtroEstadoHistorial = filterValue;
+        renderTablaHistorial();
+    });
+
+    document.getElementById('tableSearch')?.addEventListener('input', (e) => {
+        _busquedaHistorial = e.target.value.trim().toLowerCase();
+        renderTablaHistorial();
+    });
 
     const moInput = document.getElementById('mant-mnyCostoManoObra');
     if (moInput) {
@@ -98,9 +111,9 @@ async function cargarCatalogos() {
     try {
         const [resVehiculos, resCatalogos, resResponsables, resAsignaciones, resEmpleados] = await Promise.all([
             fetch('/Vehiculos/GetVehiculos').then(r => r.json()),
-            fetch('/Vehiculos/GetMantenimientoCatalogos').then(r => r.json()),
-            fetch('/Vehiculos/ResponsablesServicio/GetResponsables').then(r => r.json()),
-            fetch('/Vehiculos/GetAsignacionesActivas').then(r => r.json()),
+            fetch('/IngresoTaller/GetIngresoTallerCatalogos').then(r => r.json()),
+            fetch('/IngresoTaller/ResponsablesServicio/GetResponsables').then(r => r.json()),
+            fetch('/Asignaciones/GetAsignacionesActivas').then(r => r.json()),
             fetch('/Empleado/GetEmpleadosDropdown').then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
@@ -141,9 +154,38 @@ async function cargarCatalogos() {
             }));
         }
 
-        // Los dropdowns son convertidos automáticamente por el componente global custom-select de CAVEX (site.js)
+        // Catálogos de Ingreso a Taller (Tipos de Servicio, Talleres y Formas de Pago)
+        if (resCatalogos.success && resCatalogos.data) {
+            if (resCatalogos.data.tiposServicio) {
+                poblarSelect('mant-idVehCatTipoServicio', resCatalogos.data.tiposServicio, item => ({
+                    value: item.id ?? item.Id,
+                    text: item.strValor || item.StrValor || ''
+                }));
+            }
+            if (resCatalogos.data.talleres) {
+                poblarSelect('mant-idVehCatTaller', resCatalogos.data.talleres, item => ({
+                    value: item.id ?? item.Id,
+                    text: item.strValor || item.StrValor || ''
+                }));
+            }
+            if (resCatalogos.data.formasPago) {
+                poblarSelect('mant-idVehFormaPago', resCatalogos.data.formasPago, item => ({
+                    value: item.id ?? item.Id,
+                    text: item.strValor || item.StrValor || ''
+                }));
+            }
+        }
 
-        // Vincular selector de vehículo y chofer igual que en infracciones
+        // Encargado Autorizador / Responsables de Servicio
+        if (resResponsables && resResponsables.data) {
+            const listResp = Array.isArray(resResponsables.data) ? resResponsables.data : (resResponsables.data.items || []);
+            poblarSelect('mant-idVehCatResponsableServicio', listResp, item => ({
+                value: item.id ?? item.Id,
+                text: item.strValor || item.StrValor || ''
+            }));
+        }
+
+        // Los dropdowns son convertidos automáticamente por el componente global custom-select de CAVEX (site.js)
         bindVinculacionVehiculoEmpleado();
 
     } catch (err) {
@@ -153,7 +195,7 @@ async function cargarCatalogos() {
 
 /* ─── Selector de vehículo / chofer / kilometraje (Vinculación automática) ─── */
 // Bandera para evitar bucles infinitos durante eventos simulados de cambio
-let isVinculandoMantenimiento = false;
+let isVinculandoIngresoTaller = false;
 
 // Función para inicializar la vinculación automática de campos
 function bindVinculacionVehiculoEmpleado() {
@@ -165,9 +207,9 @@ function bindVinculacionVehiculoEmpleado() {
     // Evento al cambiar el vehículo seleccionado
     selectVeh?.addEventListener('change', () => {
         // Si la vinculación está en proceso, prevenimos reentradas
-        if (isVinculandoMantenimiento) return;
+        if (isVinculandoIngresoTaller) return;
         // Activamos la bandera de bloqueo temporal
-        isVinculandoMantenimiento = true;
+        isVinculandoIngresoTaller = true;
         try {
             // Obtenemos el ID numérico del vehículo elegido
             const vehId = parseInt(selectVeh.value, 10);
@@ -218,16 +260,16 @@ function bindVinculacionVehiculoEmpleado() {
             }
         } finally {
             // Liberamos la bandera para futuros eventos de usuario
-            isVinculandoMantenimiento = false;
+            isVinculandoIngresoTaller = false;
         }
     });
 
     // Evento al cambiar manualmente el chofer seleccionado
     selectEmp?.addEventListener('change', () => {
         // Prevenimos bucles de eventos entre vehículo y chofer
-        if (isVinculandoMantenimiento) return;
+        if (isVinculandoIngresoTaller) return;
         // Activamos la bandera de bloqueo temporal
-        isVinculandoMantenimiento = true;
+        isVinculandoIngresoTaller = true;
         try {
             // Obtenemos el ID numérico del empleado elegido
             const empId = parseInt(selectEmp.value, 10);
@@ -248,7 +290,7 @@ function bindVinculacionVehiculoEmpleado() {
             }
         } finally {
             // Liberamos la bandera al finalizar la operación
-            isVinculandoMantenimiento = false;
+            isVinculandoIngresoTaller = false;
         }
     });
 }
@@ -334,7 +376,7 @@ function formatBytes(bytes) {
 
 /* ─── Submit del formulario ──────────────────────────────────────────────── */
 function bindFormSubmit() {
-    document.getElementById('formMantenimiento')?.addEventListener('submit', async e => {
+    document.getElementById('formIngresoTaller')?.addEventListener('submit', async e => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -349,12 +391,12 @@ function bindFormSubmit() {
         }
         form.classList.add('was-validated');
 
-        await guardarMantenimiento();
+        await guardarIngresoTaller();
     });
 }
 
-async function guardarMantenimiento() {
-    const btn = document.getElementById('btnGuardarMantenimiento');
+async function guardarIngresoTaller() {
+    const btn = document.getElementById('btnGuardarIngresoTaller');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
 
@@ -382,7 +424,7 @@ async function guardarMantenimiento() {
             formData.append('idVehFormaPago',      '1');
         }
 
-        const res  = await fetch('/Vehiculos/SaveMantenimiento', { method: 'POST', body: formData });
+        const res  = await fetch('/IngresoTaller/SaveIngresoTaller', { method: 'POST', body: formData });
         const data = await res.json();
 
         if (data.success) {
@@ -399,7 +441,7 @@ async function guardarMantenimiento() {
         }
 
     } catch (err) {
-        console.error('SaveMantenimiento error:', err);
+        console.error('SaveIngresoTaller error:', err);
         Swal.fire({ icon: 'error', title: 'Error de red', text: 'No se pudo contactar con el servidor. Intenta de nuevo.', confirmButtonColor: '#0d233a' });
     } finally {
         btn.disabled = false;
@@ -409,7 +451,7 @@ async function guardarMantenimiento() {
 }
 
 function resetForm() {
-    const form = document.getElementById('formMantenimiento');
+    const form = document.getElementById('formIngresoTaller');
     if (form) {
         form.reset();
         form.classList.remove('was-validated');
@@ -430,48 +472,130 @@ function resetForm() {
     setFechaHoy();
 }
 
-/* ─── Historial de mantenimientos ───────────────────────────────────────── */
+/* ─── Historial de ingresos a taller ───────────────────────────────────────── */
 async function cargarHistorial() {
-    const tbody = document.getElementById('mantenimientoTableBody');
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Cargando...</td></tr>';
+    const tbody = document.getElementById('ingresoTallerTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Cargando...</td></tr>';
 
     try {
-        const res  = await fetch('/Vehiculos/GetMantenimientos');
+        const res  = await fetch('/IngresoTaller/GetIngresoTaller');
         const data = await res.json();
 
-        if (!data.success || !data.data?.length) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Sin registros.</td></tr>';
-            return;
+        if (data.success && Array.isArray(data.data)) {
+            _listaHistorial = data.data;
+        } else {
+            _listaHistorial = [];
         }
-
-        tbody.innerHTML = data.data.map(m => {
-            const total = m.mnyCostoTotal ?? (m.mnyCostoManoObra + m.mnyCostoRefacciones);
-            return `
-            <tr>
-                <td>${m.strMarca || '—'} ${m.strModelo || ''}</td>
-                <td>${m.strTaller || '—'}</td>
-                <td>${m.strTipoServicio || '—'}</td>
-                <td>${m.strEncargado || '—'}</td>
-                <td>${formatFecha(m.dteFechaServicio)}</td>
-                <td>${Number(m.decKilometrajeActual || 0).toLocaleString('es-MX')} km</td>
-                <td>$${Number(total).toFixed(2)}</td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-outline-cavex" onclick="eliminarMantenimiento(${m.id})" title="Eliminar">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                            <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-                        </svg>
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
-
+        renderTablaHistorial();
     } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Error al cargar los registros.</td></tr>';
+        console.error("Error al cargar historial:", err);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Error al cargar los registros.</td></tr>';
     }
 }
 
-async function eliminarMantenimiento(id) {
+function esTicketCompleto(m) {
+    const total = m.mnyCostoTotal ?? ((m.mnyCostoManoObra || 0) + (m.mnyCostoRefacciones || 0));
+    return Boolean(m.bitServicioConcluido || m.bolConcluido || (total > 0 && m.strUrlComprobantePago));
+}
+
+function renderTablaHistorial() {
+    const tbody = document.getElementById('ingresoTallerTableBody');
+    if (!tbody) return;
+
+    // Actualizar contadores de pestañas
+    const totalCount = _listaHistorial.length;
+    const incompletosCount = _listaHistorial.filter(m => !esTicketCompleto(m)).length;
+    const completosCount = _listaHistorial.filter(m => esTicketCompleto(m)).length;
+
+    const elTodos = document.getElementById('countTodos');
+    const elIncompletos = document.getElementById('countIncompletos');
+    const elCompletos = document.getElementById('countCompletos');
+    if (elTodos) elTodos.textContent = totalCount;
+    if (elIncompletos) elIncompletos.textContent = incompletosCount;
+    if (elCompletos) elCompletos.textContent = completosCount;
+
+    // Filtrar lista
+    let filtrados = _listaHistorial;
+
+    if (_filtroEstadoHistorial === 'incompletos') {
+        filtrados = filtrados.filter(m => !esTicketCompleto(m));
+    } else if (_filtroEstadoHistorial === 'completos') {
+        filtrados = filtrados.filter(m => esTicketCompleto(m));
+    }
+
+    if (_busquedaHistorial) {
+        filtrados = filtrados.filter(m => {
+            const strVeh = `${m.strMarca || ''} ${m.strModelo || ''}`.toLowerCase();
+            const strTaller = (m.strTaller || '').toLowerCase();
+            const strTipo = (m.strTipoServicio || '').toLowerCase();
+            const strEnc = (m.strEncargado || '').toLowerCase();
+            return strVeh.includes(_busquedaHistorial) ||
+                   strTaller.includes(_busquedaHistorial) ||
+                   strTipo.includes(_busquedaHistorial) ||
+                   strEnc.includes(_busquedaHistorial);
+        });
+    }
+
+    if (!filtrados.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Sin registros.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtrados.map(m => {
+        const total = m.mnyCostoTotal ?? ((m.mnyCostoManoObra || 0) + (m.mnyCostoRefacciones || 0));
+        const completo = esTicketCompleto(m);
+        const estadoBadge = completo
+            ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Reporte Completo</span>'
+            : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Ticket Incompleto</span>';
+
+        const kmVal = Number(m.decKilometrajeActual ?? m.lngKilometrajeActual ?? 0);
+        const fechaVal = formatFecha(m.dteFechaServicio || m.dteFechaInicio);
+
+        return `
+        <tr>
+            <td>
+                <div class="fw-bold">${escapeHtml(m.strMarca || '—')} ${escapeHtml(m.strModelo || '')}</div>
+            </td>
+            <td>${escapeHtml(m.strTaller || '—')}</td>
+            <td>${escapeHtml(m.strTipoServicio || '—')}</td>
+            <td>${escapeHtml(m.strEncargado || '—')}</td>
+            <td>${fechaVal}</td>
+            <td>${kmVal > 0 ? kmVal.toLocaleString('es-MX') + ' km' : '—'}</td>
+            <td><div class="fw-bold">$${Number(total || 0).toFixed(2)}</div></td>
+            <td>${estadoBadge}</td>
+            <td class="text-end">
+                <div class="dropdown actions-dropdown d-inline-block">
+                    <button class="btn-action-trigger btn-sm" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
+                        <span>Acciones</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center" type="button" onclick="verDetalleIngresoTaller(${m.id})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-info"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                Ver detalles
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center" type="button" onclick="editarIngresoTaller(${m.id})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-primary"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Editar
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="eliminarIngresoTaller(${m.id})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                Eliminar
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function eliminarIngresoTaller(id) {
     const confirm = await Swal.fire({
         icon: 'warning',
         title: '¿Eliminar registro?',
@@ -484,7 +608,7 @@ async function eliminarMantenimiento(id) {
     });
     if (!confirm.isConfirmed) return;
 
-    const res  = await fetch(`/Vehiculos/DeleteMantenimiento?id=${id}`, { method: 'POST' });
+    const res  = await fetch(`/IngresoTaller/DeleteIngresoTaller?id=${id}`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
         Swal.fire({ icon: 'success', title: 'Eliminado', timer: 1500, showConfirmButton: false });
@@ -509,9 +633,9 @@ function poblarSelect(selectId, items, mapFn) {
 }
 
 function formatFecha(val) {
-    if (!val) return '—';
+    if (!val || val === '0001-01-01T00:00:00' || String(val).startsWith('0001-01-01')) return '—';
     const d = new Date(val);
-    if (isNaN(d)) return val;
+    if (isNaN(d) || d.getFullYear() <= 1900) return '—';
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 

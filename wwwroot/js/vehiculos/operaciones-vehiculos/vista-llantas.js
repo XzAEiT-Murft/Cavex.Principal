@@ -99,7 +99,7 @@ function inicializarVistaLlantas() {
         }
 
         try {
-            const response = await fetch("/Vehiculos/SaveLlanta", {
+            const response = await fetch("/Llantas/SaveLlanta", {
                 method: "POST",
                 body: formData
             });
@@ -144,7 +144,7 @@ async function cargarCatalogosLlantas() {
         const [vehRes, empRes, asigRes] = await Promise.all([
             fetch("/Vehiculos/GetVehiculos").then(r => r.json()),
             fetch("/Empleado/GetEmpleadosDropdown").then(r => r.json()),
-            fetch("/Vehiculos/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
+            fetch("/Asignaciones/GetAsignacionesActivas").then(r => r.json()).catch(() => ({ success: false }))
         ]);
 
         // Empleados y asignaciones
@@ -474,7 +474,7 @@ function limpiarErrorCampo(campo) {
 
 async function cargarLlantasList() {
     try {
-        const response = await fetch("/Vehiculos/GetLlantas");
+        const response = await fetch("/Marcas/GetLlantas");
         const result = await response.json();
         if (result.success && result.data) {
             listaLlantas = result.data;
@@ -675,7 +675,7 @@ function eliminarLlanta(id) {
                 didOpen: () => Swal.showLoading()
             });
             try {
-                const response = await fetch(`/Vehiculos/DeleteLlanta/${id}`, { method: "POST" });
+                const response = await fetch(`/Llantas/DeleteLlanta/${id}`, { method: "POST" });
                 const res = await response.json();
                 Swal.close();
                 if (res.success) {

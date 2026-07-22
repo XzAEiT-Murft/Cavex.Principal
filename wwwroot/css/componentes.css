@@ -198,6 +198,7 @@
     border-radius: 14px;
     box-shadow: 0 12px 28px rgba(6, 27, 58, 0.14);
     padding: .45rem;
+    z-index: 1060;
 }
 
 .actions-dropdown .dropdown-item {

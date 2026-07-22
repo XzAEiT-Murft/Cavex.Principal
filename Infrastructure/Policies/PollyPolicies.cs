@@ -1,4 +1,4 @@
-﻿using Polly;
+using Polly;
 using Polly.Extensions.Http;
 
 namespace Cavex.Principal.Infrastructure.Policies
@@ -10,20 +10,21 @@ namespace Cavex.Principal.Infrastructure.Policies
             return HttpPolicyExtensions
                 .HandleTransientHttpError()
                 .WaitAndRetryAsync(
-                    3,
-                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+                    2,
+                    retryAttempt => TimeSpan.FromMilliseconds(200 * retryAttempt));
         }
 
         public static IAsyncPolicy<HttpResponseMessage> TimeoutPolicy()
         {
-            return Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(30));
+            return Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(5));
         }
 
         public static IAsyncPolicy<HttpResponseMessage> CircuitBreakerPolicy()
         {
+            // Ajustado para entorno local/desarrollo: tolera más fallos consecutivos (100) y reduce el tiempo de bloqueo (1 seg)
             return HttpPolicyExtensions
                 .HandleTransientHttpError()
-                .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
+                .CircuitBreakerAsync(100, TimeSpan.FromSeconds(1));
         }
     }
 }

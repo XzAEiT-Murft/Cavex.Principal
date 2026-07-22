@@ -1,4 +1,5 @@
 using Cavex.Principal.Models.VehCatMarcaVehiculo;
+using Cavex.Principal.Models.VehCatMarcaLlanta;
 using Cavex.Principal.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,12 +9,17 @@ namespace Cavex.Principal.Controllers
     public class MarcasController : Controller
     {
         private readonly IVehCatMarcaVehiculoService _service;
+        private readonly IVehCatMarcaLlantaService _vehCatMarcaLlantaService;
         private readonly IMemoryCache _cache;
         private const string CacheKey = "marcas_list";
 
-        public MarcasController(IVehCatMarcaVehiculoService service, IMemoryCache cache)
+        public MarcasController(
+            IVehCatMarcaVehiculoService service,
+            IVehCatMarcaLlantaService vehCatMarcaLlantaService,
+            IMemoryCache cache)
         {
             _service = service;
+            _vehCatMarcaLlantaService = vehCatMarcaLlantaService;
             _cache = cache;
         }
 
@@ -105,6 +111,59 @@ namespace Cavex.Principal.Controllers
             }
 
             _cache.Remove(CacheKey);
+
+            return Json(new { success = true, data = response.Data });
+        }
+
+        [HttpGet("/Marcas/MarcaLlanta")]
+        public IActionResult MarcaLlanta()
+        {
+            return View();
+        }
+
+        [HttpGet("/Marcas/MarcasLlantas/GetMarcas")]
+        public async Task<IActionResult> GetMarcasLlantas(CancellationToken cancellationToken)
+        {
+            var response = await _vehCatMarcaLlantaService.ObtenerTodosAsync(cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
+            return Json(new { success = true, data = response.Data?.Items ?? Enumerable.Empty<VehCatMarcaLlantaDto>() });
+        }
+
+        [HttpPost("/Marcas/MarcasLlantas/SaveMarca")]
+        public async Task<IActionResult> SaveMarcaLlanta([FromBody] VehCatMarcaLlantaSaveDto model, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return Json(new { success = false, message = string.Join(" ", errors) });
+            }
+
+            var response = await _vehCatMarcaLlantaService.CrearAsync(model, cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
+
+            return Json(new { success = true, data = response.Data });
+        }
+
+        [HttpPost("/Marcas/MarcasLlantas/UpdateMarca")]
+        public async Task<IActionResult> UpdateMarcaLlanta([FromBody] VehCatMarcaLlantaEditDto model, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return Json(new { success = false, message = string.Join(" ", errors) });
+            }
+
+            var response = await _vehCatMarcaLlantaService.EditarAsync(model, cancellationToken);
+            if (!response.Success)
+            {
+                return Json(new { success = false, message = response.Message });
+            }
 
             return Json(new { success = true, data = response.Data });
         }

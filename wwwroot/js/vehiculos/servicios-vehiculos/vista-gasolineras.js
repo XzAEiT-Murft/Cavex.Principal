@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadGasolinerasFromServer() {
     try {
-        const response = await fetch("/Vehiculos/Gasolineras/GetGasolineras", {
+        const response = await fetch("/Gasolina/Gasolineras/GetGasolineras", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
@@ -236,7 +236,7 @@ async function handleFormSubmit(e) {
     if (nombreInput) nombreInput.classList.add("is-valid");
 
     const isEdit = editingId !== null;
-    const url = isEdit ? "/Vehiculos/Gasolineras/Actualizar" : "/Vehiculos/Gasolineras/Crear";
+    const url = isEdit ? "/Gasolina/Gasolineras/Actualizar" : "/Gasolina/Gasolineras/Crear";
 
     const payload = {
         Id: editingId || 0,
@@ -309,7 +309,7 @@ function deleteGasolinera(id) {
     }).then(async (res) => {
         if (res.isConfirmed) {
             try {
-                const response = await fetch(`/Vehiculos/Gasolineras/Eliminar/${id}`, {
+                const response = await fetch(`/Gasolina/Gasolineras/Eliminar/${id}`, {
                     method: "POST"
                 });
                 const result = await response.json();

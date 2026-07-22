@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehControlServicio
 {
@@ -31,6 +31,9 @@ namespace Cavex.Principal.Models.VehControlServicio
         [Display (Name ="Detalle del servicio")]
 
         public string? StrVehServicioDetalle { get; set; }
+
+        [Display(Name = "Comprobante de pago")]
+        public string? StrUrlComprobantePago { get; set; }
 
     }
 }

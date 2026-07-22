@@ -53,6 +53,8 @@ function formatNumberWithCommas(value) {
     return Number(clean).toLocaleString("es-MX");
 }
 
+let formIsDirty = false;
+
 function inicializarRegistroVehiculo() {
     const form = document.getElementById("vehiculoForm");
     if (!form) return;
@@ -62,14 +64,50 @@ function inicializarRegistroVehiculo() {
     inicializarContadorObservaciones();
     inicializarCargaImagen();
 
+    // Confirmación al presionar "Cancelar / Volver"
+    const cancelBtn = document.querySelector(".vehiculo-action-bar a.btn-outline-cavex");
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", event => {
+            if (formIsDirty) {
+                event.preventDefault();
+                const targetUrl = cancelBtn.href;
+                Swal.fire({
+                    title: "¿Deseas salir del formulario?",
+                    text: "Tienes cambios sin guardar. Si continúas, los datos ingresados se borrarán.",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#ef4444",
+                    cancelButtonColor: "#6b7280",
+                    confirmButtonText: "Sí, salir y borrar",
+                    cancelButtonText: "Permanecer aquí"
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        formIsDirty = false;
+                        window.location.href = targetUrl;
+                    }
+                });
+            }
+        });
+    }
+
+    // Advertencia nativa del navegador al recargar o cerrar la pestaña si hay cambios sin guardar
+    window.addEventListener("beforeunload", event => {
+        if (formIsDirty) {
+            event.preventDefault();
+            event.returnValue = "";
+        }
+    });
+
     // Eventos de cambios e inputs en los controles
     form.querySelectorAll("input:not([type='file']):not([type='hidden']), select, textarea").forEach(campo => {
         campo.addEventListener("input", () => {
+            formIsDirty = true;
             validarCampoVehiculoEnTyping(campo);
             actualizarVistaPrevia();
         });
 
         campo.addEventListener("change", () => {
+            formIsDirty = true;
             validarCampoVehiculo(campo);
             actualizarVistaPrevia();
         });
@@ -161,10 +199,12 @@ function inicializarRegistroVehiculo() {
                 Swal.fire({
                     icon: "success",
                     title: "Vehículo guardado",
-                    text: "El vehículo se ha registrado exitosamente en la base de datos.",
+                    text: "El vehículo se ha registrado exitosamente.",
                     confirmButtonColor: "var(--teal-cavex)",
                     confirmButtonText: "Ver listado de vehículos"
                 }).then(() => {
+                    formIsDirty = false;
+                    sessionStorage.removeItem("vehiculosDemo_cache");
                     window.location.href = '/Vehiculos/Index';
                 });
             } else {

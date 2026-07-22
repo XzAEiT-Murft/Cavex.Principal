@@ -1,9 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cavex.Principal.Models.VehControlServicio
 {
     public class VehControlServicioSaveDto
     {
+        public string? StrUrlComprobantePago { get; set; }
+
         [Required(ErrorMessage = "El vehiculo es obligatorio.")]
         [Display(Name = "Vehiculo")]
         public int IdVehDatosGenerales { get; set; }

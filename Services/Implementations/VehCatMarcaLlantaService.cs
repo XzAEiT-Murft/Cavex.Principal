@@ -25,10 +25,10 @@ namespace Cavex.Principal.Services.Implementations
             ExecuteAsync(() => _vehCatMarcaLlantaApi.GetByIdAsync(id, cancellationToken), "No fue posible obtener el registro de VehCatMarcaLlanta.");
 
         public Task<ResponseWrapper<VehCatMarcaLlantaDto>> CrearAsync(VehCatMarcaLlantaSaveDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehCatMarcaLlantaApi.CreateAsync(dto, cancellationToken), "No fue posible crear el registro de VehCatMarcaLlanta.");
+            ExecuteAsync(() => _vehCatMarcaLlantaApi.CreateAsync(RequestWrapper<VehCatMarcaLlantaSaveDto>.Create(dto), cancellationToken), "No fue posible crear el registro de VehCatMarcaLlanta.");
 
         public Task<ResponseWrapper<VehCatMarcaLlantaDto>> EditarAsync(VehCatMarcaLlantaEditDto dto, CancellationToken cancellationToken = default) =>
-            ExecuteAsync(() => _vehCatMarcaLlantaApi.UpdateAsync(dto, cancellationToken), "No fue posible editar el registro de VehCatMarcaLlanta.");
+            ExecuteAsync(() => _vehCatMarcaLlantaApi.UpdateAsync(dto.Id, RequestWrapper<VehCatMarcaLlantaEditDto>.Create(dto), cancellationToken), "No fue posible editar el registro de VehCatMarcaLlanta.");
 
         public Task<ResponseWrapper<bool>> EliminarAsync(int id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(() => _vehCatMarcaLlantaApi.DeleteAsync(id, cancellationToken), "No fue posible eliminar el registro de VehCatMarcaLlanta.");

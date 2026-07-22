@@ -31,6 +31,9 @@ function cargarCatalogos() {
 function inicializarVehiculosIndex() {
     if (!document.getElementById("vehiculosTableBody")) return;
     
+    sessionStorage.removeItem("vehiculosDemo_cache");
+    sessionStorage.removeItem("vehiculoCatalogos_cache");
+
     document.getElementById("vehiculosTableSearch")?.addEventListener("input", event => {
         vehiculosSearchQuery = event.target.value.trim().toLowerCase();
         vehiculosCurrentPage = 1;
@@ -127,13 +130,11 @@ function renderVehiculosTable() {
 
     body.innerHTML = pagina.length ? pagina.map(v => `
         <tr>
-            <td><span class="vehicle-avatar">${v.strUrlFoto ? `<img src="${escapeHtml(v.strUrlFoto)}" alt="">` : vehicleIcon()}</span></td>
-            <td><div class="description-text font-weight-700">${escapeHtml(v.strPlaca)}</div><div class="vehicle-muted-line">${escapeHtml(v.strNumSerie)}</div></td>
+            <td><div class="description-text font-weight-700"><span class="badge bg-light text-dark border">${escapeHtml(v.strPlaca)}</span></div><div class="vehicle-muted-line">${escapeHtml(v.strNumSerie)}</div></td>
             <td>${escapeHtml(v.strMarca)}</td>
             <td><div class="description-text">${escapeHtml(v.strModelo)}</div><div class="vehicle-muted-line">${escapeHtml(v.strVersion || "Sin versión")}</div></td>
             <td>${v.intAnio}</td>
             <td>${escapeHtml(v.strColor)}</td>
-            <td>${Number(v.decKilometrajeActual).toLocaleString("es-MX")} km</td>
             <td>${renderVehiculoBadge(v.strStatus)}</td>
             <td class="text-end">
                     <div class="dropdown actions-dropdown d-inline-block">
@@ -163,7 +164,7 @@ function renderVehiculosTable() {
                         </ul>
                     </div>
                 </td>
-        </tr>`).join("") : '<tr><td colspan="9" class="text-center py-5 text-muted">No se encontraron vehículos.</td></tr>';
+        </tr>`).join("") : '<tr><td colspan="7" class="text-center py-5 text-muted">No se encontraron vehículos.</td></tr>';
 
     setText("vehiculosCountTodos", String(vehiculosDemo.length));
     setText("vehiculosCountActivos", String(vehiculosDemo.filter(v => v.strStatus === "Activo").length));
@@ -242,6 +243,7 @@ function eliminarVehiculo(id) {
                         text: 'El vehículo ha sido eliminado exitosamente.',
                         confirmButtonColor: 'var(--teal-cavex)'
                      }).then(() => {
+                        sessionStorage.removeItem("vehiculosDemo_cache");
                         window.location.reload();
                     });
                 } else {
@@ -302,6 +304,7 @@ function cambiarStatusVehiculo(id, statusId, statusValor) {
                 text: `El estatus del vehículo ha sido actualizado a "${statusValor}".`,
                 confirmButtonColor: 'var(--teal-cavex)'
             }).then(() => {
+                sessionStorage.removeItem("vehiculosDemo_cache");
                 window.location.reload();
             });
         } else {

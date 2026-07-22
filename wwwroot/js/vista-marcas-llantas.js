@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadMarcasFromServer() {
     try {
-        const response = await fetch("/Vehiculos/MarcasLlantas/GetMarcas", {
+        const response = await fetch("/Marcas/MarcasLlantas/GetMarcas", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
@@ -152,6 +152,12 @@ function renderMarcas() {
                                     Editar
                                 </button>
                             </li>
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center text-danger" type="button" onclick="eliminarMarca(${m.id})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2 text-danger"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                    Eliminar
+                                </button>
+                            </li>
                         </ul>
                     </div>
                 </td>`;
@@ -265,8 +271,8 @@ async function handleFormSubmit(e) {
     }
 
     const url = editingId === null
-        ? "/Vehiculos/MarcasLlantas/SaveMarca"
-        : "/Vehiculos/MarcasLlantas/UpdateMarca";
+        ? "/Marcas/MarcasLlantas/SaveMarca"
+        : "/Marcas/MarcasLlantas/UpdateMarca";
 
     try {
         const response = await fetch(url, {
